@@ -1,7 +1,4 @@
 """
-Authors: Brian Svoboda
-Date: 2013, 4, 5
-
 Library to match catalogs.
 """
 # TODO add survey boundaries to put in null values if not in overlap region

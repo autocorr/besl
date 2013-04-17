@@ -1,7 +1,4 @@
 """
-Authors: Brian Svoboda
-Date: 2013, 4, 11
-
 Plotting routines for BGPS observation boundaries
 """
 

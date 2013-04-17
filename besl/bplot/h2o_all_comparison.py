@@ -1,7 +1,4 @@
 """
-Authors: Brian Svoboda
-Date: 2012, 12, 10
-
 Plotting routines for comparing BGPS GBT, HOPS, RMS, and Arectri H2O maser
 surveys and catalogs.
 """

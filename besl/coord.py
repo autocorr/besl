@@ -1,7 +1,4 @@
 """
-Authors: Brian Svoboda
-Date: 2012, 12, 3
-
 Routines for manipulating coordinates.
 """
 
