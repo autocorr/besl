@@ -7,12 +7,19 @@ research.
 REQUIREMENTS
 ============
 numpy >=
+
 scipy >=
+
 pandas >=
+
 matplotlib >=
+
 atpy >=
+
 pyephemeris >=
+
 pywcs >=
+
 pyfits >=
 
 
