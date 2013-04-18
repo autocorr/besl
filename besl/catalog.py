@@ -116,22 +116,26 @@ def read_gbt_nh3():
     -------
     gbt_nh3 : pandas.DataFrame
         Output catalog in a pandas DataFrame object
+    idl_list : list
+        IDL save file products
     """
     import idlsave
     import warnings
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         nh3_1 = idlsave.read(d.cat_dir + d.gbt_nh3_1_filen, verbose=False)
-        nh3_2 = idlsave.read(d.cat_dir + d.gbt_nh3_1_filen, verbose=False)
-        nh3_3 = idlsave.read(d.cat_dir + d.gbt_nh3_1_filen, verbose=False)
+        nh3_2 = idlsave.read(d.cat_dir + d.gbt_nh3_2_filen, verbose=False)
+        nh3_3 = idlsave.read(d.cat_dir + d.gbt_nh3_3_filen, verbose=False)
+    idl_list = [nh3_1, nh3_2, nh3_3]
     nh3_1 = _pd.DataFrame(nh3_1.s)
     nh3_2 = _pd.DataFrame(nh3_2.s)
     nh3_3 = _pd.DataFrame(nh3_3.s)
-    gbt_nh3 = _pd.concat([nh3_1, nh3_2, nh3_3], ignore_index=True)
+    df_list = [nh3_1, nh3_2, nh3_3]
+    gbt_nh3 = _pd.concat(df_list, ignore_index=True)
     gbt_nh3['SNR11'] = gbt_nh3['PK11'] / gbt_nh3['NOISE11']
     gbt_nh3['SNR22'] = gbt_nh3['PK22'] / gbt_nh3['NOISE22']
     gbt_nh3['SNR33'] = gbt_nh3['PK33'] / gbt_nh3['NOISE33']
-    return gbt_nh3
+    return gbt_nh3, idl_list
 
 def read_wise():
     """
