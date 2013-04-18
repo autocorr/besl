@@ -47,6 +47,9 @@ class Dirs(object):
         self.v2_dpdf_filen = 'emaf/BGPS_V2_dpdf_table.fits'
         self.v1_emaf_filen = 'emaf/emaf_dist_V1.csv'
         self.v2_emaf_filen = 'emaf/emaf_dist_V2.csv'
+        self.gbt_nh3_1_filen = 'bgps/nh3_11B48_fit_objects.sav'
+        self.gbt_nh3_2_filen = 'bgps/nh3_bgps_fit_objects.sav'
+        self.gbt_nh3_3_filen = 'bgps/nh3_rms_fit_objects.sav'
 d = Dirs()
 
 ### Read functions ###
@@ -103,6 +106,32 @@ def read_molcat():
     molcat = _pd.read_csv(d.cat_dir + d.molcat_filen, na_values=['99.99'],
         skiprows=43)
     return molcat
+
+def read_gbt_nh3():
+    """
+    Read BGPS GBT NH3 observation and temperature fit catalog. Citation:
+    Dunham et al. (2011), Rosolowsky et al. (in prep.).
+
+    Returns
+    -------
+    gbt_nh3 : pandas.DataFrame
+        Output catalog in a pandas DataFrame object
+    """
+    import idlsave
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        nh3_1 = idlsave.read(d.cat_dir + d.gbt_nh3_1_filen, verbose=False)
+        nh3_2 = idlsave.read(d.cat_dir + d.gbt_nh3_1_filen, verbose=False)
+        nh3_3 = idlsave.read(d.cat_dir + d.gbt_nh3_1_filen, verbose=False)
+    nh3_1 = _pd.DataFrame(nh3_1.s)
+    nh3_2 = _pd.DataFrame(nh3_2.s)
+    nh3_3 = _pd.DataFrame(nh3_3.s)
+    gbt_nh3 = _pd.concat([nh3_1, nh3_2, nh3_3], ignore_index=True)
+    gbt_nh3['SNR11'] = gbt_nh3['PK11'] / gbt_nh3['NOISE11']
+    gbt_nh3['SNR22'] = gbt_nh3['PK22'] / gbt_nh3['NOISE22']
+    gbt_nh3['SNR33'] = gbt_nh3['PK33'] / gbt_nh3['NOISE33']
+    return gbt_nh3
 
 def read_wise():
     """
