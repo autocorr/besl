@@ -43,6 +43,10 @@ class Dirs(object):
         self.hrds_ao_filen = 'hrds/hrds_arecibo_slist.csv'
         self.hrds_gbt_filen = 'hrds/hrds_gbt_slist.csv'
         self.hii_bania_filen = 'hrds/known_hii_bania.csv'
+        self.v1_dpdf_filen = 'emaf/BGPS_V1_dpdf_table.fits'
+        self.v2_dpdf_filen = 'emaf/BGPS_V2_dpdf_table.fits'
+        self.v1_emaf_filen = 'emaf/emaf_dist_V1.csv'
+        self.v2_emaf_filen = 'emaf/emaf_dist_V2.csv'
 d = Dirs()
 
 ### Read functions ###
@@ -62,6 +66,8 @@ def read_bgps(v=2):
     bgps : pandas.DataFrame
         Output catalog in a pandas DataFrame object
     """
+    if v not in [1, 2]:
+        raise ValueError('v = {}. Must be 1 or 2.'.format(v))
     if v == 1:
         bgps = _pd.read_csv(d.cat_dir + d.bgps1_filen, comment='#',
             na_values=['null'], skiprows=4)
@@ -250,7 +256,7 @@ def read_mmb():
         Output catalog in a pandas DataFrame object
     """
     mmb = _pd.read_csv(d.cat_dir + d.mmb_filen, sep=',', na_values=[-999])
-    mmb['ra'] = (mmb.ra_h + mmb.ra_m / 60. + mmb.ra_s / (60. * 60.) \
+    mmb['ra'] = (mmb.ra_h + mmb.ra_m / 60. + mmb.ra_s / (60. * 60.)) \
         * 360. / 24.
     mmb['dec'] = mmb.dec_d + mmb.dec_m / 60. + mmb.dec_s / (60. * 60.)
     return mmb
@@ -388,6 +394,54 @@ def read_hii_bania():
         skipinitialspace=True, skiprows=8)
     return hii_bania
 
+def read_dpdf(v=2):
+    """
+    Read Distance Probability Distribution Functions. Citation:
+    Ellsworth-Bowers et al. (2013).
+
+    Parameters
+    ----------
+    v : number {1, 2}, default 2
+        Version of BGPS to use
+
+    Returns
+    -------
+    dpdf : pandas.DataFrame
+    """
+    if v not in [1, 2]:
+        raise ValueError('v = {}. Must be 1 or 2.'.format(v))
+    if v == 1:
+        dpdf = _pyfits.open(d.cat_dir + d.v1_dpdf_filen)
+        return dpdf
+    if v == 2:
+        dpdf = _pyfits.open(d.cat_dir + d.v2_dpdf_filen)
+        return dpdf
+
+def read_emaf_dist(v=2):
+    """
+    Read EMAF calculated distances and parameters. Citation: Ellsworth-Bowers
+    et al. (2013).
+
+    Parameters
+    ----------
+    v : number {1, 2}, default 2
+        Version of BGPS to use
+
+    Returns
+    -------
+    emaf : pandas.DataFrame
+    """
+    if v not in [1, 2]:
+        raise ValueError('v = {}. Must be 1 or 2.'.format(v))
+    if v == 1:
+        emaf = _pd.read_csv(d.cat_dir + d.v1_emaf_filen, sep=';',
+            skipinitialspace=True, skiprows=33, na_values=['---'])
+        return emaf
+    if v == 2:
+        emaf = _pd.read_csv(d.cat_dir + d.v2_emaf_filen, sep=';',
+            skipinitialspace=True, skiprows=31, na_values=['---'])
+        return emaf
+
 ### Clump matching
 # Procedures dealing with the BGPS label masks
 def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
@@ -418,6 +472,8 @@ def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
     match_index : list
         List of indices for sources that match within label mask
     """
+    if bgps_ver not in [1, 2]:
+        raise ValueError('bgps_ver = {}. Must be 1 or 2.'.format(v))
     from besl.coord import nearest_match_coords
     search_rad = _np.sqrt(2) * pix_size / 2.
     index_list = []
