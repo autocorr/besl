@@ -141,7 +141,7 @@ def eq2gal(ra, dec, epoch='2000'):
     glon : number
     glat : number
     """
-    if epoch not in ['1950' or '2000']
+    if epoch not in ['1950' or '2000']:
         raise ValueError(
             'epoch = {}. Must be string 1950 or 2000'.format(epoch))
     equ = _ephem.Equatorial(_np.deg2rad(ra), _np.deg2rad(dec), epoch=epoch)
@@ -164,7 +164,7 @@ def gal2eq(glon, glat, epoch='2000'):
     ra : number
     dec : number
     """
-    if epoch not in ['1950' or '2000']
+    if epoch not in ['1950' or '2000']:
         raise ValueError(
             'epoch = {}. Must be string 1950 or 2000'.format(epoch))
     gal = _ephem.Galactic(_np.deg2rad(glon), _np.deg2rad(glat), epoch=epoch)
