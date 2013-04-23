@@ -505,18 +505,17 @@ def select_bgps_field(lon, lat, coord_type='eq'):
     if coord_type == 'eq':
         lon, lat = eq2gal(lon, lat)
     # select field
-    glon_max_sep = _np.mod(lon - bgps_bounds.glon_max + 180, 360) - 180
-    glon_min_sep = _np.mod(lon - bgps_bounds.glon_min + 180, 360) - 180
-    field = bgps_bounds.ix[_np.argwhere((glon_max_sep.values > 0) &
-        (glon_min_sep.values < 0))[0][0]]['field']
-    #field = bgps_bounds[(bgps_bounds.glon_min < lon) &
-    #                    (bgps_bounds.glon_max > lon) &
-    #                    (bgps_bounds.glat_min < lat) &
-    #                    (bgps_bounds.glat_max > lat)].field
+    if ((((lon > 359.4265) & (lon < 360)) | ((lon < 0.4515) & (lon > 0))) &
+        ((lat < 0.629857) & (lat > -0.629857))):
+        return 'l000'
+    field = bgps_bounds[(bgps_bounds.glon_min < lon) &
+                        (bgps_bounds.glon_max > lon) &
+                        (bgps_bounds.glat_min < lat) &
+                        (bgps_bounds.glat_max > lat)].field
     if len(field) == 0:
         return _np.nan
     else:
-        return field
+        return field.values[0]
 
 ### Clump matching
 # Procedures dealing with the BGPS label masks
@@ -608,7 +607,7 @@ def match_all_clumps():
     pass
 
 ### DS9 regions
-def create_point_region(lon, lat, out_filen='ds9.reg', marker_type='circle',
+def create_point_region(lon, lat, out_filen='ds9', marker='circle',
         coord_type='fk5', color='green'):
     """
     Create a DS9 region file from a list of longitude and latitude coordinates.
@@ -635,15 +634,16 @@ def create_point_region(lon, lat, out_filen='ds9.reg', marker_type='circle',
     """
     point_strings = ['circle', 'box', 'diamond', 'cross', 'x', 'arrow',
         'boxcircle']
-    out_file = open(d.out_dir + out_filen, 'w')
-    out_file.write('# global color={0}'.format(color))
-    out_file.write('{0}'.format(coord_type))
-    if marker in point_types:
-        for i in xrange(lon.shape[0]):
-            out_file.write('{marker} point {lon} {lat}'.format(
-                marker=marker,
-                lon=lon[i],
-                lat=lat[i]))
+    if marker not in point_strings:
+        raise ValueError('Invalid marker string.')
+    out_file = open(out_filen + '.reg', 'w')
+    out_file.write('# global color={0}\n'.format(color))
+    out_file.write('{0}\n'.format(coord_type))
+    for i in xrange(lon.shape[0]):
+        out_file.write('{marker} point {lon} {lat}\n'.format(
+            marker=marker,
+            lon=lon[i],
+            lat=lat[i]))
     out_file.close()
     print '-- DS9 region file written to {}'.format(out_filen)
     return
