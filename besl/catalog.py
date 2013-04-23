@@ -12,7 +12,6 @@ import pandas as _pd
 import ephem as _ephem
 import pywcs as _pywcs
 import pyfits as _pyfits
-_sys.path.append('/mnt/eld_data/scripts/besl')
 
 ### Directories, paths, and environment variables
 class Dirs(object):
@@ -475,6 +474,44 @@ def read_emaf_dist(v=2):
             skipinitialspace=True, skiprows=31, na_values=['---'])
         return emaf
 
+def select_bgps_field(lon, lat, coord_type='eq'):
+    """
+    Select BGPS image field name from sky position in galactic longitude and
+    latitude.
+
+    Parameters
+    ----------
+    glon : number
+        Galactic longitude in decimal degrees
+    glat : number
+        Galactic latitude in decimal degrees
+
+    Returns
+    -------
+    field : string
+        Image field name
+    """
+    from besl.coord import eq2gal
+    if coord_type not in ['eq', 'gal']:
+        raise ValueError(
+            'coord_type = {}. Must be eq or gal.'.format(coord_type))
+    # read catalog
+    bgps_bounds = read_bgps_bounds()
+    # convert equatorial to galactic
+    if coord_type == 'eq':
+        glon, glat = eq2gal(lon, lat)
+    # select field
+    field = bgps_bounds[(bgps_bounds.glon_min < lon) &
+                        (bgps_bounds.glon_max > lon) &
+                        (bgps_bounds.glat_min < lat) &
+                        (bgps_bounds.glat_max > lat)].field
+    if len(field) > 1:
+        raise ValueError('Found in {} images.'.format(len(field)))
+    elif len(field) == 1:
+        return field.values[0]
+    elif len(field) == 0:
+        return np.nan
+
 ### Clump matching
 # Procedures dealing with the BGPS label masks
 def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
@@ -505,6 +542,8 @@ def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
     match_index : list
         List of indices for sources that match within label mask
     """
+    # TODO support v1
+    import ipdb as pdb
     if bgps_ver not in [1, 2]:
         raise ValueError('bgps_ver = {}. Must be 1 or 2.'.format(v))
     from besl.coord import nearest_match_coords
@@ -527,7 +566,7 @@ def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
     # for each pixel, use as "needle" in the haystack of the supplied catalog
     for coord in pixel_coords:
         # if haystack in Equatorial, convert pixel from Galactic
-        if coord_type == 'ra':
+        if coord_type == 'eq':
             gal = _ephem.Galactic(_np.deg2rad(coord[0]), _np.deg2rad(coord[1]),
                 epoch='2000')
             coord = _np.degrees(gal.to_radec())
@@ -555,7 +594,6 @@ def match_IR():
     # TODO
     pass
 
-### match all clumps
 def match_all_clumps():
     # TODO
     # select clumps in overlap range or put null value if not in overlap range
@@ -563,6 +601,7 @@ def match_all_clumps():
     #   select only clump in label mask fits
     pass
 
+### DS9 regions
 def create_point_region(lon, lat, out_filen='ds9.reg', marker_type='circle',
         coord_type='fk5', color='green'):
     """

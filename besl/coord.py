@@ -4,6 +4,7 @@ Routines for manipulating coordinates.
 
 import math as _m
 import numpy as _np
+import ephem as _ephem
 
 def dec2sexstr(deci, sfigs=1, hd='h', lead_psign=False):
     """
@@ -125,3 +126,47 @@ def nearest_match_coords(needle, haystack, min_sep):
     min_dist = _np.degrees(d.min())
     return matchn, min_index, min_dist
 
+def eq2gal(ra, dec, epoch='2000'):
+    """
+    Convert equatorial coordinates in decimal degrees to Galactic.
+
+    Parameters
+    ----------
+    ra : number
+    dec : number
+    epoch : string, default '2000'
+
+    Returns
+    -------
+    glon : number
+    glat : number
+    """
+    if epoch not in ['1950' or '2000']
+        raise ValueError(
+            'epoch = {}. Must be string 1950 or 2000'.format(epoch))
+    equ = _ephem.Equatorial(_np.deg2rad(ra), _np.deg2rad(dec), epoch=epoch)
+    gal = _ephem.Galactic(equ)
+    glon, glat = _np.degrees([gal.lon, gal.lat])
+    return (glon, glat)
+
+def gal2eq(glon, glat, epoch='2000'):
+    """
+    Convert Galactic coordinates in decimal degrees to equatorial.
+
+    Parameters
+    ----------
+    glon : number
+    glat : number
+    epoch : string, default '2000'
+
+    Returns
+    -------
+    ra : number
+    dec : number
+    """
+    if epoch not in ['1950' or '2000']
+        raise ValueError(
+            'epoch = {}. Must be string 1950 or 2000'.format(epoch))
+    gal = _ephem.Galactic(_np.deg2rad(glon), _np.deg2rad(glat), epoch=epoch)
+    ra, dec = _np.degrees(gal.to_radec())
+    return (ra, dec)
