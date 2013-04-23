@@ -497,20 +497,26 @@ def select_bgps_field(lon, lat, coord_type='eq'):
             'coord_type = {}. Must be eq or gal.'.format(coord_type))
     # read catalog
     bgps_bounds = read_bgps_bounds()
+    # fudge factor because of frame spacing
+    epsilon = 0.0015
+    bgps_bounds['glon_min'] -= epsilon
+    bgps_bounds['glon_max'] += epsilon
     # convert equatorial to galactic
     if coord_type == 'eq':
-        glon, glat = eq2gal(lon, lat)
+        lon, lat = eq2gal(lon, lat)
     # select field
-    field = bgps_bounds[(bgps_bounds.glon_min < lon) &
-                        (bgps_bounds.glon_max > lon) &
-                        (bgps_bounds.glat_min < lat) &
-                        (bgps_bounds.glat_max > lat)].field
-    if len(field) > 1:
-        raise ValueError('Found in {} images.'.format(len(field)))
-    elif len(field) == 1:
-        return field.values[0]
-    elif len(field) == 0:
-        return np.nan
+    glon_max_sep = _np.mod(lon - bgps_bounds.glon_max + 180, 360) - 180
+    glon_min_sep = _np.mod(lon - bgps_bounds.glon_min + 180, 360) - 180
+    field = bgps_bounds.ix[_np.argwhere((glon_max_sep.values > 0) &
+        (glon_min_sep.values < 0))[0][0]]['field']
+    #field = bgps_bounds[(bgps_bounds.glon_min < lon) &
+    #                    (bgps_bounds.glon_max > lon) &
+    #                    (bgps_bounds.glat_min < lat) &
+    #                    (bgps_bounds.glat_max > lat)].field
+    if len(field) == 0:
+        return _np.nan
+    else:
+        return field
 
 ### Clump matching
 # Procedures dealing with the BGPS label masks
