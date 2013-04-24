@@ -9,6 +9,7 @@ References
 ----------
 [1] : http://ssd.jpl.nasa.gov/?constants
 [2] : http://wikipedia.org
+[3] : http://ned.ipac.caltech.edu/level5/Glossary/lang_formulae.html
 """
 
 from __future__ import division
