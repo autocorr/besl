@@ -1,5 +1,8 @@
 """
-Miscellaneous routines.
+=======================
+Miscellaneous Functions
+=======================
+
 """
 
 def logit():

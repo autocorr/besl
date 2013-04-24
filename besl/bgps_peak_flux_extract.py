@@ -1,5 +1,10 @@
 """
+======================
+BGPS Peak Flux Extract
+======================
+
 Extract peak values from BGPS maps
+
 """
 
 import numpy as _np

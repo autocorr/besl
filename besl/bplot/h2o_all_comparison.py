@@ -1,6 +1,11 @@
 """
+=======================
+H2O All Comparison Plot
+=======================
+
 Plotting routines for comparing BGPS GBT, HOPS, RMS, and Arectri H2O maser
 surveys and catalogs.
+
 """
 
 import numpy as _np

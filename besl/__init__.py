@@ -1,3 +1,12 @@
+"""
+====
+besl
+====
+
+.. moduleauthor :: Brian Svoboda <bsvo@lavabit.com>
+
+"""
+
 import bplot, catalog, coord, mathf, misc, prop
 import bgps_peak_flux_extract
 __all__ = ['bgps_peak_flux_extract', 'bplot', 'catalog', 'coord', 'math',

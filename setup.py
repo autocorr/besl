@@ -2,10 +2,11 @@
 
 # Python 2.x
 from distutils.command.build_py import build_py
+from besl import __version__ as version
 
 setup(name='besl',
-      version='0.0.1',
-      description='besl - a module of astronomy related routines',
+      version=version,
+      description='besl - Brian Svobodda Library, a module of astronomy related routines',
       author=['Brian Svoboda'],
       author_email=['bsvo@lavabit.com'],
       url='https://github.com/autocorr/besl',

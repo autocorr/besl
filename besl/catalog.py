@@ -1,5 +1,10 @@
 """
+=======================
+Read and Match Catalogs
+=======================
+
 Library to match catalogs.
+
 """
 # TODO add survey boundaries to put in null values if not in overlap region
 # TODO add in other WISE catalogs

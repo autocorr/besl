@@ -1,5 +1,10 @@
 """
+===========
+Coordinates
+===========
+
 Routines for manipulating coordinates.
+
 """
 
 import math as _m

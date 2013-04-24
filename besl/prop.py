@@ -1,5 +1,10 @@
 """
+=================
+Proposal Routines
+=================
+
 Routines for writing proposals.
+
 """
 
 import pandas as pd

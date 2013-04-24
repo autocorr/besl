@@ -1,5 +1,10 @@
 """
+===========
+Plot Bounds
+===========
+
 Plotting routines for BGPS observation boundaries
+
 """
 
 import numpy as _np

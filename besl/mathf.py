@@ -1,5 +1,10 @@
 """
+==============
+Math Functions
+==============
+
 Mathematical functions.
+
 """
 
 import numpy as _np
