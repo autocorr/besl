@@ -443,7 +443,8 @@ def read_dpdf(v=2):
 
     Returns
     -------
-    dpdf : pandas.DataFrame
+    dpdf : list
+        List of pyfits.hdu
     """
     if v not in [1, 2]:
         raise ValueError('v = {}. Must be 1 or 2.'.format(v))
