@@ -111,10 +111,15 @@ def read_molcat():
         skiprows=43)
     return molcat
 
-def read_gbt_nh3():
+def read_gbt_nh3(ret_idl=False):
     """
     Read BGPS GBT NH3 observation and temperature fit catalog. Citation:
     Dunham et al. (2011), Rosolowsky et al. (in prep.).
+
+    Parameters
+    ----------
+    ret_idl : Boolean, default False
+        Return list of record arrays from IDL save file
 
     Returns
     -------
@@ -123,6 +128,8 @@ def read_gbt_nh3():
     idl_list : list
         IDL save file products
     """
+    if type(ret_idl) != bool:
+        raise TypeError('ret_idl must be True or False')
     import idlsave
     import warnings
     with warnings.catch_warnings():
@@ -139,7 +146,10 @@ def read_gbt_nh3():
     gbt_nh3['SNR11'] = gbt_nh3['PK11'] / gbt_nh3['NOISE11']
     gbt_nh3['SNR22'] = gbt_nh3['PK22'] / gbt_nh3['NOISE22']
     gbt_nh3['SNR33'] = gbt_nh3['PK33'] / gbt_nh3['NOISE33']
-    return gbt_nh3, idl_list
+    if ret_idl:
+        return gbt_nh3, idl_list
+    elif not ret_idl:
+        return gbt_nh3, idl_list
 
 def read_wise():
     """
@@ -440,6 +450,8 @@ def read_dpdf(v=2):
     ----------
     v : number {1, 2}, default 2
         Version of BGPS to use
+    ret_idl : Boolean, default False
+        Return IDL list of 
 
     Returns
     -------
