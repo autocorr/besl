@@ -253,10 +253,10 @@ def read_msx():
     msx : pandas.DataFrame
         Output catalog in a pandas DataFrame object
     """
-    from besl.coord import sexstr2dec as _sexstr2dec
+    from besl.coord import sexstr2dec
     msx = _pd.read_csv(d.cat_dir + d.msx_filen)
-    msx['ra'] = msx['ra_str'].apply(_sexstr2dec, hd='h')
-    msx['dec'] = msx['dec_str'].apply(_sexstr2dec, hd='d')
+    msx['ra'] = msx['ra_str'].apply(sexstr2dec, hd='h')
+    msx['dec'] = msx['dec_str'].apply(sexstr2dec, hd='d')
     return msx
 
 def read_robitaille():
@@ -357,11 +357,11 @@ def read_arcetri_cesaroni():
     arcetri_ces : pandas.DataFrame
         Output catalog in a pandas DataFrame object
     """
-    from besl.coord import sexstr2dec as _sexstr2dec
+    from besl.coord import sexstr2dec
     arcetri_ces = _pd.read_csv(d.cat_dir + d.arcetri_ces_filen, sep=';',
         skipinitialspace=True, skiprows=1)
-    arcetri_ces['ra'] = arcetri_ces['ra_str'].apply(_sexstr2dec, hd='h')
-    arcetri_ces['dec'] = arcetri_ces['dec_str'].apply(_sexstr2dec, hd='d')
+    arcetri_ces['ra'] = arcetri_ces['ra_str'].apply(sexstr2dec, hd='h')
+    arcetri_ces['dec'] = arcetri_ces['dec_str'].apply(sexstr2dec, hd='d')
     return arcetri_ces
 
 def read_arcetri_valdettaro():
