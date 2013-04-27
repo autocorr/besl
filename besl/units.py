@@ -37,9 +37,9 @@ class CGS(object):
         # fundamental
         self.c = 29979245800. # cm s^-1, [1]
         self.k = 1.3806504e-16 # erg K^-1, [2]
-        self.G = 6.67428e-8 # cm^3 g^-1 s^-2, [2]
-        self.h = 6.62606885e-27 # erg s, [2]
-        self.hbar = self.h / (2 * _np.pi) # erg s, [2]
+        self.G = 6.67384e-8 # cm^3 g^-1 s^-2, [3]
+        self.h = 6.62606957e-27 # erg s, [3]
+        self.hbar = self.h / (2 * _np.pi) # erg s, [3]
         self.amu = 1.660538782e-24 # g, [2]
         self.bohr_magneton_emu = 9.27400915e-21 # erg G^-1 (EMU), [2]
         self.bohr_radius = 5.2917720859e-9 # cm, [2]
@@ -59,6 +59,15 @@ class MKS(object):
     Meter/kilogram/second unit system class.
     """
     def __init__(self):
+        # fundamental
+        self.c = 299792458. # m s^-1, [1]
+        self.k = 1.3806504e-23 # J K^-1, [2]
+        self.G = 6.67384e-11 # m^3 kg^-1 s^-2, [2]
+        self.h = 6.62606957e-34 # J s, [3]
+        self.hbar = self.h / (2 * _np.pi) # J s, [2]
+        self.amu = 1.660538782e-24 # kg, [2]
+        self.bohr_radius = 5.2917720859e-9 # m, [2]
+        self.fine_struct = 7.297352570e-3 # [2]
         # astronomy
         self.jday = 86400. # s, [1]
         self.jyear = 365.25 * self.jday # s, [1]
@@ -67,7 +76,6 @@ class MKS(object):
         self.kpc = 1e3 * self.pc
         self.Mpc = 1e6 * self.pc
         self.Gpc = 1e9 * self.pc
-        pass
 
 class Astro(object):
     """
@@ -104,7 +112,30 @@ class Molecule(object):
         # transition frequencies
         pass
 
-# Initialize classes
+### Convert functions
+def freq2wave(x, usys='mks'):
+    """
+    Convert between frequency in Hz and wavelength in m.
+
+    Parameters
+    ----------
+    x : array-like
+        nu or lamb to convert
+    usys : string, default 'mks'
+        Unit system, valid types: mks, cgs
+
+    Returns
+    -------
+    y : number
+    """
+    if usys not in ['cgs', 'mks']:
+        raise ValueError('usys must be mks or cgs.')
+    if usys == 'mks':
+        return mks.c / x
+    if usys == 'cgs':
+        return cgs.c / x
+
+### Initialize classes
 num = Number()
 cgs = CGS()
 mks = MKS()
