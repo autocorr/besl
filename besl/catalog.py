@@ -17,6 +17,7 @@ import pandas as _pd
 import ephem as _ephem
 import pywcs as _pywcs
 import pyfits as _pyfits
+from scipy.interpolate import interp1d
 
 ### Directories, paths, and environment variables
 class Dirs(object):
@@ -54,6 +55,7 @@ class Dirs(object):
         self.gbt_nh3_1_filen = 'bgps/nh3_11B48_fit_objects.sav'
         self.gbt_nh3_2_filen = 'bgps/nh3_bgps_fit_objects.sav'
         self.gbt_nh3_3_filen = 'bgps/nh3_rms_fit_objects.sav'
+        self.oh94_filen = 'oh94_dust/{}{}.asc'
 d = Dirs()
 
 ### Read functions ###
@@ -492,6 +494,32 @@ def read_emaf_dist(v=2):
             skipinitialspace=True, skiprows=31, na_values=['---'])
         return emaf
 
+def read_oh94_dust(model_type='mrn', modeln=0):
+    """
+    Read OH dust opacity models. Citation: Ossenkopf & Henning (1994).
+
+    Parameters
+    ----------
+    model_type : string, default 'mrn'
+        OH model type, valid inputs: mrn, thick, thin
+    modeln : number, default 0
+        OH model density number, valid inputs: 0, 5, 6, 7, 8
+
+    Returns
+    -------
+    oh94_dust : sp.interp1d
+        Scipy interpolation function
+    """
+    if model_type not in ['mrn', 'thick', 'thin']:
+        raise ValueError('Invalid model type.')
+    if modeln not in [0, 5, 6, 7, 8]:
+        raise ValueError('Invalid model density number.')
+    x, y = _np.loadtxt(d.cat_dir + d.oh94.filen.format(model_type,
+        modeln)).T
+    oh94_dust = interp1d(x, y, kind='linear')
+    return oh94_dust
+
+### Region match
 def select_bgps_field(lon, lat, coord_type='eq'):
     """
     Select BGPS image field name from sky position in galactic longitude and
