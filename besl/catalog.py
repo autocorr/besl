@@ -18,6 +18,7 @@ import ephem as _ephem
 import pywcs as _pywcs
 import pyfits as _pyfits
 from scipy.interpolate import interp1d
+from coord import eq2gal
 
 ### Directories, paths, and environment variables
 class Dirs(object):
@@ -111,6 +112,10 @@ def read_molcat():
     """
     molcat = _pd.read_csv(d.cat_dir + d.molcat_filen, na_values=['99.99'],
         skiprows=43)
+    molcat['hht_glon'] = molcat.apply(lambda row: eq2gal(molcat['hht_ra'],
+        molcat['hht_dec'])[0], axis=1)
+    molcat['hht_glat'] = molcat.apply(lambda row: eq2gal(molcat['hht_ra'],
+        molcat['hht_dec'])[0], axis=1)
     return molcat
 
 def read_gbt_nh3(ret_idl=False):
