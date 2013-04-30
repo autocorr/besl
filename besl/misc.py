@@ -22,5 +22,6 @@ def logit():
             hour=t.tm_hour,
             minu=t.tm_min)
     get_ipython().magic(u'logstart {}'.format(log_filen))
+    print '-- Logging to {}'.format(log_filen)
     return
 
