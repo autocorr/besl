@@ -175,3 +175,47 @@ def gal2eq(glon, glat, epoch='2000'):
     gal = _ephem.Galactic(_np.deg2rad(glon), _np.deg2rad(glat), epoch=epoch)
     ra, dec = _np.degrees(gal.to_radec())
     return (ra, dec)
+
+def pd_eq2gal(df, labels, new_labels=['glon', 'glat'], epoch='2000'):
+    """
+    Convert two coordinate columns of a pandas DataFrame from equatorial to
+    Galactic coordinates, both in decimal degrees.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+    labels : list
+        Column names of df
+    new_labels : list, default 'glon' and 'glat'
+    epoch : string, default '2000'
+
+    Returns
+    -------
+    df : pd.DataFrame
+        With added columns
+    """
+    df[new_labels[0]], df[new_labels[1]] = zip(*df[labels].apply(lambda row:
+        eq2gal(row[labels[0]], row[labels[1]], epoch=epoch), axis=1))
+    return df
+
+def pd_gal2eq(df, labels, new_labels=['ra', 'dec'], epoch='2000'):
+    """
+    Convert two coordinate columns of a pandas DataFrame from Galactic to
+    equatorial coordinates, both in decimal degrees.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+    labels : list
+        Column names of df
+    new_labels : list, default names 'ra' and 'dec'
+    epoch : string, default '2000'
+
+    Returns
+    -------
+    df : pd.DataFrame
+        With added columns
+    """
+    df[new_labels[0]], df[new_labels[1]] = zip(*df[labels].apply(lambda row:
+        gal2eq(row[labels[0]], row[labels[1]], epoch=epoch), axis=1))
+    return df
