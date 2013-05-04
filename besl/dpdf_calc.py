@@ -11,14 +11,12 @@ Routines for handling EMAF DPDF's. Citation: Ellsworth-Bowers et al. (2013).
 #   sizes / radius
 #   bolometric luminosity
 #   isotropic water maser luminosity
-# monte carlo sampler
 
-import pyfits
-import numpy as np
-import scipy as sp
-import pandas as pd
-import matplotlib.pyplot as plt
-from besl.catalog import read_dpdf, read_emaf_dist
+import os as _os
+import numpy as _np
+import pandas as _pd
+import matplotlib.pyplot as _plt
+from besl.catalog import read_dpdf, read_emaf_dist, read_oh94_dust
 from scipy.interpolate import interp1d
 
 def mc_sampler_2d(x, y, lims=[0,1,0,1], nsample=1e3):
@@ -37,42 +35,54 @@ def mc_sampler_2d(x, y, lims=[0,1,0,1], nsample=1e3):
 
     Returns
     -------
-    samples : np.array
-        Array of sampled values
+    xsamples : np.array
+    ysamples : np.array
+        Arrays of sampled x and evaluated y values
     """
-    # TODO put in mathf module
     if len(lims) != 4:
         raise ValueError('lims must be length 4.')
     if len(x) != len(y):
-        raise ValueError('x and y must be same length.')
+        raise ValueError('x and y must be equal in length')
     xmin, xmax, ymin, ymax = lims
     N = len(x)
     fn = interp1d(x, y, kind='linear')
-    samples = []
-    while len(samples) < nsample:
-        rands = np.random.uniform(low=(xmin, ymin), high=(xmax, ymax),
+    xsamples = []
+    # sample distribution
+    while len(xsamples) < nsample:
+        rands = _np.random.uniform(low=(xmin, ymin), high=(xmax, ymax),
             size=(nsample, 2))
-        samples = np.append(samples, rands[rands[:,1] < fn(rands[:,0]), 0])
-    return samples[0:nsample]
+        xsamples = _np.append(xsamples, rands[rands[:,1] < fn(rands[:,0]), 0])
+    # clip and evaluate samples
+    xsamples = xsamples[0:nsample]
+    ysamples = fn(xsamples)
+    return xsamples, ysamples
 
-def sample_distrib(x, y, samples):
+def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     """
-    Sample a distribution at selected positions.
+    Calculate the dust mass from the distance, specific flux density, and
+    kinetic temperature.
 
     Parameters
     ----------
-    x, y : np.array
-        Data to sample, will
+    dist : array-like
+        Distance in pc
+    snu : number, default 1
+        Specific flux density at `nu' in Jy
+    tkin : number, default
+        Kinetic Temperature in K
+    nu : number, defualt
+        Frequency in GHz
 
     Returns
     -------
-
+    mdust : np.array
     """
-    # TODO put in mathf module
-    pass
-
-def clump_dust_mass():
-    pass
+    # TODO add blackbody function
+    from besl.units import cgs
+    bnu = planck_fn(nu, tkin, freq=True)
+    oh5 = read_oh94_dust(model_type='thick', modeln=0)
+    kapp = oh5(2.)
+    return (snu * dist**2) / (kapp * bnu)
 
 def clump_radius():
     pass
@@ -88,17 +98,39 @@ def plot_dpdf_sampling(n=200):
     Plot a Monte Carlo sampling of a DPDF
     """
     dpdf = read_dpdf()
-    x = np.arange(1000) * 20. + 20.
+    x = _np.arange(1000) * 20. + 20.
     y = dpdf[5].data[0]
     lims = [x.min(), x.max(), 0, 1]
     samples = mc_sampler_2d(x, y, lims=lims, nsample=1e4)
-    fig = plt.figure()
+    fig = _plt.figure()
     ax = fig.add_subplot(111)
-    ax.hist(samples, bins=np.linspace(lims[0], lims[1], 200), linewidth=2,
+    ax.hist(samples, bins=_np.linspace(lims[0], lims[1], 200), linewidth=2,
         histtype='stepfilled', normed=True, alpha=0.5, color='black')
     ax.plot(x, y / 20, 'k-', linewidth=2)
     ax.set_xlabel(r'$D \ \ [{\rm pc}]$')
     ax.set_ylabel(r'${\rm Probability}$')
     ax.set_ylim([0, y.max() * 1.1 / 20.])
-    plt.show()
+    _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
+
+def print_dpdf_outfiles(out_dir='dpdf_ascii', v=2):
+    """
+    Print out ascii files for the posterior DPDF.
+
+    Parameters
+    ----------
+    out_dir : string, default 'dpdf_ascii'
+        Directory to place dpdf files
+    v : number, default 2
+        BGPS version number
+    """
+    if not os.path.exists(out_dir):
+        raise Exception('Out path does not exist.')
+    if v not in [1, 2]:
+        raise ValueError('Incorrect version.')
+    dpdf = read_dpdf(v=v)
+    flags = _pd.DataFrame(dpdf[1].data)
+    for i, row in enumerate(dpdf[5].data):
+        _np.savetxt(out_dir + '/v{0}_{1:0>4d}.txt'.format(v,
+            flags.CNUM.iloc[i]), row, fmt='%.10e')
+    return
