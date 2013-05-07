@@ -133,7 +133,7 @@ def read_gbt_nh3(ret_idl=False):
         IDL save file products
     """
     if type(ret_idl) != bool:
-        raise TypeError('ret_idl must be True or False')
+        raise TypeError('ret_idl must be Boolean')
     import idlsave
     import warnings
     with warnings.catch_warnings():
@@ -276,9 +276,14 @@ def read_robitaille():
         skipinitialspace=True)
     return robit
 
-def read_ego():
+def read_ego(out_df_list=False):
     """
     Read EGO catalog. Citation: Cyganowski et al. (2008).
+
+    Parameters
+    ----------
+    out_df_list : boolean, default False
+        Condition to return list of individual DataFrames
 
     Returns
     -------
@@ -294,7 +299,10 @@ def read_ego():
         df_list.append(_pd.read_csv(d.cat_dir + d.ego_filen.format(i),
             sep=';', skipinitialspace=True, skiprows=skip_list[i-1]))
     ego = _pd.concat(df_list, ignore_index=True)
-    return ego, df_list
+    if out_df_list:
+        return ego, df_list
+    else:
+        return ego
 
 def read_mmb():
     """
