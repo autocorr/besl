@@ -152,8 +152,8 @@ def read_gbt_nh3(ret_idl=False):
     gbt_nh3['SNR33'] = gbt_nh3['PK33'] / gbt_nh3['NOISE33']
     if ret_idl:
         return gbt_nh3, idl_list
-    elif not ret_idl:
-        return gbt_nh3, idl_list
+    else:
+        return gbt_nh3
 
 def read_wise():
     """
