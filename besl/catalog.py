@@ -522,7 +522,7 @@ def read_oh94_dust(model_type='mrn', modeln=0):
     return oh94_dust
 
 ### Region match
-def select_bgps_field(lon, lat, coord_type='eq'):
+def select_bgps_field(lon, lat, coord_type='eq', bool_out=False):
     """
     Select BGPS image field name from sky position in galactic longitude and
     latitude.
@@ -533,6 +533,10 @@ def select_bgps_field(lon, lat, coord_type='eq'):
         Galactic longitude in decimal degrees
     glat : number
         Galactic latitude in decimal degrees
+    coord_type : string, default 'eq'
+        Choose 'gal' for Galactic or 'eq' for Equatorial
+    bool_out : boolean
+        Return True if in BGPS
 
     Returns
     -------
@@ -560,6 +564,11 @@ def select_bgps_field(lon, lat, coord_type='eq'):
                         (bgps_bounds.glon_max > lon) &
                         (bgps_bounds.glat_min < lat) &
                         (bgps_bounds.glat_max > lat)].field
+    if bool_out:
+        if len(field) == 0:
+            return False
+        elif len(field) > 0:
+            return True
     if len(field) == 0:
         return _np.nan
     else:
