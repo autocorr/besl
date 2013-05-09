@@ -262,6 +262,7 @@ def read_msx():
     msx = _pd.read_csv(d.cat_dir + d.msx_filen)
     msx['ra'] = msx['ra_str'].apply(sexstr2dec, hd='h')
     msx['dec'] = msx['dec_str'].apply(sexstr2dec, hd='d')
+    msx = pd_eq2gal(msx, ['ra', 'dec'], ['glon', 'glat'])
     return msx
 
 def read_robitaille():
@@ -392,7 +393,7 @@ def read_arcetri_valdettaro():
     arcetri_val['vsp'] = _np.abs(arcetri_val['Vmin'] - arcetri_val['Vmax'])
     arcetri_val['snr'] = arcetri_val['Fp'] / arcetri_val['Sig']
     arcetri_val['h2o_f'] = 0
-    arcetri_val['h2o_f'][arcetri_val.snr > 3] = 1
+    arcetri_val['h2o_f'][arcetri_val.snr > 5] = 1
     return arcetri_val
 
 def read_hops():
