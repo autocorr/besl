@@ -33,6 +33,7 @@ class Dirs(object):
         self.out_dir = self.working_dir + 'matched_cats/'
         self.bgps1_filen = 'bgps/bgps_v1.0.csv'
         self.bgps2_filen = 'bgps/bgps_v2.0.csv'
+        self.bgps2_ext_filen = 'bgps/bgps_v2.0_{}.csv'
         self.bgps_bounds_filen = 'bgps/bgps_v2.0_bounds.csv'
         self.molcat_filen = 'bgps/bgps_molcat.csv'
         self.wise_filen = 'wise/wise_0-90.csv'
@@ -62,13 +63,17 @@ d = Dirs()
 
 ### Read functions ###
 # Functions to read catalogs and return pandas DataFrame objects
-def read_bgps(v=2):
+def read_bgps(exten='none', v=2):
     """
     Read BGPS catalog, defaults to version 2.0.1. Citation: Ginsburg et al.
     (2013) for v2, Aguirre et al. (2011) for v1.
 
     Parameters
     ----------
+    exten : string, default 'none'
+        BGPS extension.
+        'none' -> default BGPS
+        'all'  -> super matched BGPS
     v : number, 1 or 2
         Catalog version
 
@@ -79,15 +84,19 @@ def read_bgps(v=2):
     """
     if v not in [1, 2]:
         raise ValueError('v = {}. Must be 1 or 2.'.format(v))
-    if v == 1:
-        bgps = _pd.read_csv(d.cat_dir + d.bgps1_filen, comment='#',
-            na_values=['null'], skiprows=4)
-        pass
-    if v == 2:
-        bgps = _pd.read_csv(d.cat_dir + d.bgps2_filen, comment='#',
-            na_values=['null'], skiprows=4)
-        bgps['cnum'] = _np.arange(1, bgps.shape[0] + 1)
-    return bgps
+    if exten == 'none':
+        if v == 1:
+            bgps = _pd.read_csv(d.cat_dir + d.bgps1_filen, comment='#',
+                na_values=['null'], skiprows=4)
+            return bgps
+        elif v == 2:
+            bgps = _pd.read_csv(d.cat_dir + d.bgps2_filen, comment='#',
+                na_values=['null'], skiprows=4)
+            bgps['cnum'] = _np.arange(1, bgps.shape[0] + 1)
+            return bgps
+    elif exten == 'all':
+        bgps = _pd.read_csv(d.cat_dir + d.bgps2_ext_filen.format('all'))
+        return bgps
 
 def read_bgps_bounds():
     """

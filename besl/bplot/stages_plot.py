@@ -10,8 +10,8 @@ sign-posts of star-formation and evolutionary stage.
 """
 
 import aplpy
-import catalog
 import matplotlib.pyplot as _plt
+from besl import catalog
 
 def overplot_markers(gc):
     """
@@ -60,7 +60,7 @@ def overplot_ellipses(gc):
     """
     bgps = catalog.read_bgps()
     gc.show_ellipses(bgps['glon_cen'].values, bgps['glat_cen'].values,
-        bgps['maj'].values/3600., bgps['min'].values/3600.,
+        2 * bgps['maj'].values / 3600., 2 * bgps['min'].values / 3600.,
         bgps['pos_ang'].values, edgecolor='grey', facecolor='none',
         alpha=0.75)
     gc.show_markers(bgps['glon_cen'].values, bgps['glat_cen'].values,
@@ -108,7 +108,7 @@ def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
     for gc in gc_list:
         # Overplot
         gc = overplot_markers(gc)
-        #gc = overplot_ellipses(gc)
+        gc = overplot_ellipses(gc)
         #gc = overplot_rind(gc)
         # Grid and ticks
         gc.ticks.set_color('black')
