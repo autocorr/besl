@@ -319,6 +319,7 @@ def read_mmb():
     mmb['ra'] = (mmb.ra_h + mmb.ra_m / 60. + mmb.ra_s / (60. * 60.)) \
         * 360. / 24.
     mmb['dec'] = mmb.dec_d + mmb.dec_m / 60. + mmb.dec_s / (60. * 60.)
+    mmb = pd_eq2gal(mmb, ['ra', 'dec'], ['glon', 'glat'])
     return mmb
 
 def read_gbt_h2o():
