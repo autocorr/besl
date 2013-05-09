@@ -471,6 +471,8 @@ def read_cornish(subset='all'):
     if subset not in ['all', 'uchii', 'hii']:
         raise ValueError
     corn = _pd.read_csv(d.cat_dir + d.cornish_filen.format(subset))
+    corn = corn.rename(columns={'l_deg': 'glon', 'b_deg': 'glat', 'RA_deg':
+           'ra', 'Dec_deg': 'dec'})
     return corn
 
 def read_dpdf(v=2):
