@@ -18,7 +18,7 @@ import ephem as _ephem
 import pywcs as _pywcs
 import pyfits as _pyfits
 from scipy.interpolate import interp1d
-from coord import pd_eq2gal
+from coord import eq2gal, pd_eq2gal
 
 ### Directories, paths, and environment variables
 class Dirs(object):
@@ -57,6 +57,7 @@ class Dirs(object):
         self.gbt_nh3_2_filen = 'bgps/nh3_bgps_fit_objects.sav'
         self.gbt_nh3_3_filen = 'bgps/nh3_rms_fit_objects.sav'
         self.oh94_filen = 'oh94_dust/{}{}.asc'
+        self.cornish_filen = 'cornish/cornish_{}.csv'
 d = Dirs()
 
 ### Read functions ###
@@ -453,6 +454,25 @@ def read_hii_bania():
         skipinitialspace=True, skiprows=8)
     return hii_bania
 
+def read_cornish(subset='all'):
+    """
+    Read CORNISH survey catalog. Citation: Purcell et al. (2013).
+
+    Parameters
+    ----------
+    subset : string, default 'all'
+        CORNISH catalog subset. Valid types: all, hii, uchii.
+
+    Returns
+    -------
+    corn : pandas.DataFrame
+        Output catalog in a pandas DataFrame object
+    """
+    if subset not in ['all', 'uchii', 'hii']:
+        raise ValueError
+    corn = _pd.read_csv(d.cat_dir + d.cornish_filen.format(subset))
+    return corn
+
 def read_dpdf(v=2):
     """
     Read Distance Probability Distribution Functions. Citation:
@@ -463,7 +483,7 @@ def read_dpdf(v=2):
     v : number {1, 2}, default 2
         Version of BGPS to use
     ret_idl : Boolean, default False
-        Return IDL list of 
+        Return IDL list of
 
     Returns
     -------
@@ -551,7 +571,6 @@ def select_bgps_field(lon, lat, coord_type='eq', bool_out=False):
     field : string
         Image field name
     """
-    from besl.coord import eq2gal
     if coord_type not in ['eq', 'gal']:
         raise ValueError(
             'coord_type = {}. Must be eq or gal.'.format(coord_type))
