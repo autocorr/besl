@@ -13,11 +13,7 @@ import pyfits
 import numpy as _np
 import matplotlib.pyplot as _plt
 import matplotlib.patheffects as PathEffects
-try:
-    import besl
-except ImportError:
-    import sys
-    sys.path.append('/mnt/eld_data/scripts/besl')
+from besl import catalog
 
 class Dirs(object):
     def __init__(self):
@@ -27,9 +23,9 @@ class Dirs(object):
 d = Dirs()
 
 # Read in data
-bgps = besl.catalog.read_bgps()
-molcat = besl.catalog.read_molcat()
-bounds = besl.catalog.read_bgps_bounds()
+bgps = catalog.read_bgps()
+molcat = catalog.read_molcat()
+bounds = catalog.read_bgps_bounds()
 # HCO+ flag groups
 dets = molcat[(molcat.hco_f != 0) & (molcat.hco_f != 2)]
 mdet = molcat[molcat.hco_f == 2]

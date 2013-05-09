@@ -61,7 +61,7 @@ def overplot_ellipses(gc):
     bgps = catalog.read_bgps()
     gc.show_ellipses(bgps['glon_cen'].values, bgps['glat_cen'].values,
         2 * bgps['maj'].values / 3600., 2 * bgps['min'].values / 3600.,
-        bgps['pos_ang'].values, edgecolor='grey', facecolor='none',
+        bgps['pos_ang'].values - 90., edgecolor='grey', facecolor='none',
         alpha=0.75)
     gc.show_markers(bgps['glon_cen'].values, bgps['glat_cen'].values,
         marker='+', edgecolor='grey', facecolor='grey', alpha=0.5)
