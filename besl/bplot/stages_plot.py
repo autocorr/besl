@@ -10,6 +10,7 @@ sign-posts of star-formation and evolutionary stage.
 """
 
 import aplpy
+import pyfits
 import matplotlib.pyplot as _plt
 from besl import catalog
 
@@ -49,7 +50,7 @@ def overplot_markers(gc):
     gc.show_markers(mmb['glon'].values, mmb['glat'].values, marker='v',
         edgecolor='green', facecolor='green')
     # uchii cats
-    corn = catalog.read_cornish()
+    corn = catalog.read_cornish(exten='hii')
     gc.show_markers(corn['glon'].values, corn['glat'].values, marker='D',
          edgecolor='blue', facecolor='none')
     return gc
@@ -67,15 +68,62 @@ def overplot_ellipses(gc):
         marker='+', edgecolor='grey', facecolor='grey', alpha=0.5)
     return gc
 
-def overplot_rind(gc):
+def overplot_rind(gc, field):
     """
-    Overplot markers for different catalogs over an APLpy axis object.
+    Overplot label mask contour on an APLpy axis object.
+
+    Parameters
+    ----------
+    gc : APLpy.FITSFigure
+    field : string
+
+    Returns
+    -------
+    gc APLpy.FITSFigure
     """
-    # get edges of image
-    # find BGPS sources in image
+    bgps = catalog.read_bgps(exten='all')
+    bgps['glon_pix'], bgps['glat_pix'] = gc.world2pixel(bgps['glon'].values,
+        bgps['glat'].values)
+    rind = pyfits.open('/mnt/eld_data/BGPS/Images/v2.0.0/v2.0_ds2_{}_13pca_labelmask.fits'.format(field))
     # get BGPS field cnum's
-    # for each source, overplot contour
-    # overplot green contours for starless clumps
+    cnums = bgps.ix[bgps.field == field, 'cnum'].values
+    for cnum in cnums:
+        # for each source, overplot contour
+        cnum_rind = rind
+        gc.show_contour
+    # TODO overplot green contours for starless clumps
+    return gc
+
+def overplot_cnums(gc, field):
+    """
+    Overplot catalog number labels on an APLpy axis object.
+
+    Parameters
+    ----------
+    gc : APLpy.FITSFigure
+    field : string
+
+    Returns
+    -------
+    gc APLpy.FITSFigure
+    """
+    bgps = besl.catalog.read_bgps(exten='all')
+    bgps['glon_pix'], bgps['glat_pix'] = gc.world2pixel(bgps['glon'].values,
+        bgps['glat'].values)
+    bgps['cnum_str'] = bgps['cnum'].apply(str)
+    rind = pyfits.open('/mnt/eld_data/BGPS/Images/v2.0.0/v2.0_ds2_{}_13pca_labelmask.fits'.format(field))
+    # get BGPS field cnum's
+    bgps_select = bgps.ix[bgps.field == field].reset_index()
+    cnums = bgps.ix[bgps.field == field, 'cnum'].values
+    # for each source, overplot marker
+    for i in xrange(bgps_select.shape[0]):
+        txt = _plt.annotate(bgps.ix[i, 'cnum_str'], xy=(bgps.ix[i, 'glon_pix'],
+            bgps.ix[i, 'glat_pix']), xytext=(3.75,-2.5), xycoords='data',
+            textcoords='offset points', fontsize='6', weight='book',
+            color='grey')
+        txt.set_path_effects([PathEffects.withStroke(linewidth=2,
+            foreground='w')])
+    # TODO overplot green cnum labels for starless clumps
     return gc
 
 def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
@@ -93,6 +141,8 @@ def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
     gc1.show_colorscale(cmap='gist_gray', vmin=-0.15, vmax=0.05,
         stretch='linear')
     gc1.recenter(lon, lat, width=dlon, height=dlat)
+    gc1 = overplot_rind(gc1, field)
+    gc1 = overplot_cnums(gc1, field)
     # BGPS Image
     gc2 = aplpy.FITSFigure(
         '/mnt/eld_data/BGPS/Images/v2.0.0/v2.0_ds2_{}_13pca_map20.fits'.format(field),
@@ -108,8 +158,7 @@ def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
     for gc in gc_list:
         # Overplot
         gc = overplot_markers(gc)
-        gc = overplot_ellipses(gc)
-        #gc = overplot_rind(gc)
+        #gc = overplot_ellipses(gc)
         # Grid and ticks
         gc.ticks.set_color('black')
         gc.set_tick_xspacing(0.1)

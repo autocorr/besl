@@ -465,13 +465,13 @@ def read_hii_bania():
         skipinitialspace=True, skiprows=8)
     return hii_bania
 
-def read_cornish(subset='all'):
+def read_cornish(exten='all'):
     """
     Read CORNISH survey catalog. Citation: Purcell et al. (2013).
 
     Parameters
     ----------
-    subset : string, default 'all'
+    exten : string, default 'all'
         CORNISH catalog subset. Valid types: all, hii, uchii.
 
     Returns
@@ -479,9 +479,9 @@ def read_cornish(subset='all'):
     corn : pandas.DataFrame
         Output catalog in a pandas DataFrame object
     """
-    if subset not in ['all', 'uchii', 'hii']:
+    if exten not in ['all', 'uchii', 'hii']:
         raise ValueError
-    corn = _pd.read_csv(d.cat_dir + d.cornish_filen.format(subset))
+    corn = _pd.read_csv(d.cat_dir + d.cornish_filen.format(exten))
     corn = corn.rename(columns={'l_deg': 'glon', 'b_deg': 'glat', 'RA_deg':
            'ra', 'Dec_deg': 'dec'})
     return corn
