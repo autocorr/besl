@@ -65,3 +65,27 @@ def arcsinhspace(start, stop, num=50):
     """
     return _np.sinh(_np.linspace(_np.arcsinh(start), _np.arcsinh(stop), num))
 
+def ellipse_area(major, minor, semi=True):
+    """
+    Calculate the area of an ellipse given the axe lengths.
+
+    Parameters
+    ----------
+    major : number
+        Major axis length
+    minor : number
+        Minor axis length
+    semi : Bool, default True
+        Use semi- (True) or full-axes (False) lengths
+
+    Returns
+    -------
+    area : number
+        Area of ellipse
+    """
+    if semi:
+        return _np.sqrt(major * minor)
+    elif not semi:
+        return _np.sqrt(major * minor / 4.)
+
+
