@@ -123,7 +123,7 @@ def clump_match_hii(bgps=[], out_filen='bgps_hii', verbose=False):
     bgps : pd.DataFrame
     """
     # read in catalogs
-    corn = catalog.read_cornish()
+    corn = catalog.read_cornish(exten='hii')
     if len(bgps) == 0:
         bgps = catalog.read_bgps()
     # add new columns
