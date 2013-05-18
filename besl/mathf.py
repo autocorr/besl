@@ -8,6 +8,7 @@ Mathematical functions.
 """
 
 import numpy as _np
+from scipy.special import ellipe
 
 def weighted_mean(a, a_err):
     """
@@ -84,8 +85,32 @@ def ellipse_area(major, minor, semi=True):
         Area of ellipse
     """
     if semi:
-        return _np.sqrt(major * minor)
+        return _np.pi * major * minor
     elif not semi:
-        return _np.sqrt(major * minor / 4.)
+        return _np.pi * major * minor / 4.
+
+def ellipse_circumf(major, minor, semi=True):
+    """
+    Calculate the circumference of an ellipse given the axe lengths.
+
+    Parameters
+    ----------
+    major : number
+        Major axis length
+    minor : number
+        Minor axis length
+    semi : Bool, default True
+        Use semi- (True) or full-axes (False) lengths
+
+    Returns
+    -------
+    area : number
+        Area of ellipse
+    """
+    eccen2 = (major**2 - minor**2) / major**2
+    if semi:
+        return 4. * major * ellipe(eccen2)
+    elif not semi:
+        return 2. * major * ellipe(eccen2)
 
 
