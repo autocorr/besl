@@ -7,10 +7,19 @@ besl
 
 """
 
-import bplot, catalog, coord, mathf, misc, prop, units
-import bgps_peak_flux_extract, bgps_clump_match_all
-__all__ = ['bgps_peak_flux_extract', 'bgps_clump_match_all', 'bplot',
-           'catalog', 'coord', 'math', 'misc', 'prop', 'units']
+import bplot, catalog, coord, image, mathf, misc, prop, units
+import bgps_peak_flux_extract, bgps_clump_match_all, bgps_clump_area
+__all__ = ['bgps_peak_flux_extract',
+           'bgps_clump_match_all',
+           'bgps_clump_area',
+           'bplot',
+           'catalog',
+           'coord',
+           'image',
+           'math',
+           'misc',
+           'prop',
+           'units']
 
 __author__ = ['Brian Svoboda, bsvo@lavabit.com']
 __version__ = '0.0.1'

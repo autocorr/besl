@@ -147,7 +147,7 @@ def clump_match_hii(bgps=[], out_filen='bgps_hii', verbose=False):
                 coord_type='gal')
             bgps['corn_n'][cnum_select] = len(corn_match_list)
     bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
-    print '-- Maser catalog file written to {}.csv'.format(out_filen)
+    print '-- Hii catalog file written to {}.csv'.format(out_filen)
     return bgps
 
 def clump_match_ir(bgps=[], out_filen='bgps_ir', verbose=False):
@@ -358,7 +358,7 @@ def clump_match_gbt_nh3(bgps=[], out_filen='bgps_nh3', verbose=False):
                     nh3.ix[nh3_match_list[max_index]]
                 # TODO check for multiple components
     bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
-    print '-- Catalog file written to {}.csv'.format(out_filen)
+    print '-- NH3 Catalog file written to {}.csv'.format(out_filen)
     return bgps
 
 def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
