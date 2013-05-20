@@ -59,4 +59,29 @@ def bgps_rind_perim_pix(cnum):
          (rind[0].data[1:-1,2:  ] != cnum)))
     return perim_pixels.shape[0]
 
+def bgps_add_areas(bgps, verbose=False):
+    """
+    Calculate geometric and pixel areas and add them to the BGPS catalog
+    dataframe.
+
+    Parameters
+    ----------
+    bgps : pd.DataFrame
+        BGPS dataframe object
+    verbose : Bool, default False
+
+    Returns
+    -------
+    bgps : pd.DataFrame
+        With added columns
+    """
+    bgps['geom_area'] = bgps[['maj', 'min']].apply(lambda row:
+        mathf.ellipse_area(row['maj'] * 2.4, row['min'] * 2.4), axis=1)
+    if verbose:
+        print '-- Added geometric area'
+    bgps['rind_area'] = bgps['cnum'].apply(bgps_rind_area)
+    if verbose:
+        print '-- Added rind area'
+    return bgps
+
 
