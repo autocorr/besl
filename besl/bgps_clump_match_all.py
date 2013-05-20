@@ -450,7 +450,7 @@ def clump_match_all():
     for df in df_list:
         bgps_all = _pd.merge(bgps_all, df, how='outer')
     bgps_all.to_csv('bgps_all.csv', index=False)
-    bgps.save('bgps_all.pickle')
+    bgps_all.save('bgps_all.pickle')
     return bgps_all
 
 
