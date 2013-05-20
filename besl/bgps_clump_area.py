@@ -30,7 +30,7 @@ def bgps_rind_area(cnum):
     field_cnum = bgps[bgps.cnum == cnum]['field_cnum'].values[0]
     rind = image.get_bgps_img(cnum, exten='labelmask')
     clump_pixels = _np.argwhere(rind[0].data == field_cnum)
-    area = clump_pixels.shape[0] * 7.5**2
+    area = clump_pixels.shape[0] * 7.2**2
     return area
 
 def bgps_rind_perim_pix(cnum):
