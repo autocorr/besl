@@ -299,13 +299,14 @@ def match_dpdf_to_tim_calc(bgps=[]):
         bgps = catalog.read_bgps(exten='all')
     bgps_201 = catalog.read_bgps(v=201)
     bgps_201 = bgps_201[['cnum', 'name']]
-    bgps_201 = bgps_201.rename(labels={'cnum': 'v201cnum'})
+    bgps_201 = bgps_201.rename(columns={'cnum': 'v201cnum'})
     # read emaf
     emaf = catalog.read_emaf_dist()
     emaf_cols = ['Seq', 'KDAR', 'dML', 'dMLp', 'dMLm', 'dBAR', 'e_dBAR']
     emaf = emaf[emaf_cols]
     # merge new cnums to bgps
-    bgps = pd.merge(bgps, bgps_201, on='name')
+    bgps = _pd.merge(bgps, bgps_201, on='name')
     # merge new emaf to bgps
-    bgps = pd.merge(bgps, emaf, left_on='v201cnum', right_on='Seq', how='outer')
+    bgps = _pd.merge(bgps, emaf, left_on='v201cnum', right_on='Seq', how='outer')
+    bgps = bgps.drop(labels=['Seq'], axis=1)
     return bgps
