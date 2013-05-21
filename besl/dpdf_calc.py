@@ -283,6 +283,7 @@ def stages_hist(label, xlabel, bgps=[]):
     if len(bgps) == 0:
         bgps = catalog.read_bgps(exten='all')
     # evo stages
+    bgps[label][bgps[label] <= 0] = _np.nan
     starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
     h2o_no = bgps[bgps.h2o_f == 0]
     ir_yes = bgps[bgps.ir_f == 1]
@@ -292,8 +293,8 @@ def stages_hist(label, xlabel, bgps=[]):
     stages = [starless, h2o_no, ir_yes, h2o_yes, hii_yes, ego_yes]
     # calculate lims and bins
     # TODO
-    xmin = _np.min([df[label].min() for df in stages])
-    xmax = _np.max([df[label].max() for df in stages])
+    xmin = _np.nanmin([df[label].min() for df in stages])
+    xmax = _np.nanmax([df[label].max() for df in stages])
     lbins = _np.logspace(_np.log10(xmin), _np.log10(xmax), 40)
     # plot settings
     kwargs_gen = {'bins': lbins, 'color': 'LightGray', 'histtype':
@@ -313,15 +314,15 @@ def stages_hist(label, xlabel, bgps=[]):
         # draw plots
         kwargs_hist = dict(kwargs_gen.items() + kwargs_labels[i].items())
         hist_heights, hist_edges = _np.histogram(stages[i][label], bins=lbins)
-        ymax = _np.max(hist_heights)
+        ymax = _np.nanmax([_np.max(hist_heights), 1])
         df = stages[i][label]
-        ax.hist(df[_np.isfinite(df)].values, **kwargs_hist)
-        ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
+        if len(df) > 0:
+            ax.hist(df[_np.isfinite(df)].values, **kwargs_hist)
+            ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
         # plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
         ax.set_ylim([0, 1.1 * ymax])
         ax.locator_params(axis='y', tight=True, nbins=5)
-        #ax.set_ylabel(r'N')
         ax.set_xscale('log')
         #ax.legend(loc=1, frameon=False, numpoints=None, prop={'size':12})
         ax.annotate(stages_labels[i], xy=(0.875, 0.75), xycoords='axes fraction',
@@ -334,24 +335,59 @@ def stages_hist(label, xlabel, bgps=[]):
     return [fig, axes]
 
 def write_all_stages_plots(bgps):
-    columns = ['flux', 'hco_int', 'hco_fwhm', 'nnh_int', 'nnh_fwhm', 'h2o_int',
-        'h2o_vsp', 'nh3_tk', 'rind_area', 'dML', 'dust_mass', 'avg_diam',
-        'rind_surface_area']
-    labels = [r'$S_{1.1} \ \ [{\rm Jy}]$',
-              r'${\rm I(HCO^+) \ \ [K \ km \ s^{-1}}$',
-              r'${\rm HCO^+ \ FWHM \ \ [km \ s^{-1}}$',
-              r'${\rm I(N_2H^+) \ \ [K \ km \ s^{-1}}$',
-              r'${\rm N_2H^+ \ FWHM \ \ [km \ s^{-1}}$',
-              r'${\rm I(H_2O) \ \ [K \ km \ s^{-1}]$',
-              r'${\rm H_2O} \ v_{\rm spread} \ \ [{\rm K \ km \ s^{-1}}]$',
-              r'$T_{\rm K} \ \ [{\rm K}]$',
-              r'${\rm Area} \ \ [{\rm arcsec^2}]$',
-              r'${\rm dML} \ \ [{\rm kpc]$',
-              r'$M_{\rm dust} \ \ [M_{\odot}]$',
-              r'${\rm Diameter} \ \ [{\rm pc}]$',
-              r'${\rm Surface \ Area} \ \ [{\rm pc}]$']
-    for col, label in zip(columns, labels):
-        stages_hist(label=col, xlabel=label, bgps=bgps)
+    columns = [
+        'flux',
+        'hco_int',
+        'hco_fwhm',
+        'nnh_int',
+        'nnh_fwhm',
+        'h2o_tpk',
+        'h2o_int',
+        'h2o_vsp',
+        'h2o_num_lines',
+        'voffset_h2o_hco',
+        'nh3_tkin',
+        'rind_area',
+        'dML',
+        'dust_mass',
+        'avg_diam',
+        'rind_surf_area']
+    dfs = [
+        bgps,
+        bgps[bgps.hco_f.isin([1,3])],
+        bgps[bgps.hco_f.isin([1,3])],
+        bgps[bgps.nnh_f.isin([1,3])],
+        bgps[bgps.nnh_f.isin([1,3])],
+        bgps[bgps.h2o_gbt_f > 0],
+        bgps[bgps.h2o_gbt_f > 0],
+        bgps[bgps.h2o_gbt_f > 0],
+        bgps[bgps.h2o_gbt_f > 0],
+        bgps[(bgps.h2o_gbt_f > 0) & (bgps.hco_f.isin([1,3]))],
+        bgps[(bgps.nh3_pk11 / bgps.nh3_noise11 > 4) & (bgps.nh3_tkin < 3e2)],
+        bgps,
+        bgps[bgps.KDAR.isin(['N','F','T'])],
+        bgps[bgps.KDAR.isin(['N','F','T'])],
+        bgps[bgps.KDAR.isin(['N','F','T'])],
+        bgps[bgps.KDAR.isin(['N','F','T'])]]
+    labels = [
+        r'$S_{1.1} \ \ [{\rm Jy}]$',
+        r'${\rm I(HCO^+) \ \ [K \ km \ s^{-1}}]$',
+        r'${\rm HCO^+ \ FWHM \ \ [km \ s^{-1}}]$',
+        r'${\rm I(N_2H^+) \ \ [K \ km \ s^{-1}}]$',
+        r'${\rm N_2H^+ \ FWHM \ \ [km \ s^{-1}}]$',
+        r'$T_{\rm pk}({\rm H_2O}) \ \ [{\rm K \ km \ s^{-1}}]$',
+        r'${\rm I(H_2O) \ \ [K \ km \ s^{-1}}]$',
+        r'${\rm H_2O} \ v_{\rm spread} \ \ [{\rm K \ km \ s^{-1}}]$',
+        r'$N{\rm H_2O}$',
+        r'$|v_{\rm HCO^+} - v_{\rm H_2O}| \ \ [{\rm km \ s^{-1}}]$',
+        r'$T_{\rm K} \ \ [{\rm K}]$',
+        r'${\rm Area} \ \ [{\rm arcsec^2}]$',
+        r'${\rm dML} \ \ [{\rm kpc}]$',
+        r'$M_{\rm dust} \ \ [M_{\odot}]$',
+        r'${\rm Diameter} \ \ [{\rm pc}]$',
+        r'${\rm Surface \ Area} \ \ [{\rm pc}]$']
+    for col, label, df in zip(columns, labels, dfs):
+        stages_hist(label=col, xlabel=label, bgps=df)
     return
 
 def print_properties(bgps, out_filen='bgps_props.txt'):
