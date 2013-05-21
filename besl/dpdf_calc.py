@@ -16,7 +16,7 @@ import os as _os
 import numpy as _np
 import pandas as _pd
 import matplotlib.pyplot as _plt
-import catalog
+import catalog, units
 from scipy.interpolate import interp1d
 
 def mc_sampler_2d(x, y, lims=[0,1,0,1], nsample=1e3):
@@ -84,58 +84,117 @@ def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     kapp = oh5(2.)
     return (snu * dist**2) / (kapp * bnu)
 
-def clump_simple_dust_mass(dist, snu11, tkin=20.):
+def clump_simple_dust_mass(dist, snu11, tkin=20., use_kpc=False):
     """
     Calculate the dust mass in Solar masses based on an OH5 dust opacity model
     at 1.1mm, as used by the BGPS.
 
     Parameters
     ----------
-    dist : array-like
+    dist : number
         Distance in pc
     snu11 : number
         1.1 mm flux density in Jy
-    tkin : number, default
+    tkin : number, default 20.
         Kinetic Temperature in K
+    use_kpc : Bool, default False
+        Use kpc instead of pc
 
     Returns
     -------
-    mdust_mean : number
-    mdust_err : number
+    mdust : number
     """
-    mdust_dist = 14.26 * (_np.exp(13.01 / tkin) - 1) * snu11 * (dist * 1e-3)**2
-    mdust_mean = _np.mean(mdust_dist)
-    mdust_err = _np.std(mdust_dist)
-    return mdust_mean, mdust_err
+    if use_kpc:
+        dist_factor = 1
+    else:
+        dist_factor = 1e-3
+    mdust = 14.26 * (_np.exp(13.01 / tkin) - 1) * snu11 * (dist *
+        dist_factor)**2
+    return mdust
 
-def clump_surface_area(dist, maj_axis, min_axis):
+def clump_surface_area(dist, area, use_kpc=False):
     """
-    Calculate the clump surface area in square pc based on the BGPS ellipse.
+    Calculate the clump surface area in square pc based on the BGPS label mask
+    area.
 
     Parameters
     ----------
-    dist : array-like
-        Distance in pc
-    maj_axis : number
-        Semi-major axis in arcseconds
-    min_axis : number
-        Semi-minor axis in arcseconds
+    dist : number
+        distance in pc
+    area : number
+        Surface area in square arcsec
+    use_kpc : Bool, default False
+        Use kpc instead of pc
 
     Returns
     -------
-    surf_area : number
-    surf_area_err : number
+    area_dist : number
+        Surface area at distance in square pc
     """
-    # TODO
-    pass
+    if use_kpc:
+        dist_factor = 1
+    else:
+        dist_factor = 1e3
+    area_dist = (units.cgs.au / units.cgs.pc)**2 * (dist * dist_factor)**2 * \
+        area
+    return area_dist
 
-def clump_dust_luminosity():
-    pass
+def clump_diameter(dist, area, use_kpc=False):
+    """
+    Calculate the clump diameter in pc based on the BGPS label mask area.
 
-def clump_line_luminosity():
-    pass
+    Parameters
+    ----------
+    dist : number
+        distance in pc
+    area : number
+        Surface area in square arcsec
+    use_kpc : Bool, default False
+        Use kpc instead of pc
 
-def compute_physical_conditions(bgps=[], v=2, verbose=True):
+    Returns
+    -------
+    diam_dist : number
+        diameter at distance in pc
+    """
+    if use_kpc:
+        dist_factor = 1
+    else:
+        dist_factor = 1e3
+    diam_dist = (units.cgs.au / units.cgs.pc) * (dist * dist_factor) * \
+        2 * _np.sqrt(area / _np.pi)
+    return diam_dist
+
+def calc_ml_physical_conditions(bgps=[]):
+    """
+    Calculate the physical conditions for all clumps using the maximum
+    likelihood distance. Includes: dust mass, diameter, and surface area.
+
+    Parameters
+    ----------
+    bgps : pd.DataFrame
+        BGPS dataframe, if left blank, will read exten='all'
+
+    Returns
+    -------
+    bgps : pd.DataFrame
+    """
+    if len(bgps) == 0:
+        bgps = catalog.read_bgps(exten='all', v=v)
+    if 'dML' not in bgps.columns:
+        raise ValueError('Incorrect columns')
+    bgps['dust_mass'] = bgps[['dML', 'flux', 'nh3_tkin']].apply(lambda row:
+        clump_simple_dust_mass(row['dML'], row['flux'], row['nh3_tkin'],
+        use_kpc=True), axis=1)
+    bgps['avg_diam'] = bgps[['dML', 'rind_area']].apply(lambda row:
+        clump_diameter(row['dML'], row['rind_area'], use_kpc=True),
+        axis=1)
+    bgps['rind_surf_area'] = bgps[['dML', 'rind_area']].apply(lambda row:
+        clump_surface_area(row['dML'], row['rind_area'], use_kpc=True),
+        axis=1)
+    return bgps
+
+def calc_physical_conditions(bgps=[], v=2, verbose=True):
     """
     Calculate physical conditions for all clumps. Incudes: dust mass, dust
     luminosity, diameter, dust mass surface density, and surface area.
@@ -204,6 +263,7 @@ def plot_dpdf_sampling(n=200):
     return ax
 
 def print_properties(bgps, out_filen='bgps_props.txt'):
+    out_file = open(out_filen, 'w')
     starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
     h2o_no = bgps[bgps.h2o_f == 0]
     ir_yes = bgps[bgps.ir_f == 1]
@@ -212,7 +272,6 @@ def print_properties(bgps, out_filen='bgps_props.txt'):
     ego_yes = bgps[bgps.ego_f > 0]
     df_list = [starless, h2o_no, ir_yes, h2o_yes, hii_yes, ego_yes]
     df_names = ['Starless', 'H2O No', 'IR Yes', 'H2O Yes', 'HII Yes', 'EGO Yes']
-    col_list = ['flux', 'h2o_tpk', 'h2o_int', 'h2o_vsp', 'h2o_num_lines']
     for i, df in enumerate(df_list):
         df['nnh/hco'] = df[((df.hco_f == 1) | (df.hco_f == 3)) &
                            ((df.nnh_f == 1) | (df.nnh_f == 3))]['nnh_int'] / \
@@ -227,37 +286,42 @@ def print_properties(bgps, out_filen='bgps_props.txt'):
                         df[((df.nnh_f == 1) | (df.nnh_f == 3)) &
                            (df.nh3_pk11 / df.nh3_noise11 > 4)]['nh3_pk11']
         # group numbers
-        print '-- {}:'.format(df_names[i])
-        print 'Number in group: {}'.format(
-            df.shape[0])
-        print 'Number with DPDFs: {}'.format(
-            df[df.dpdf_f > 0].shape[0])
-        print 'Number with Tkin: {}'.format(
-            df[(df.amm_f > 0) | (df.nh3_mult_n > 0)].shape[0])
-        print 'Number with DPDF & Tkin: {}'.format(
-            df[((df.amm_f > 0) | (df.nh3_mult_n > 0)) & (df.dpdf_f > 0)].shape[0])
+        out_file.write('-- {}:'.format(df_names[i]))
+        out_file.write('Number in group: {}'.format(
+            df.shape[0]))
+        out_file.write('Number with DPDFs: {}'.format(
+            df[df.KDAR.isin(['N','F','T'])].shape[0]))
+        out_file.write('Number with Tkin: {}'.format(
+            df[(df.amm_f > 0) | (df.nh3_mult_n > 0)].shape[0]))
+        out_file.write('Number with DPDF & Tkin: {}'.format(
+            df[((df.amm_f > 0) | (df.nh3_mult_n > 0)) &
+            (df.KDAR.isin(['N','F','T']))].shape[0]))
         for col in ['flux', 'flux_40', 'flux_80', 'flux_120']:
-            print '{0}: {1} ({2})'.format(col,
-                df[col].median(), df[col].shape[0])
+            out_file.write('{0}: {1} ({2})'.format(col,
+                df[col].median(), df[col].shape[0]))
         for col in ['hco_tpk', 'hco_int', 'hco_fwhm']:
-            print '{0}: {1} ({2})'.format(col,
+            out_file.write('{0}: {1} ({2})'.format(col,
                 df[(df.hco_f == 1) | (df.hco_f == 3)][col].median(),
-                df[(df.hco_f == 1) | (df.hco_f == 3)][col].shape[0])
+                df[(df.hco_f == 1) | (df.hco_f == 3)][col].shape[0]))
         for col in ['nnh_tpk', 'nnh_int', 'nnh_fwhm']:
-            print '{0}: {1} ({2})'.format(col,
+            out_file.write('{0}: {1} ({2})'.format(col,
                 df[(df.nnh_f == 1) | (df.nnh_f == 3)][col].median(),
-                df[(df.nnh_f == 1) | (df.nnh_f == 3)][col].shape[0])
+                df[(df.nnh_f == 1) | (df.nnh_f == 3)][col].shape[0]))
         for col in ['nnh/hco', 'hco/nh3', 'nnh/nh3']:
-            print '{0}: {1} ({2})'.format(col,
-                df[col].median(), df[col].shape[0])
+            out_file.write('{0}: {1} ({2})'.format(col,
+                df[col].median(), df[col].shape[0]))
         for col in ['h2o_tpk', 'h2o_int', 'h2o_vsp', 'h2o_num_lines']:
-            print '{0}: {1} ({2})'.format(col,
-                df[df.h2o_gbt_f > 0][col].median(), df[col].shape[0])
+            out_file.write('{0}: {1} ({2})'.format(col,
+                df[df.h2o_gbt_f > 0][col].median(), df[col].shape[0]))
         for col in ['nh3_tkin', 'nh3_pk11']:
-            print '{0}: {1} ({2})'.format(col,
+            out_file.write('{0}: {1} ({2})'.format(col,
                 df[df.nh3_pk11 / df.nh3_noise11 > 4][col].median(),
-                df[df.nh3_pk11 / df.nh3_noise11 > 4][col].shape[0])
-    pass
+                df[df.nh3_pk11 / df.nh3_noise11 > 4][col].shape[0]))
+        for col in ['dust_mass', 'avg_radius', 'phys_area']:
+            out_file.write('{0}: {1} ({2})'.format(col,
+                df[df.KDAR.isin(['N','F','T'])][col].median(),
+                df[df.KDAR.isin(['N','F','T'])][col].shape[0]))
+    return
 
 def print_dpdf_outfiles(out_dir='dpdf_ascii', v=2):
     """
@@ -310,3 +374,5 @@ def match_dpdf_to_tim_calc(bgps=[]):
     bgps = _pd.merge(bgps, emaf, left_on='v201cnum', right_on='Seq', how='outer')
     bgps = bgps.drop(labels=['Seq'], axis=1)
     return bgps
+
+
