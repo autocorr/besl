@@ -280,3 +280,18 @@ def print_dpdf_outfiles(out_dir='dpdf_ascii', v=2):
         _np.savetxt(out_dir + '/v{0}_{1:0>4d}.txt'.format(v,
             flags.CNUM.iloc[i]), row, fmt='%.10e')
     return
+
+def match_dpdf_to_tim_calc(bgps):
+    """
+    Match BGPS catalog to Tim's calculated quantities.
+
+    Parameters
+    ----------
+    bgps : pd.DataFrame
+        BGPS dataframe
+
+    Returns
+    -------
+    bgps : pd.DataFrame
+    """
+    pass

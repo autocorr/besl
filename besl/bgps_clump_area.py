@@ -7,7 +7,7 @@ Calculate the area of a BGPS clump on the sky.
 
 """
 
-import catalog, mathf, image
+import catalog, mathf, image, units
 import numpy as _np
 import pandas as _pd
 
@@ -75,8 +75,9 @@ def bgps_add_areas(bgps, verbose=False):
     bgps : pd.DataFrame
         With added columns
     """
+    fwhm = units.num.FWHM
     bgps['geom_area'] = bgps[['maj', 'min']].apply(lambda row:
-        mathf.ellipse_area(row['maj'] * 2.4, row['min'] * 2.4), axis=1)
+        mathf.ellipse_area(row['maj'] * fwhm, row['min'] * fwhm), axis=1)
     if verbose:
         print '-- Added geometric area'
     bgps['rind_area'] = bgps['cnum'].apply(bgps_rind_area)

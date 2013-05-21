@@ -31,9 +31,8 @@ class Dirs(object):
         self.bgps_dir = self.root_dir + 'BGPS/Images/v2.0.0/'
         self.working_dir = _os.getcwd() + '/'
         self.out_dir = self.working_dir + 'matched_cats/'
-        self.bgps1_filen = 'bgps/bgps_v1.0.csv'
-        self.bgps2_filen = 'bgps/bgps_v2.0.csv'
-        self.bgps2_ext_filen = 'bgps/bgps_v2.0_{}.{}'
+        self.bgps_filen = 'bgps/bgps_v{}.csv'
+        self.bgps_ext_filen = 'bgps/bgps_v{}_{}.{}'
         self.bgps_bounds_filen = 'bgps/bgps_v2.0_bounds.csv'
         self.molcat_filen = 'bgps/bgps_molcat.csv'
         self.wise_filen = 'wise/wise_0-90.csv'
@@ -75,7 +74,7 @@ def read_bgps(exten='none', v=2):
         'none' -> default BGPS
         'all'  -> super matched BGPS
         'cols' -> print column descriptions
-    v : number, 1 or 2
+    v : number, {1, 2, 201}, default 2
         Catalog version
 
     Returns
@@ -83,24 +82,29 @@ def read_bgps(exten='none', v=2):
     bgps : pandas.DataFrame
         Output catalog in a pandas DataFrame object
     """
-    if v not in [1, 2]:
-        raise ValueError('v = {}. Must be 1 or 2.'.format(v))
+    if v not in [1, 2, 201]:
+        raise ValueError('Invalid version, v = {}.'.format(v))
+    vers = {1: '1.0', 2: '2.0', 201: '2.0.1'}
     if exten == 'none':
         if v == 1:
-            bgps = _pd.read_csv(d.cat_dir + d.bgps1_filen, comment='#',
-                na_values=['null'], skiprows=4)
+            bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
+                comment='#', na_values=['null'], skiprows=4)
             return bgps
         elif v == 2:
-            bgps = _pd.read_csv(d.cat_dir + d.bgps2_filen, comment='#',
-                na_values=['null'], skiprows=4)
+            bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
+                comment='#', na_values=['null'], skiprows=4)
             bgps['cnum'] = _np.arange(1, bgps.shape[0] + 1)
             return bgps
+        elif v == 201:
+            bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
+                na_values=['---'])
+            return bgps
     elif exten == 'all':
-        bgps = _pd.load(d.cat_dir + d.bgps2_ext_filen.format('all',
+        bgps = _pd.load(d.cat_dir + d.bgps_ext_filen.format(vers[2], 'all',
             'pickle'))
         return bgps
     elif exten == 'cols':
-        cols = open(d.cat_dir + d.bgps2_ext_filen.format('columns',
+        cols = open(d.cat_dir + d.bgps2_ext_filen.format(vers[2], 'columns',
             'txt'))
         print cols.read()
         return
