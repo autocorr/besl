@@ -305,6 +305,8 @@ def stages_hist(label, xlabel, bgps=[]):
         {'label': r'${\rm H_2O \ \ Y}$'},
         {'label': r'${\rm H\sc{II} \ \ Y}$'},
         {'label': r'${\rm EGO \ \ Y}$'}]
+    stages_labels = [ r'Starless', r'${\rm H_2O \ \  N}$', r'${\rm IR \ \ Y}$',
+        r'${\rm H_2O \ \ Y}$', r'${\rm H\sc{II} \ \ Y}$', r'${\rm EGO \ \ Y}$']
     # create plot
     fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
     for i, ax in enumerate(axes):
@@ -312,18 +314,45 @@ def stages_hist(label, xlabel, bgps=[]):
         kwargs_hist = dict(kwargs_gen.items() + kwargs_labels[i].items())
         hist_heights, hist_edges = _np.histogram(stages[i][label], bins=lbins)
         ymax = _np.max(hist_heights)
-        ax.hist(stages[i][label].values, **kwargs_hist)
-        ax.plot(stages[i][label].median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
+        df = stages[i][label]
+        ax.hist(df[_np.isfinite(df)].values, **kwargs_hist)
+        ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
         # plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
         ax.set_ylim([0, 1.1 * ymax])
-        ax.set_ylabel(r'N')
+        ax.locator_params(axis='y', tight=True, nbins=5)
+        #ax.set_ylabel(r'N')
         ax.set_xscale('log')
-        ax.legend(loc=1, frameon=False, prop={'size':12})
+        #ax.legend(loc=1, frameon=False, numpoints=None, prop={'size':12})
+        ax.annotate(stages_labels[i], xy=(0.875, 0.75), xycoords='axes fraction',
+            fontsize=10)
     axes[-1].set_xlabel(xlabel)
     # save
+    _plt.subplots_adjust(hspace=0.05)
     _plt.savefig('stages_hist_{}.pdf'.format(label))
+    print '-- stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
+
+def write_all_stages_plots(bgps):
+    columns = ['flux', 'hco_int', 'hco_fwhm', 'nnh_int', 'nnh_fwhm', 'h2o_int',
+        'h2o_vsp', 'nh3_tk', 'rind_area', 'dML', 'dust_mass', 'avg_diam',
+        'rind_surface_area']
+    labels = [r'$S_{1.1} \ \ [{\rm Jy}]$',
+              r'${\rm I(HCO^+) \ \ [K \ km \ s^{-1}}$',
+              r'${\rm HCO^+ \ FWHM \ \ [km \ s^{-1}}$',
+              r'${\rm I(N_2H^+) \ \ [K \ km \ s^{-1}}$',
+              r'${\rm N_2H^+ \ FWHM \ \ [km \ s^{-1}}$',
+              r'${\rm I(H_2O) \ \ [K \ km \ s^{-1}]$',
+              r'${\rm H_2O} \ v_{\rm spread} \ \ [{\rm K \ km \ s^{-1}}]$',
+              r'$T_{\rm K} \ \ [{\rm K}]$',
+              r'${\rm Area} \ \ [{\rm arcsec^2}]$',
+              r'${\rm dML} \ \ [{\rm kpc]$',
+              r'$M_{\rm dust} \ \ [M_{\odot}]$',
+              r'${\rm Diameter} \ \ [{\rm pc}]$',
+              r'${\rm Surface \ Area} \ \ [{\rm pc}]$']
+    for col, label in zip(columns, labels):
+        stages_hist(label=col, xlabel=label, bgps=bgps)
+    return
 
 def print_properties(bgps, out_filen='bgps_props.txt'):
     out_file = open(out_filen, 'w')
