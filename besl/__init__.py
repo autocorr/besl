@@ -7,7 +7,7 @@ besl
 
 """
 
-import bplot, catalog, coord, image, mathf, misc, prop, units
+import bplot, catalog, coord, dpdf_calc, image, mathf, misc, prop, units
 import bgps_peak_flux_extract, bgps_clump_match_all, bgps_clump_area
 __all__ = ['bgps_peak_flux_extract',
            'bgps_clump_match_all',
@@ -15,6 +15,7 @@ __all__ = ['bgps_peak_flux_extract',
            'bplot',
            'catalog',
            'coord',
+           'dpdf_calc',
            'image',
            'math',
            'misc',

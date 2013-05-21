@@ -16,7 +16,7 @@ import os as _os
 import numpy as _np
 import pandas as _pd
 import matplotlib.pyplot as _plt
-from besl.catalog import read_dpdf, read_emaf_dist, read_oh94_dust, read_bgps
+import catalog
 from scipy.interpolate import interp1d
 
 def mc_sampler_2d(x, y, lims=[0,1,0,1], nsample=1e3):
@@ -80,7 +80,7 @@ def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     # TODO add planck function
     from besl.units import cgs
     #bnu = planck_fn(nu, tkin, freq=True)
-    oh5 = read_oh94_dust(model_type='thick', modeln=0)
+    oh5 = catalog.read_oh94_dust(model_type='thick', modeln=0)
     kapp = oh5(2.)
     return (snu * dist**2) / (kapp * bnu)
 
@@ -153,13 +153,13 @@ def compute_physical_conditions(bgps=[], v=2, verbose=True):
     bgps : pd.DataFrame
     """
     if len(bgps) == 0:
-        bgps = read_bgps(exten='all', v=v)
+        bgps = catalog.read_bgps(exten='all', v=v)
     # new columns
     new_cols = ['dpdf_f', 'dist', 'dist_err', 'mdust', 'mdust_err']
     for col in new_cols:
         bgps[col] = _np.nan
     # dpdf properties
-    dpdf = read_dpdf()
+    dpdf = catalog.read_dpdf()
     dpdf_props = _pd.DataFrame(dpdf[1].data)
     dpdf_post = dpdf[5].data
     dist_axis = _np.arange(1000) * 20. + 20.
@@ -187,7 +187,7 @@ def plot_dpdf_sampling(n=200):
     """
     Plot a Monte Carlo sampling of a DPDF
     """
-    dpdf = read_dpdf()
+    dpdf = catalog.read_dpdf()
     x = _np.arange(1000) * 20. + 20.
     y = dpdf[5].data[0]
     lims = [x.min(), x.max(), 0, 1]
@@ -274,14 +274,14 @@ def print_dpdf_outfiles(out_dir='dpdf_ascii', v=2):
         raise Exception('Out path does not exist.')
     if v not in [1, 2]:
         raise ValueError('Incorrect version.')
-    dpdf = read_dpdf(v=v)
+    dpdf = catalog.read_dpdf(v=v)
     flags = _pd.DataFrame(dpdf[1].data)
     for i, row in enumerate(dpdf[5].data):
         _np.savetxt(out_dir + '/v{0}_{1:0>4d}.txt'.format(v,
             flags.CNUM.iloc[i]), row, fmt='%.10e')
     return
 
-def match_dpdf_to_tim_calc(bgps):
+def match_dpdf_to_tim_calc(bgps=[]):
     """
     Match BGPS catalog to Tim's calculated quantities.
 
@@ -294,4 +294,18 @@ def match_dpdf_to_tim_calc(bgps):
     -------
     bgps : pd.DataFrame
     """
-    pass
+    # read bgps
+    if len(bgps) == 0:
+        bgps = catalog.read_bgps(exten='all')
+    bgps_201 = catalog.read_bgps(v=201)
+    bgps_201 = bgps_201[['cnum', 'name']]
+    bgps_201 = bgps_201.rename(labels={'cnum': 'v201cnum'})
+    # read emaf
+    emaf = catalog.read_emaf_dist()
+    emaf_cols = ['Seq', 'KDAR', 'dML', 'dMLp', 'dMLm', 'dBAR', 'e_dBAR']
+    emaf = emaf[emaf_cols]
+    # merge new cnums to bgps
+    bgps = pd.merge(bgps, bgps_201, on='name')
+    # merge new emaf to bgps
+    bgps = pd.merge(bgps, emaf, left_on='v201cnum', right_on='Seq', how='outer')
+    return bgps
