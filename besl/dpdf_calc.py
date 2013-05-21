@@ -18,6 +18,7 @@ import pandas as _pd
 import matplotlib.pyplot as _plt
 import catalog, units
 from scipy.interpolate import interp1d
+import ipdb as pdb
 
 def mc_sampler_2d(x, y, lims=[0,1,0,1], nsample=1e3):
     """
@@ -262,15 +263,17 @@ def plot_dpdf_sampling(n=200):
     _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
 
-def stages_hist(bgps=[], label):
+def stages_hist(label, xlabel, bgps=[]):
     """
     Create a histogram with the evolutionary stages overplotted.
 
     Parameters
     ----------
-    bgps : pd.DataFrame
     label : string
         column name in bgps to plot
+    xlabel : string
+        string to write on X axis
+    bgps : pd.DataFrame
 
     Returns
     -------
@@ -293,36 +296,34 @@ def stages_hist(bgps=[], label):
     xmax = _np.max([df[label].max() for df in stages])
     lbins = _np.logspace(_np.log10(xmin), _np.log10(xmax), 40)
     # plot settings
-    df_names = ['Starless', 'H2O No', 'IR Yes', 'H2O Yes', 'HII Yes', 'EGO Yes']
-    gen_kwargs = {'log': True, 'normed': True}
-    kwargs_list = [
-            {'label': 'Starless', 'color': 'DimGray', 'histtype': 'step',
-                'linestyle': 'dashed', 'linewidth': 2},
-            {'label': 'H2O N', 'color': 'GreenYellow', 'histtype': 'step',
-                'linestyle': 'dashed'},
-            {'label': 'IR Y', 'color': 'red', 'histtype': 'step',
-                'linestyle': 'solid'},
-            {'label': 'H2O Y', 'color': 'green', 'histtype': 'step',
-                'linestyle': 'solid'},
-            {'label': 'HII Y', 'color': 'blue', 'histtype': 'step',
-                'linestyle': 'solid'},
-            {'label': 'EGO Y', 'color': 'OrangeRed', 'histtype': 'step',
-                'linestyle': 'solid'}]
+    kwargs_gen = {'bins': lbins, 'color': 'LightGray', 'histtype':
+        'stepfilled', 'linestyle': 'solid', 'linewidth': 1}
+    kwargs_labels = [
+        {'label': 'Starless'},
+        {'label': r'${\rm H_2O \ \  N}$'},
+        {'label': r'${\rm IR \ \ Y}$'},
+        {'label': r'${\rm H_2O \ \ Y}$'},
+        {'label': r'${\rm H\sc{II} \ \ Y}$'},
+        {'label': r'${\rm EGO \ \ Y}$'}]
     # create plot
-    fig = _plt.figure(figsize=(8,5))
-    ax = fig.add_subplot(111)
-    # add hists
-    for i, df in enumerate(stages):
-        ax.hist(df[label].values, **gen_kwargs, **kwargs_list[i])
-    ax.set_xlabel(label)
-    ax.set_ylabel(r'$N$')
-    ax.set_xlim()
-    ax.set_ylim()
-    ax.set_xscale('log')
-    ax.legend(loc=0, prop={'size':12}))
+    fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
+    for i, ax in enumerate(axes):
+        # draw plots
+        kwargs_hist = dict(kwargs_gen.items() + kwargs_labels[i].items())
+        hist_heights, hist_edges = _np.histogram(stages[i][label], bins=lbins)
+        ymax = _np.max(hist_heights)
+        ax.hist(stages[i][label].values, **kwargs_hist)
+        ax.plot(stages[i][label].median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
+        # plot attributes
+        ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
+        ax.set_ylim([0, 1.1 * ymax])
+        ax.set_ylabel(r'N')
+        ax.set_xscale('log')
+        ax.legend(loc=1, frameon=False, prop={'size':12})
+    axes[-1].set_xlabel(xlabel)
     # save
-    _plt.save('stages_hist_{}.pdf'.format(label))
-    return [fig, ax]
+    _plt.savefig('stages_hist_{}.pdf'.format(label))
+    return [fig, axes]
 
 def print_properties(bgps, out_filen='bgps_props.txt'):
     out_file = open(out_filen, 'w')
