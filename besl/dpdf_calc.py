@@ -262,6 +262,68 @@ def plot_dpdf_sampling(n=200):
     _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
 
+def stages_hist(bgps=[], label):
+    """
+    Create a histogram with the evolutionary stages overplotted.
+
+    Parameters
+    ----------
+    bgps : pd.DataFrame
+    label : string
+        column name in bgps to plot
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+    ax : matplotlib.Axes
+    """
+    if len(bgps) == 0:
+        bgps = catalog.read_bgps(exten='all')
+    # evo stages
+    starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
+    h2o_no = bgps[bgps.h2o_f == 0]
+    ir_yes = bgps[bgps.ir_f == 1]
+    h2o_yes = bgps[bgps.h2o_f == 1]
+    hii_yes = bgps[bgps.corn_n > 0]
+    ego_yes = bgps[bgps.ego_n > 0]
+    stages = [starless, h2o_no, ir_yes, h2o_yes, hii_yes, ego_yes]
+    # calculate lims and bins
+    # TODO
+    xmin = _np.min([df[label].min() for df in stages])
+    xmax = _np.max([df[label].max() for df in stages])
+    lbins = _np.logspace(_np.log10(xmin), _np.log10(xmax), 40)
+    # plot settings
+    df_names = ['Starless', 'H2O No', 'IR Yes', 'H2O Yes', 'HII Yes', 'EGO Yes']
+    gen_kwargs = {'log': True, 'normed': True}
+    kwargs_list = [
+            {'label': 'Starless', 'color': 'DimGray', 'histtype': 'step',
+                'linestyle': 'dashed', 'linewidth': 2},
+            {'label': 'H2O N', 'color': 'GreenYellow', 'histtype': 'step',
+                'linestyle': 'dashed'},
+            {'label': 'IR Y', 'color': 'red', 'histtype': 'step',
+                'linestyle': 'solid'},
+            {'label': 'H2O Y', 'color': 'green', 'histtype': 'step',
+                'linestyle': 'solid'},
+            {'label': 'HII Y', 'color': 'blue', 'histtype': 'step',
+                'linestyle': 'solid'},
+            {'label': 'EGO Y', 'color': 'OrangeRed', 'histtype': 'step',
+                'linestyle': 'solid'}]
+    # create plot
+    fig = _plt.figure(figsize=(8,5))
+    ax = fig.add_subplot(111)
+    # add hists
+    for i, df in enumerate(stages):
+        ax.hist(df[label].values, **gen_kwargs, **kwargs_list[i])
+    ax.set_xlabel(label)
+    ax.set_ylabel(r'$N$')
+    ax.set_xlim()
+    ax.set_ylim()
+    ax.set_xscale('log')
+    ax.legend(loc=0, prop={'size':12}))
+    # save
+    _plt.save('stages_hist_{}.pdf'.format(label))
+    return [fig, ax]
+
 def print_properties(bgps, out_filen='bgps_props.txt'):
     out_file = open(out_filen, 'w')
     starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
@@ -269,7 +331,7 @@ def print_properties(bgps, out_filen='bgps_props.txt'):
     ir_yes = bgps[bgps.ir_f == 1]
     h2o_yes = bgps[bgps.h2o_f == 1]
     hii_yes = bgps[bgps.corn_n > 0]
-    ego_yes = bgps[bgps.ego_f > 0]
+    ego_yes = bgps[bgps.ego_n > 0]
     df_list = [starless, h2o_no, ir_yes, h2o_yes, hii_yes, ego_yes]
     df_names = ['Starless', 'H2O No', 'IR Yes', 'H2O Yes', 'HII Yes', 'EGO Yes']
     for i, df in enumerate(df_list):
@@ -286,41 +348,42 @@ def print_properties(bgps, out_filen='bgps_props.txt'):
                         df[((df.nnh_f == 1) | (df.nnh_f == 3)) &
                            (df.nh3_pk11 / df.nh3_noise11 > 4)]['nh3_pk11']
         # group numbers
-        out_file.write('-- {}:'.format(df_names[i]))
-        out_file.write('Number in group: {}'.format(
+        out_file.write('-- {}:\n'.format(df_names[i]))
+        out_file.write('Number in group: {}\n'.format(
             df.shape[0]))
-        out_file.write('Number with DPDFs: {}'.format(
+        out_file.write('Number with DPDFs: {}\n'.format(
             df[df.KDAR.isin(['N','F','T'])].shape[0]))
-        out_file.write('Number with Tkin: {}'.format(
+        out_file.write('Number with Tkin: {}\n'.format(
             df[(df.amm_f > 0) | (df.nh3_mult_n > 0)].shape[0]))
-        out_file.write('Number with DPDF & Tkin: {}'.format(
+        out_file.write('Number with DPDF & Tkin: {}\n'.format(
             df[((df.amm_f > 0) | (df.nh3_mult_n > 0)) &
             (df.KDAR.isin(['N','F','T']))].shape[0]))
         for col in ['flux', 'flux_40', 'flux_80', 'flux_120']:
-            out_file.write('{0}: {1} ({2})'.format(col,
+            out_file.write('{0}: {1} ({2})\n'.format(col,
                 df[col].median(), df[col].shape[0]))
         for col in ['hco_tpk', 'hco_int', 'hco_fwhm']:
-            out_file.write('{0}: {1} ({2})'.format(col,
+            out_file.write('{0}: {1} ({2})\n'.format(col,
                 df[(df.hco_f == 1) | (df.hco_f == 3)][col].median(),
                 df[(df.hco_f == 1) | (df.hco_f == 3)][col].shape[0]))
         for col in ['nnh_tpk', 'nnh_int', 'nnh_fwhm']:
-            out_file.write('{0}: {1} ({2})'.format(col,
+            out_file.write('{0}: {1} ({2})\n'.format(col,
                 df[(df.nnh_f == 1) | (df.nnh_f == 3)][col].median(),
                 df[(df.nnh_f == 1) | (df.nnh_f == 3)][col].shape[0]))
         for col in ['nnh/hco', 'hco/nh3', 'nnh/nh3']:
-            out_file.write('{0}: {1} ({2})'.format(col,
+            out_file.write('{0}: {1} ({2})\n'.format(col,
                 df[col].median(), df[col].shape[0]))
         for col in ['h2o_tpk', 'h2o_int', 'h2o_vsp', 'h2o_num_lines']:
-            out_file.write('{0}: {1} ({2})'.format(col,
+            out_file.write('{0}: {1} ({2})\n'.format(col,
                 df[df.h2o_gbt_f > 0][col].median(), df[col].shape[0]))
         for col in ['nh3_tkin', 'nh3_pk11']:
-            out_file.write('{0}: {1} ({2})'.format(col,
+            out_file.write('{0}: {1} ({2})\n'.format(col,
                 df[df.nh3_pk11 / df.nh3_noise11 > 4][col].median(),
                 df[df.nh3_pk11 / df.nh3_noise11 > 4][col].shape[0]))
-        for col in ['dust_mass', 'avg_radius', 'phys_area']:
-            out_file.write('{0}: {1} ({2})'.format(col,
+        for col in ['dust_mass', 'avg_diam', 'rind_surf_area']:
+            out_file.write('{0}: {1} ({2})\n'.format(col,
                 df[df.KDAR.isin(['N','F','T'])][col].median(),
                 df[df.KDAR.isin(['N','F','T'])][col].shape[0]))
+    out_file.close()
     return
 
 def print_dpdf_outfiles(out_dir='dpdf_ascii', v=2):
