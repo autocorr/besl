@@ -34,5 +34,22 @@ def find_clump_neighbors(cnum, v=201):
     """
     if v not in [2, 201]:
         raise ValueError
-    return
+    rind = image.get_bgps_img(cnum, exten='labelmask', v=v)
+    # find perimeter pixels
+    perim_pixels = _np.argwhere(
+         (rind[0].data[1:-1,1:-1] == cnum) &
+        ((rind[0].data[0:-2,1:-1] != cnum) |
+         (rind[0].data[2:  ,1:-1] != cnum) |
+         (rind[0].data[1:-1,0:-2] != cnum) |
+         (rind[0].data[1:-1,2:  ] != cnum)))
+    # look up, down, left, right
+    udlr_pixels = []
+    for i, j in [(0,1), (0,-1), (1,0), (-1,0)]:
+        udlr_pixels.append(
+            _np.dstack([perim_pixels[:,0] + i, perim_pixels[:,1] + j])) # zip
+    # re-sample label masks
+    neighbors = []
+    for pixels in udlr_pixels:
+        neighbors.append(rind[0].data[pixels])
+    return list(_np.unique(neighbors))
 
