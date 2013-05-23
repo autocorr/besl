@@ -28,9 +28,9 @@ def find_clump_neighbors(cnum, v=201):
 
     Returns
     -------
-    neighbors : list
-        List of neighbor's catalog numbers. If no neighbors, returns an empty
-        list.
+    neighbors : np.array
+        Array of unique neighbor's catalog numbers. If no neighbors, returns an
+        empty array.
     """
     if v not in [2, 201]:
         raise ValueError
@@ -51,5 +51,40 @@ def find_clump_neighbors(cnum, v=201):
     neighbors = []
     for pixels in udlr_pixels:
         neighbors.append(rind[0].data[pixels])
-    return list(_np.unique(neighbors))
+    neighbors = _np.unique(neighbors)
+    neighbors = neighbors[neighbors != 0]
+    # TODO match negative values
+    if _np.any(neighbors < 0):
+        raise ValueError('Negative cnum found')
+    return neighbors
+
+def broadcast_kdar():
+    # TODO
+    pass
+
+def num_of_neighbors(v=201):
+    """
+    Calculate the number of neighbors a clump has based on the label masks.
+
+    Parameters
+    ----------
+    v : number, default 201
+        BGPS version number. Available options:
+            2   -> BGPS v2.0.0
+            201 -> BGPS v2.0.1
+
+    Returns
+    -------
+    bgps : pd.DataFrame
+        dataframe with 'neighbors_n' column
+    """
+    bgps.catalog.read_bgps(exten='none', v=v)
+    bgps['neighbors_n'] = _np.nan
+    for i in xrange(bgps.shape[0]):
+        cnum, field = bgps.ix[i, ['cnum', 'field']]
+        neighbors = find_clump_neighbors(cnum, v=v)
+        bgps.ix[i, 'neighbors_n'] = len(neighbors)
+    bgps = bgps[['name', 'neighbors_n']]
+    return bgps
+
 
