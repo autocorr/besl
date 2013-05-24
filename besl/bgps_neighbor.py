@@ -11,6 +11,7 @@ import pyfits
 import numpy as _np
 import pandas as _pd
 import catalog, image
+import ipdb as pdb
 
 def find_clump_neighbors(cnum, v=201):
     """
@@ -41,18 +42,18 @@ def find_clump_neighbors(cnum, v=201):
         ((rind[0].data[0:-2,1:-1] != cnum) |
          (rind[0].data[2:  ,1:-1] != cnum) |
          (rind[0].data[1:-1,0:-2] != cnum) |
-         (rind[0].data[1:-1,2:  ] != cnum)))
-    # look up, down, left, right
+         (rind[0].data[1:-1,2:  ] != cnum))) + 1 # for pyfits index
+    # look up, down, right, left
     udlr_pixels = []
     for i, j in [(0,1), (0,-1), (1,0), (-1,0)]:
         udlr_pixels.append(
-            _np.dstack([perim_pixels[:,0] + i, perim_pixels[:,1] + j])) # zip
+            _np.array([perim_pixels[:,0] + i, perim_pixels[:,1] + j]).T) # zip
     # re-sample label masks
     neighbors = []
     for pixels in udlr_pixels:
-        neighbors.append(rind[0].data[pixels])
-    neighbors = _np.unique(neighbors)
-    neighbors = neighbors[neighbors != 0]
+        neighbors.append(rind[0].data[pixels[:,0], pixels[:,1]])
+    neighbors = _np.unique(_np.ravel(neighbors))
+    neighbors = neighbors[(neighbors != 0) & (neighbors != cnum)]
     if _np.any(neighbors < 0):
         raise ValueError('Negative cnum found')
     return neighbors
