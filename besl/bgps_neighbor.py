@@ -53,13 +53,21 @@ def find_clump_neighbors(cnum, v=201):
         neighbors.append(rind[0].data[pixels])
     neighbors = _np.unique(neighbors)
     neighbors = neighbors[neighbors != 0]
-    # TODO match negative values
     if _np.any(neighbors < 0):
         raise ValueError('Negative cnum found')
     return neighbors
 
 def broadcast_kdar():
     # TODO
+    # for clumps with a dpdf
+    #   get list of neighbor clumps
+    #   visit each neighbor, check if it has a velocity, and if that velocity
+    #     is close enough to the DPDF clumps velocity
+    #   update visited clump list
+    #   once all adjacent neighbors have been visited, look at the neighbors of
+    #   the clumps in the visited list but only if that neighbor is not already
+    #   in the visited list
+    #   once out of clumps to visit
     pass
 
 def num_of_neighbors(v=201):
