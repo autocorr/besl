@@ -85,7 +85,7 @@ def select_good_neighbors(bgps, cnum, hco_v, visited):
         (_np.logical_not(bgps.v201cnum.isin(visited))) &
         (_np.logical_not(bgps.KDAR.isin(['N','F','T']))) &
         (_np.abs(bgps.hco_v - hco_v) < 3.5) &
-        (bgps.hco_f.isin([1,3]), 'v201cnum'].values
+        (bgps.hco_f.isin([1,3])), 'v201cnum'].values
     return good_neighbors
 
 def broadcast_kdar(bgps=[], verbose=False):
@@ -122,7 +122,7 @@ def broadcast_kdar(bgps=[], verbose=False):
     bgps['neighbor_KDAR'] = _np.nan
     bgps['neighbor_dML'] = _np.nan
     # visit DPDF clumps
-    for i in bgps[bgps.KDAR.isin(['T','N','F']).index:
+    for i in bgps[bgps.KDAR.isin(['T','N','F'])].index:
         # current DPDF clump properties
         dpdf_cnum = bgps.ix[i, 'v201cnum']
         kdar = bgps.ix[i, 'KDAR']
