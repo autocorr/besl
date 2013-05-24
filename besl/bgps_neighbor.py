@@ -71,7 +71,7 @@ def broadcast_kdar():
     #   once out of clumps to visit
     pass
 
-def num_of_neighbors(v=201):
+def num_of_neighbors(v=201, verbose=False):
     """
     Calculate the number of neighbors a clump has based on the label masks.
 
@@ -81,18 +81,21 @@ def num_of_neighbors(v=201):
         BGPS version number. Available options:
             2   -> BGPS v2.0.0
             201 -> BGPS v2.0.1
+    verbose : Bool, default False
 
     Returns
     -------
     bgps : pd.DataFrame
         dataframe with 'neighbors_n' column
     """
-    bgps.catalog.read_bgps(exten='none', v=v)
+    bgps = catalog.read_bgps(exten='none', v=v)
     bgps['neighbors_n'] = _np.nan
     for i in xrange(bgps.shape[0]):
         cnum, field = bgps.ix[i, ['cnum', 'field']]
         neighbors = find_clump_neighbors(cnum, v=v)
         bgps.ix[i, 'neighbors_n'] = len(neighbors)
+        if verbose:
+            print '-- {0:>4d} : {1:>4d}'.format(cnum, len(neighbors))
     bgps = bgps[['name', 'neighbors_n']]
     return bgps
 
