@@ -58,18 +58,92 @@ def find_clump_neighbors(cnum, v=201):
         raise ValueError('Negative cnum found')
     return neighbors
 
-def broadcast_kdar():
+def select_good_neighbors(bgps, cnum, hco_v, visited):
+    """
+    Select neighbors of clump that satisfy the criteria:
+      * Have HCO+ flag 1 or 3
+      * HCO+ velocity closer than 3.5 km / s
+      * Do not have a KDAR 'N', 'F', or 'T'
+      * Have not already been visited.
+
+    Parameters
+    ----------
+    bgps : pd.DataFrame
+        BGPS all catalog
+    cnum : number
+        Current clump v2.0.1 catalog number
+    visited : array-like
+        List of visited v2.0.1 catalog numbers
+
+    Returns
+    -------
+    good_neighbors : np.array
+    """
+    all_neighbors = find_clump_neighbors(cnum)
+    good_neighbors = bgps.ix[
+        (bgps.v201cnum.isin(all_neighbors)) &
+        (_np.logical_not(bgps.v201cnum.isin(visited))) &
+        (_np.logical_not(bgps.KDAR.isin(['N','F','T']))) &
+        (_np.abs(bgps.hco_v - hco_v) < 3.5) &
+        (bgps.hco_f.isin([1,3]), 'v201cnum'].values
+    return good_neighbors
+
+def broadcast_kdar(bgps=[], verbose=False):
+    """
+    Calculate the nearest neighbors to the clumps with KDAR resolved by EMAF
+    in Ellsworth-Bowers et al. (2013). Only v2.0.1 names supported.
+
+    Parameters
+    ----------
+    bgps : pd.DataFrame
+        BGPS catalog dataframe
+    verbose : bool, default False
+
+    Returns
+    -------
+    bgps : pd.DataFrame
+        BGPS catalog with added columns:
+            neighbor_KDAR : KDAR from a spanning DPDF clump
+            neighbor_dML  : dML from a spanning DPDF clump
+
+    Raises
+    ------
+    Exception : If there are conflicting KDAR within a clump complex
+    """
     # TODO
-    # for clumps with a dpdf
-    #   get list of neighbor clumps
-    #   visit each neighbor, check if it has a velocity, and if that velocity
-    #     is close enough to the DPDF clumps velocity
-    #   update visited clump list
-    #   once all adjacent neighbors have been visited, look at the neighbors of
-    #   the clumps in the visited list but only if that neighbor is not already
-    #   in the visited list
-    #   once out of clumps to visit
-    pass
+    # - mark special flag or raise an exception if conflicting KDAR within a
+    #   complex
+    # - call special routine if a found neighbor with a KDAR is found that will
+    #   step each DPDF clump in a complex in parallel order
+    if type(verbose) is not bool:
+        raise TypeError
+    if len(bgps) == 0:
+        bgps = catalog.read_bgps(exten='all')
+    bgps['neighbor_KDAR'] = _np.nan
+    bgps['neighbor_dML'] = _np.nan
+    # visit DPDF clumps
+    for i in bgps[bgps.KDAR.isin(['T','N','F']).index:
+        # current DPDF clump properties
+        dpdf_cnum = bgps.ix[i, 'v201cnum']
+        kdar = bgps.ix[i, 'KDAR']
+        dML = bgps.ix[i, 'dML']
+        hco_v = bgps.ix[i, 'hco_v']
+        visited = [dpdf_cnum]
+        neighbors = select_good_neighbors(bgps, dpdf_cnum, hco_v, visited)
+        if verbose:
+            print '-- DPDF clump : {}'.format(cnum)
+        for neighbor_cnum in neighbors:
+            visited.append(neighbor_cnum)
+            # update flags for current clump
+            bgps['neighbor_KDAR'][bgps.v201cnum == neighbor_cnum] = kdar
+            bgps['neighbor_dML'][bgps.v201cnum == neighbor_cnum] = dML
+            # check for new clumps
+            new_neighbors = select_good_neighbors(bgps, neighbor_cnum,
+                hco_v, visited)
+            neighbors.extend(new_neigbors)
+            if verbose:
+                print '.',
+    return bgps
 
 def num_of_neighbors(v=201, verbose=False):
     """
