@@ -77,7 +77,7 @@ def select_good_neighbors(bgps, cnum, hco_v, visited):
 
     Returns
     -------
-    good_neighbors : np.array
+    good_neighbors : list
     """
     all_neighbors = find_clump_neighbors(cnum)
     good_neighbors = bgps.ix[
@@ -86,7 +86,7 @@ def select_good_neighbors(bgps, cnum, hco_v, visited):
         (_np.logical_not(bgps.KDAR.isin(['N','F','T']))) &
         (_np.abs(bgps.hco_v - hco_v) < 3.5) &
         (bgps.hco_f.isin([1,3])), 'v201cnum'].values
-    return good_neighbors
+    return list(good_neighbors)
 
 def broadcast_kdar(bgps=[], verbose=False):
     """
@@ -119,7 +119,7 @@ def broadcast_kdar(bgps=[], verbose=False):
         raise TypeError
     if len(bgps) == 0:
         bgps = catalog.read_bgps(exten='all')
-    bgps['neighbor_KDAR'] = _np.nan
+    bgps['neighbor_KDAR'] = 'null'
     bgps['neighbor_dML'] = _np.nan
     # visit DPDF clumps
     for i in bgps[bgps.KDAR.isin(['T','N','F'])].index:
@@ -131,7 +131,7 @@ def broadcast_kdar(bgps=[], verbose=False):
         visited = [dpdf_cnum]
         neighbors = select_good_neighbors(bgps, dpdf_cnum, hco_v, visited)
         if verbose:
-            print '-- DPDF clump : {}'.format(cnum)
+            print '\n-- DPDF clump : {}'.format(dpdf_cnum)
         for neighbor_cnum in neighbors:
             visited.append(neighbor_cnum)
             # update flags for current clump
@@ -140,9 +140,10 @@ def broadcast_kdar(bgps=[], verbose=False):
             # check for new clumps
             new_neighbors = select_good_neighbors(bgps, neighbor_cnum,
                 hco_v, visited)
-            neighbors.extend(new_neigbors)
+            neighbors.extend(new_neighbors)
             if verbose:
                 print '.',
+    bgps['neighbor_KDAR'][bgps.neighbor_KDAR == 'null'] = _np.nan
     return bgps
 
 def num_of_neighbors(v=201, verbose=False):
