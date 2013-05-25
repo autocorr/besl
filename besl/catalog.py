@@ -717,44 +717,58 @@ def match_all_clumps():
     pass
 
 ### DS9 regions
-def create_point_region(lon, lat, out_filen='ds9', marker='circle',
-        coord_type='fk5', color='green'):
+def create_point_region(lon, lat, text=[], out_filen='ds9', marker='circle',
+        coord_type='fk5', color='green', offset=5):
     """
     Create a DS9 region file from a list of longitude and latitude coordinates.
 
     Parameters
     ----------
-    lon : array
-    lat : array
+    lon : array-like
+        Longitude in decimal degrees
+    lat : array-like
+        Latitude in decimal degrees
+    text : array-like
+        List of text labels to place at offset position
     out_filen : string, default 'ds9.reg'
         Filename of output DS9 region file.
     marker_type : string, default 'circle'
         Region marker type. Supported: {circle, box, diamond, cross, x, arrow,
-        boxcircle}.
+        boxcircle}. If 'none' no markers are plotted.
     coord_type : string, default 'fk5'
         Celestial coordinate type. Supported: {image, linear, fk4, fk5,
         galactic, ecliptic, icrs, physical, amplifier, detector}.
     color : string, default 'green'
         Region color. Supported: {white, black, red, green, blue, cyan, magenta,
         yellow}.
+    offset : number, default 5 arcsec
+        Offset for text from the point center
 
     Returns
     -------
     out_file : regions file
     """
     point_strings = ['circle', 'box', 'diamond', 'cross', 'x', 'arrow',
-        'boxcircle']
+        'boxcircle', 'none']
     if marker not in point_strings:
         raise ValueError('Invalid marker string.')
+    if len(text) == 0:
     out_file = open(out_filen + '.reg', 'w')
     out_file.write('# global color={0}\n'.format(color))
     out_file.write('{0}\n'.format(coord_type))
-    for i in xrange(lon.shape[0]):
-        out_file.write('{marker} point {lon} {lat}\n'.format(
-            marker=marker,
-            lon=lon[i],
-            lat=lat[i]))
+    if marker != 'none':
+        for i in xrange(lon.shape[0]):
+            out_file.write('{marker} point {lon} {lat}\n'.format(
+                marker=marker,
+                lon=lon[i],
+                lat=lat[i]))
+    if len(text) == len(lon):
+        for i in xrange(lon.shape[0]):
+            out_file.write('text {lon} {lat} # text={{text}}\n'.format(
+                text=text[i],
+                lon=lon[i] + offset,
+                lat=lat[i] + offset))
     out_file.close()
-    print '-- DS9 region file written to {}'.format(out_filen)
+    print '-- DS9 region file written to {}.reg'.format(out_filen)
     return
 

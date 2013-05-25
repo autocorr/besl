@@ -105,10 +105,6 @@ def broadcast_kdar(bgps=[], verbose=False):
         BGPS catalog with added columns:
             neighbor_KDAR : KDAR from a spanning DPDF clump
             neighbor_dML  : dML from a spanning DPDF clump
-
-    Raises
-    ------
-    Exception : If there are conflicting KDAR within a clump complex
     """
     # TODO
     # - mark special flag or raise an exception if conflicting KDAR within a
