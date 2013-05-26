@@ -133,8 +133,8 @@ def read_molcat():
     molcat : pandas.DataFrame
         Output catalog in a pandas DataFrame object
     """
-    molcat = _pd.read_csv(d.cat_dir + d.molcat_filen, na_values=['99.99'],
-        skiprows=43)
+    molcat = _pd.read_csv(d.cat_dir + d.molcat_filen,
+        na_values=['','99.99','-200.0','-200.00','-200.000'], skiprows=43)
     molcat = pd_eq2gal(molcat, ['hht_ra','hht_dec'], ['hht_glon', 'hht_glat'])
     return molcat
 
@@ -752,7 +752,6 @@ def create_point_region(lon, lat, text=[], out_filen='ds9', marker='circle',
         'boxcircle', 'none']
     if marker not in point_strings:
         raise ValueError('Invalid marker string.')
-    if len(text) == 0:
     out_file = open(out_filen + '.reg', 'w')
     out_file.write('# global color={0}\n'.format(color))
     out_file.write('{0}\n'.format(coord_type))
