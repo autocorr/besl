@@ -760,7 +760,9 @@ def create_point_region(lon, lat, text=[], out_filen='ds9', marker='circle',
     if len(text) != len(lon):
         text = [''] * len(lon)
     out_file = open(out_filen + '.reg', 'w')
+    # header file
     out_file.write('global color={0} font="helvetica 10 normal" select=1 highlite=1 edit=1 move=1 delete=1 include=1 fixed=0\n'.format(color))
+    # coordinate system
     out_file.write('{0}\n'.format(coord_type))
     for i in xrange(lon.shape[0]):
         out_file.write(
