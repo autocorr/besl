@@ -748,25 +748,30 @@ def create_point_region(lon, lat, text=[], out_filen='ds9', marker='circle',
     -------
     out_file : regions file
     """
-    point_strings = ['circle', 'box', 'diamond', 'cross', 'x', 'arrow',
-        'boxcircle', 'none']
-    if marker not in point_strings:
+    if marker not in ['circle', 'box', 'diamond', 'cross', 'x', 'arrow',
+        'boxcircle', 'none']:
         raise ValueError('Invalid marker string.')
+    if coord_type not in ['image', 'linear', 'fk4', 'fk5', 'galactic',
+        'ecliptic', 'icrs', 'physical', 'amplifier', 'detector']:
+        raise ValueError('Invalid coordinate type.')
+    if color not in ['white', 'black', 'red', 'green', 'blue', 'cyan',
+        'magenta', 'yellow']:
+        raise ValueError('Invalid color.')
+    if len(text) != len(lon):
+        text = [''] * len(lon)
     out_file = open(out_filen + '.reg', 'w')
-    out_file.write('# global color={0}\n'.format(color))
+    out_file.write('global color={0} font="helvetica 10 normal" select=1 highlite=1 edit=1 move=1 delete=1 include=1 fixed=0\n'.format(color))
     out_file.write('{0}\n'.format(coord_type))
-    if marker != 'none':
-        for i in xrange(lon.shape[0]):
-            out_file.write('{marker} point {lon} {lat}\n'.format(
-                marker=marker,
-                lon=lon[i],
-                lat=lat[i]))
-    if len(text) == len(lon):
-        for i in xrange(lon.shape[0]):
-            out_file.write('text {lon} {lat} # text={{text}}\n'.format(
-                text=text[i],
-                lon=lon[i] + offset,
-                lat=lat[i] + offset))
+    for i in xrange(lon.shape[0]):
+        out_file.write(
+        '{marker} point {lon} {lat} # text={lcb}{txt}{rcb}\n'.format(
+            marker=marker,
+            lon=lon[i],
+            lat=lat[i],
+            txt=text[i],
+            lcb='{',
+            rcb='}'))
+    # TODO add text only option implementation
     out_file.close()
     print '-- DS9 region file written to {}.reg'.format(out_filen)
     return
