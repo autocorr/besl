@@ -58,7 +58,7 @@ def find_clump_neighbors(cnum, v=201):
         raise ValueError('Negative cnum found')
     return neighbors
 
-def select_good_neighbors(bgps, cnum, hco_v, visited):
+def select_good_neighbors(bgps, cnum, hco_v, visited, v_disp=3.5):
     """
     Select neighbors of clump that satisfy the criteria:
       * Have HCO+ flag 1 or 3
@@ -74,6 +74,8 @@ def select_good_neighbors(bgps, cnum, hco_v, visited):
         Current clump v2.0.1 catalog number
     visited : array-like
         List of visited v2.0.1 catalog numbers
+    v_disp : number
+        Velocity dispersion upper limit for coherent velocities
 
     Returns
     -------
@@ -84,7 +86,7 @@ def select_good_neighbors(bgps, cnum, hco_v, visited):
         (bgps.v201cnum.isin(all_neighbors)) &
         (_np.logical_not(bgps.v201cnum.isin(visited))) &
         (_np.logical_not(bgps.KDAR.isin(['N','F','T']))) &
-        (_np.abs(bgps.hco_v - hco_v) < 3.5) &
+        (_np.abs(bgps.hco_v - hco_v) < v_disp) &
         (bgps.hco_f.isin([1,3])), 'v201cnum'].values
     return list(good_neighbors)
 
@@ -125,7 +127,8 @@ def broadcast_kdar(bgps=[], verbose=False):
         dML = bgps.ix[i, 'dML']
         hco_v = bgps.ix[i, 'hco_v']
         visited = [dpdf_cnum]
-        neighbors = select_good_neighbors(bgps, dpdf_cnum, hco_v, visited)
+        neighbors = select_good_neighbors(bgps, dpdf_cnum, hco_v, visited,
+            v_disp=7)
         if verbose:
             print '\n-- DPDF clump : {}'.format(dpdf_cnum)
         for neighbor_cnum in neighbors:
@@ -136,7 +139,7 @@ def broadcast_kdar(bgps=[], verbose=False):
             bgps.ix[j, 'neighbor_dML'] = dML
             # check for new clumps
             new_neighbors = select_good_neighbors(bgps, neighbor_cnum,
-                hco_v, visited)
+                hco_v, visited, v_disp=7)
             neighbors.extend(new_neighbors)
             if verbose:
                 print '.',
