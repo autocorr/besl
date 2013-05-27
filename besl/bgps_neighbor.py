@@ -131,8 +131,9 @@ def broadcast_kdar(bgps=[], verbose=False):
         for neighbor_cnum in neighbors:
             visited.append(neighbor_cnum)
             # update flags for current clump
-            bgps['neighbor_KDAR'][bgps.v201cnum == neighbor_cnum] = kdar
-            bgps['neighbor_dML'][bgps.v201cnum == neighbor_cnum] = dML
+            j = _np.argwhere(bgps.v201cnum == neighbor_cnum)[0][0]
+            bgps.ix[j, 'neighbor_KDAR'] = kdar
+            bgps.ix[j, 'neighbor_dML'] = dML
             # check for new clumps
             new_neighbors = select_good_neighbors(bgps, neighbor_cnum,
                 hco_v, visited)
