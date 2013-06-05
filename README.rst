@@ -10,6 +10,8 @@ research.
 
 REQUIREMENTS
 ============
+.. code-block::
+
     numpy      >= 1.7.1
     scipy      >= 0.10.1
     pandas     >= 0.11.0
