@@ -1,35 +1,27 @@
-INTRODUCTION
-============
-BESL is a general purpose library written in python for astronomical 
+BESL
+====
+:Author: Brian Svoboda (bsvo@lavabit.com)
+:Source: https://github.com/autocorr/besl
+:Version: alpha
+
+BESL is a general purpose library written in python for astronomical
 research.
 
 
 REQUIREMENTS
 ============
-numpy >= 1.7.1
-
-scipy >= 0.10.1
-
-pandas >= 0.11.0
-
-matplotlib >= 1.2.1
-
-atpy >= 0.9.6
-
-pyephem >= 3.7.5.1
-
-pywcs >= 1.11-4.8.2
-
-pyfits >= 3.1.2
-
-
-AUTHORS
-=======
-`Brian Svoboda <bsvo@lavabit.com>`_
+    numpy      >= 1.7.1
+    scipy      >= 0.10.1
+    pandas     >= 0.11.0
+    matplotlib >= 1.2.1
+    atpy       >= 0.9.6
+    pyephem    >= 3.7.5.1
+    pywcs      >= 1.11-4.8.2
+    pyfits     >= 3.1.2
 
 
 LICENSE
-======
+=======
 Copyright 2012, 2013 Brian Svoboda
 
 BESL is free software: you can redistribute it and/or modify it under the terms
