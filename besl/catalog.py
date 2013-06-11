@@ -34,7 +34,7 @@ class Dirs(object):
         self.bgps_filen = 'bgps/bgps_v{}.csv'
         self.bgps_ext_filen = 'bgps/bgps_v{}_{}.{}'
         self.bgps_bounds_filen = 'bgps/bgps_v2.0_bounds.csv'
-        self.molcat_filen = 'bgps/bgps_molcat.csv'
+        self.molcat_filen = 'bgps/bgps_molcat_{}.csv'
         self.wise_filen = 'wise/wise_0-90.csv'
         self.msx_filen = 'red_msx/rms_msx_urquhart.csv'
         self.robit_filen = 'red_robitaille/red_robitaille.csv'
@@ -133,8 +133,20 @@ def read_molcat():
     molcat : pandas.DataFrame
         Output catalog in a pandas DataFrame object
     """
-    molcat = _pd.read_csv(d.cat_dir + d.molcat_filen,
-        na_values=['','99.99','-200.0','-200.00','-200.000'], skiprows=43)
+    na_values = ['', '99.99', '-200.0', '-200.00', '-200.000', '999.9',
+        '999.99', '999.999']
+    molcat = _pd.read_csv(d.cat_dir + d.molcat_filen.format('main'),
+        na_values=na_values)
+    molcat = molcat.drop(labels=['mol_ir1', 'mol_ir2', 'mol_ir3', 'mol_ir4',
+        'mol_c_l', 'mol_c_b'], axis=1)
+    vlsr = _pd.read_csv(d.cat_dir + d.molcat_filen.format('vlsr'),
+        na_values=na_values)
+    vlsr = vlsr.drop(labels=['ref_f'], axis=1)
+    gauss = _pd.read_csv(d.cat_dir + d.molcat_filen.format('gauss'),
+        na_values=na_values)
+    gauss = gauss.drop(labels=['hco_chisq', 'nnh_chisq'], axis=1)
+    molcat = _pd.merge(molcat, vlsr, how='outer', on='cnum')
+    molcat = _pd.merge(molcat, gauss, how='outer', on='cnum')
     molcat = pd_eq2gal(molcat, ['hht_ra','hht_dec'], ['hht_glon', 'hht_glat'])
     return molcat
 
@@ -355,8 +367,8 @@ def read_gbt_h2o():
         Output catalog in a pandas DataFrame object
     """
     tmb2jy = 0.463
-    gbt_h2o = _pd.read_csv(d.cat_dir + d.gbt_h2o_filen, na_values=['-999'],
-        skiprows=21)
+    gbt_h2o = _pd.read_csv(d.cat_dir + d.gbt_h2o_filen,
+        na_values=['-999.000000', '-9'], skiprows=21)
     gbt_h2o['h2o_tpk_jy'] = tmb2jy * gbt_h2o['h2o_tpk']
     gbt_h2o['h2o_tpk_err_jy'] = tmb2jy * gbt_h2o['h2o_tpk_err']
     gbt_h2o['h2o_int_jy'] = tmb2jy * gbt_h2o['h2o_int']
