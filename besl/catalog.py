@@ -336,7 +336,7 @@ def read_ego(out_df_list=False):
         df_list.append(_pd.read_csv(d.cat_dir + d.ego_filen.format(i,
         'cyganowski'), sep=';', skipinitialspace=True, skiprows=skip_list[i-1]))
     # chen egos
-    chen_egos = _pd.read_csv(d.cat_dir + d.ego_filen.format(1, 'chen_coord'))
+    chen_egos = _pd.read_csv(d.cat_dir + d.ego_filen.format(1, 'chen_coords'))
     chen_egos['ra'] = (chen_egos['ra_h'] + chen_egos['ra_m'] / 60. +
         chen_egos['ra_s'] / 60.**2) * 360. / 24.
     chen_egos['dec'] = chen_egos['dec_d'] + chen_egos['dec_m'] / 60. + \
