@@ -38,7 +38,7 @@ class Dirs(object):
         self.wise_filen = 'wise/wise_0-90.csv'
         self.msx_filen = 'red_msx/rms_msx_urquhart.csv'
         self.robit_filen = 'red_robitaille/red_robitaille.csv'
-        self.ego_filen = 'ego/ego_{}_cyganowski.csv'
+        self.ego_filen = 'ego/ego_{}_{}.csv'
         self.mmb_filen = 'mmb/mmb_all.csv'
         self.gbt_h2o_filen = 'bgps/gbt_h2o_all.csv'
         self.rms_h2o_det_filen = 'red_msx/rms_h2o_det_urquhart.csv'
@@ -314,7 +314,7 @@ def read_robitaille():
 
 def read_ego(out_df_list=False):
     """
-    Read EGO catalog. Citation: Cyganowski et al. (2008).
+    Read EGO catalog. Citation: Cyganowski et al. (2008), Chen et al. (2013).
 
     Parameters
     ----------
@@ -331,9 +331,21 @@ def read_ego(out_df_list=False):
     """
     skip_list = [91, 15, 30, 15, 19]
     df_list = []
+    # cyganowski egos
     for i in range(1,6):
-        df_list.append(_pd.read_csv(d.cat_dir + d.ego_filen.format(i),
-            sep=';', skipinitialspace=True, skiprows=skip_list[i-1]))
+        df_list.append(_pd.read_csv(d.cat_dir + d.ego_filen.format(i,
+        'cyganowski'), sep=';', skipinitialspace=True, skiprows=skip_list[i-1]))
+    # chen egos
+    chen_egos = _pd.read_csv(d.cat_dir + d.ego_filen.format(1, 'chen_coord'))
+    chen_egos['ra'] = (chen_egos['ra_h'] + chen_egos['ra_m'] / 60. +
+        chen_egos['ra_s'] / 60.**2) * 360. / 24.
+    chen_egos['dec'] = chen_egos['dec_d'] + chen_egos['dec_m'] / 60. + \
+        chen_egos['dec_s'] / 60.**2
+    chen_egos = pd_eq2gal(chen_egos, labels=['ra', 'dec'], new_labels=['_Glon',
+        '_Glat'])
+    chen_egos = chen_egos[['EGO', '_Glon', '_Glat']]
+    df_list.append(chen_egos)
+    # bundle up out dataframe
     ego = _pd.concat(df_list, ignore_index=True)
     if out_df_list:
         return ego, df_list
