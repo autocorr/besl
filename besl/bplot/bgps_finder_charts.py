@@ -27,9 +27,9 @@ bgps = catalog.read_bgps()
 molcat = catalog.read_molcat()
 bounds = catalog.read_bgps_bounds()
 # HCO+ flag groups
-dets = molcat[(molcat.hco_f != 0) & (molcat.hco_f != 2)]
-mdet = molcat[molcat.hco_f == 2]
-ndet = molcat[molcat.hco_f == 0]
+dets = molcat[molcat.mol_vlsr_f.isin([1,3])]
+mdet = molcat[molcat.mol_vlsr_f == 2]
+ndet = molcat[molcat.mol_vlsr_f == 0]
 img_list = bounds[bounds.glon_min > 7].field.values
 # Calculate round coordinate intervals
 bounds['glon_round_sep'] = (bounds['glon_max'] - bounds['glon_min']) / \
@@ -39,7 +39,7 @@ bounds['glat_round_sep'] = (bounds['glat_max'] - bounds['glat_min']) / \
 # Sort by Galactic longitude
 bounds = bounds.sort('glon_min', ascending=True)
 # String labels
-dets['hco_v_str'] = dets.hco_v.apply(str)
+dets['mol_vlsr_str'] = dets.mol_vlsr_f.apply(str)
 molcat['cnum_str'] = molcat.cnum.apply(str)
 
 def create_field_tile(img_fits, field='temp', show_cnum=False):
@@ -76,7 +76,7 @@ def create_field_tile(img_fits, field='temp', show_cnum=False):
     dets['glon_pix'], dets['glat_pix'] = gc.world2pixel(dets.hht_glon.values,
         dets.hht_glat.values)
     for i in xrange(dets.shape[0]):
-        txt = _plt.annotate(dets.hco_v_str.values[i],
+        txt = _plt.annotate(dets.mol_vlsr_str.values[i],
             xy=(dets.glon_pix.values[i], dets.glat_pix.values[i]),
             xytext=(3.75,3.5), xycoords='data', textcoords='offset points',
             fontsize='8', weight='book', color='green')
@@ -168,7 +168,7 @@ def create_velo_finder_charts():
     """
     cnum_list = open('chart_source_list.cat', 'w')
     cnum_list.write('cnum,chart_index\n')
-    img_list = bounds[(bounds.glon_min > 7.5) &
+    img_list = bounds[(bounds.glon_min > 7.4) &
                       (bounds.glon_max < 197)].field.values
     # Select fields and print tiles
     i = 1
