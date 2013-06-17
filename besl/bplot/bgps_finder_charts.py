@@ -36,6 +36,8 @@ bounds['glon_round_sep'] = (bounds['glon_max'] - bounds['glon_min']) / \
     _np.round(bounds['glon_max'] - bounds['glon_min'])
 bounds['glat_round_sep'] = (bounds['glat_max'] - bounds['glat_min']) / \
     _np.round(bounds['glat_max'] - bounds['glat_min'])
+# Sort by Galactic longitude
+bounds = bounds.sort('glon_min', ascending=True)
 # String labels
 dets['hco_v_str'] = dets.hco_v.apply(str)
 molcat['cnum_str'] = molcat.cnum.apply(str)
@@ -128,6 +130,38 @@ def create_sub_tile(gc, field, i, lon_pos, lat_pos, dlon, dlat):
     print '-- Printing: {0} {1:.2f} {2:+.2f}'.format(field, lon_pos, lat_pos)
     return
 
+def is_in_subtile(lon_cen, lat_cen, dlon, dlat):
+    """
+    Return whether there are any BGPS sources within a range. Input values in
+    decimal degrees from 0 to 360.
+
+    Parameters
+    ----------
+    lon_cen : number
+        Longitude center position
+    lat_cen : number
+        Latitude center position
+    dlon : number
+        Width of tile
+    dlat : number
+        Height of tile
+
+    Returns
+    -------
+    Boolean
+    """
+    # TODO fix for sources near 0 - 360 boundary
+    num_in_tile = molcat[(molcat.hht_glon > lon_cen - dlon / 2.) &
+                         (molcat.hht_glon < lon_cen + dlon / 2.) &
+                         (molcat.hht_glat > lat_cen - dlat / 2.) &
+                         (molcat.hht_glat < lat_cen + dlat / 2.)].shape[0]
+    if num_in_tile > 0:
+        return True
+    elif num_in_tile == 0:
+        return False
+    else:
+        raise Exception
+
 def create_velo_finder_charts():
     """
     Generate finder charts for the BGPS Molecular Line survey.
@@ -166,36 +200,4 @@ def create_velo_finder_charts():
         img_fits.close()
     cnum_list.close()
     return
-
-def is_in_subtile(lon_cen, lat_cen, dlon, dlat):
-    """
-    Return whether there are any BGPS sources within a range. Input values in
-    decimal degrees from 0 to 360.
-
-    Parameters
-    ----------
-    lon_cen : number
-        Longitude center position
-    lat_cen : number
-        Latitude center position
-    dlon : number
-        Width of tile
-    dlat : number
-        Height of tile
-
-    Returns
-    -------
-    Boolean
-    """
-    # TODO fix for sources near 0 - 360 boundary
-    num_in_tile = molcat[(molcat.hht_glon > lon_cen - dlon / 2.) &
-                         (molcat.hht_glon < lon_cen + dlon / 2.) &
-                         (molcat.hht_glat > lat_cen - dlat / 2.) &
-                         (molcat.hht_glat < lat_cen + dlat / 2.)].shape[0]
-    if num_in_tile > 0:
-        return True
-    elif num_in_tile == 0:
-        return False
-    else:
-        raise Exception
 
