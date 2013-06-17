@@ -263,6 +263,33 @@ def plot_dpdf_sampling(n=200):
     _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
 
+def gen_stages(bgps=[]):
+    """
+    Generate a list of stages from the BGPS catalog.
+
+    Parameters
+    ----------
+    bgps : pd.DataFrame
+        BGPS catalog in a pandas dataframe, requires evolutionary flags from an
+        all-matched catalog.
+
+    Returns
+    -------
+    stages : list
+    """
+    if len(bgps) == 0:
+        bgps = catalog.read_bgps(exten='all')
+    # evo stages
+    bgps[label][bgps[label] <= 0] = _np.nan
+    starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
+    h2o_no = bgps[bgps.h2o_f == 0]
+    ir_yes = bgps[bgps.ir_f == 1]
+    h2o_yes = bgps[bgps.h2o_f == 1]
+    hii_yes = bgps[bgps.corn_n > 0]
+    ego_yes = bgps[bgps.ego_n > 0]
+    stages = [starless, h2o_no, ir_yes, h2o_yes, hii_yes, ego_yes]
+    return stages
+
 def stages_hist(label, xlabel, bgps=[]):
     """
     Create a histogram with the evolutionary stages overplotted.
@@ -280,17 +307,8 @@ def stages_hist(label, xlabel, bgps=[]):
     fig : matplotlib.Figure
     ax : matplotlib.Axes
     """
-    if len(bgps) == 0:
-        bgps = catalog.read_bgps(exten='all')
     # evo stages
-    bgps[label][bgps[label] <= 0] = _np.nan
-    starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
-    h2o_no = bgps[bgps.h2o_f == 0]
-    ir_yes = bgps[bgps.ir_f == 1]
-    h2o_yes = bgps[bgps.h2o_f == 1]
-    hii_yes = bgps[bgps.corn_n > 0]
-    ego_yes = bgps[bgps.ego_n > 0]
-    stages = [starless, h2o_no, ir_yes, h2o_yes, hii_yes, ego_yes]
+    stages = gen_stages(bgps=bgps)
     # calculate lims and bins
     # TODO
     xmin = _np.nanmin([df[label].min() for df in stages])
