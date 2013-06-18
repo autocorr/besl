@@ -39,7 +39,7 @@ bounds['glat_round_sep'] = (bounds['glat_max'] - bounds['glat_min']) / \
 # Sort by Galactic longitude
 bounds = bounds.sort('glon_min', ascending=True)
 # String labels
-dets['mol_vlsr_str'] = dets.mol_vlsr_f.apply(str)
+dets['mol_vlsr_str'] = dets.mol_vlsr.apply(str)
 molcat['cnum_str'] = molcat.cnum.apply(str)
 
 def create_field_tile(img_fits, field='temp', show_cnum=False):
