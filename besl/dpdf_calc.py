@@ -409,6 +409,17 @@ def write_all_stages_plots(bgps):
     return
 
 def print_properties(bgps, out_filen='bgps_props.txt'):
+    """
+    Print an ASCII text file containing mean and median quantities from the
+    BGPS all-matched catalog.
+
+    Parameters
+    ----------
+    bgps : pd.DataFrame
+        BGPS all-matched catalog
+    out_filen : string, default 'bgps_props.txt'
+        Name of outfile
+    """
     out_file = open(out_filen, 'w')
     starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
     h2o_no = bgps[bgps.h2o_f == 0]
@@ -521,5 +532,25 @@ def match_dpdf_to_tim_calc(bgps=[]):
     bgps = _pd.merge(bgps, emaf, left_on='v201cnum', right_on='Seq', how='outer')
     bgps = bgps.drop(labels=['Seq'], axis=1)
     return bgps
+
+def write_emaf_table():
+    """
+    Create a CSV table from DPDF fits table in Ellsworth-Bowers et al. (2013).
+    """
+    dpdf = catalog.read_dpdf()
+    tab1 = _pd.DataFrame(dpdf[1].data)
+    tab1 = tab1.rename(columns={key: 'dpdf_' + key.lower() + '_f' for key in
+        tab1.columns})
+    tab1 = tab1.rename(columns={'dpdf_cnum_f': 'v201cnum'})
+    tab2 = []
+    tab2_header = ['dpdf_' + elem for elem in ['dML', 'dMLm', 'dMLp', 'dBAR',
+    'dBAR_err', 'PML', 'FW68', 'dtan', 'KDAR']]
+    for row in dpdf[6].data:
+        tab2.append([row[0][0], row[0][1], row[0][2], row[1][0], row[1][1],
+            row[3], row[4], row[5], row[6]])
+    tab2 = _pd.DataFrame(tab2, columns=tab2_header)
+    emaf = tab1.join(tab2)
+    emaf.to_csv('emaf_dist_V2.csv', index=False)
+    return emaf
 
 
