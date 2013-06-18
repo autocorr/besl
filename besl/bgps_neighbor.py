@@ -58,7 +58,7 @@ def find_clump_neighbors(cnum, v=201):
         raise ValueError('Negative cnum found')
     return neighbors
 
-def select_good_neighbors(bgps, cnum, hco_v, visited, v_disp=3.5):
+def select_good_neighbors(bgps, cnum, vlsr, visited, v_disp=3.5):
     """
     Select neighbors of clump that satisfy the criteria:
       * Have HCO+ flag 1 or 3
@@ -85,9 +85,9 @@ def select_good_neighbors(bgps, cnum, hco_v, visited, v_disp=3.5):
     good_neighbors = bgps.ix[
         (bgps.v201cnum.isin(all_neighbors)) &
         (_np.logical_not(bgps.v201cnum.isin(visited))) &
-        (_np.logical_not(bgps.KDAR.isin(['N','F','T']))) &
-        (_np.abs(bgps.hco_v - hco_v) < v_disp) &
-        (bgps.hco_f.isin([1,3])), 'v201cnum'].values
+        (_np.logical_not(bgps.dpdf_KDAR.isin(['N','F','T']))) &
+        (_np.abs(bgps.mol_vlsr - vlsr) < v_disp) &
+        (bgps.mol_vlsr_f.isin([1,3])), 'v201cnum'].values
     return list(good_neighbors)
 
 def broadcast_kdar(bgps=[], verbose=False):
@@ -118,16 +118,17 @@ def broadcast_kdar(bgps=[], verbose=False):
     if len(bgps) == 0:
         bgps = catalog.read_bgps(exten='all')
     bgps['neighbor_KDAR'] = 'null'
+    bgps['neighbor_KDAR_cnum'] = _np.nan
     bgps['neighbor_dML'] = _np.nan
     # visit DPDF clumps
-    for i in bgps[bgps.KDAR.isin(['T','N','F'])].index:
+    for i in bgps[bgps.dpdf_KDAR.isin(['T','N','F'])].index:
         # current DPDF clump properties
         dpdf_cnum = bgps.ix[i, 'v201cnum']
-        kdar = bgps.ix[i, 'KDAR']
-        dML = bgps.ix[i, 'dML']
-        hco_v = bgps.ix[i, 'hco_v']
+        kdar = bgps.ix[i, 'dpdf_KDAR']
+        dML = bgps.ix[i, 'dpdf_dML']
+        vlsr = bgps.ix[i, 'mol_vlsr']
         visited = [dpdf_cnum]
-        neighbors = select_good_neighbors(bgps, dpdf_cnum, hco_v, visited,
+        neighbors = select_good_neighbors(bgps, dpdf_cnum, vlsr, visited,
             v_disp=7)
         if verbose:
             print '\n-- DPDF clump : {}'.format(dpdf_cnum)
@@ -136,10 +137,11 @@ def broadcast_kdar(bgps=[], verbose=False):
             # update flags for current clump
             j = _np.argwhere(bgps.v201cnum == neighbor_cnum)[0][0]
             bgps.ix[j, 'neighbor_KDAR'] = kdar
+            bgps.ix[j, 'neighbor_KDAR_cnum'] = dpdf_cnum
             bgps.ix[j, 'neighbor_dML'] = dML
             # check for new clumps
             new_neighbors = select_good_neighbors(bgps, neighbor_cnum,
-                hco_v, visited, v_disp=7)
+                vlsr, visited, v_disp=7)
             neighbors.extend(new_neighbors)
             if verbose:
                 print '.',
