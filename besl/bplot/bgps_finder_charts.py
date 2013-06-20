@@ -201,3 +201,41 @@ def create_velo_finder_charts():
     cnum_list.close()
     return
 
+def rename_chart_files(outpath='trial2', fig_str='f15', transn='fig_trans.txt'):
+    """
+    Rename chart files and generate a figure translation table.
+
+    Parameters
+    ----------
+    outpath : string
+        Path where files are stored
+    fig_str : string
+        Figure number in paper
+    transn : string
+        File name for figure translation table
+    """
+    import os
+    import glob
+    cwd = os.getcwd()
+    files = glob.glob(os.path.join(cwd, outpath, '*.eps'))
+    files.sort()
+    files = [os.path.basename(f) for f in files]
+    with open(transn, 'w') as fig_trans:
+        for name in files:
+            num, field, coords = name.split('_')
+            coords = coords[:-4]
+            if '+' in coords:
+                lon, lat = coords.split('+')
+                lat = '+' + lat
+            elif '-' in coords:
+                lon, lat = coords.split('-')
+                lat = '-' + lat
+            else:
+                raise Exception('Malformed chart coords')
+            chart_out = fig_str + '_' + str(int(num)) + '.eps'
+            os.rename(os.path.join(cwd, outpath, name),
+                      os.path.join(cwd, outpath, chart_out))
+            fig_trans.write('{0} & l = {1}, b = {2}\n'.format(chart_out, lon, lat))
+    return
+
+
