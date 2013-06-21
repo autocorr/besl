@@ -246,16 +246,17 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
     bgps['mol_mult_n'] = _np.nan
     bgps['mol_mult_f'] = _np.nan
     bgps['mol_mult_vsep'] = _np.nan
+    mol_type = {'HCOP': 'hco_int', 'N2HP': 'nnh_int'}
     # make haystacks
     molcat_hs = molcat[['hht_ra', 'hht_dec']].values # galactic
     # loop through clumps
     for cnum in bgps['cnum']:
         cnum_select = bgps.cnum == cnum
         c_index = _np.argwhere(cnum_select)[0][0]
-        glat = bgps[cnum_select].glat_cen.values[0]
-        glon = bgps[cnum_select].glon_cen.values[0]
-        c_ra = bgps[cnum_select].ra.values[0]
-        c_dec = bgps[cnum_select].dec.values[0]
+        glat = bgps.ix[c_index, 'glat_cen']
+        glon = bgps.ix[c_index, 'glon_cen']
+        c_ra = bgps.ix[c_index, 'ra']
+        c_dec = bgps.ix[c_index, 'dec']
         # match molcat
         # TODO mark -9 in outer regions which not observed in v1
         if (glon > 7.5) & (glon < 195):
@@ -268,10 +269,10 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
             if len(molcat_match_list) == 1:
                 bgps.ix[c_index, molcat_cols] = molcat.ix[molcat_match_list[0]]
                 bgps['mol_mult_f'][cnum_select] = 0
-                if molcat.ix[molcat_match_list]['hco_f'] == 2:
+                if molcat.ix[molcat_match_list]['mol_vlsr_f'] == 2:
                     bgps['mol_mult_f'][cnum_select] = 1
             if len(molcat_match_list) > 1:
-                flags = molcat.ix[molcat_match_list]['hco_f'].values
+                flags = molcat.ix[molcat_match_list]['mol_vlsr_f'].values
                 # if multiple component in a single spectra then confused
                 if 2 in flags:
                     bgps['mol_mult_f'][cnum_select] = 1
@@ -281,23 +282,27 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
                 # if only non-detections
                 elif flags[flags == 0].shape[0] == len(molcat_match_list):
                     bgps['mol_mult_f'][cnum_select] = 0
-                    print molcat[molcat.hco_f == 0].ix[molcat_match_list]['hco_f']
+                    print molcat[molcat.mol_vlsr_f ==
+                        0].ix[molcat_match_list]['mol_vlsr_f']
                 # if more than one detection or self-absorbed and the
                 # the velocity seperation between two components is more than
                 # 5 km/s mark as confused, otherwise, not confused
                 elif flags[(flags == 1) | (flags == 3)].shape[0] > 1:
-                    vmin = molcat[(molcat.hco_f == 1) |
-                        (molcat.hco_f == 3)].ix[molcat_match_list]['hco_v'].min()
-                    vmax = molcat[(molcat.hco_f == 1) |
-                        (molcat.hco_f == 3)].ix[molcat_match_list]['hco_v'].max()
+                    vmin = molcat[(molcat.mol_vlsr_f == 1) |
+                        (molcat.mol_vlsr_f ==
+                            3)].ix[molcat_match_list]['mol_vlsr'].min()
+                    vmax = molcat[(molcat.mol_vlsr_f == 1) |
+                        (molcat.mol_vlsr_f == 3)].ix[molcat_match_list]['mol_vlsr'].max()
                     vsep = _np.abs(vmin - vmax)
                     bgps['mol_mult_vsep'][cnum_select] = vsep
                     if vsep < 5:
                         bgps['mol_mult_f'][cnum_select] = 0
                     else:
                         bgps['mol_mult_f'][cnum_select] = 1
+                # determine dominant molecule
+                mol_max = molcat['mol_vlsr_src'].ix[molcat_match_list].argmax()
                 # match values for component with peak intensity
-                max_index = molcat['hco_int'].ix[molcat_match_list].argmax()
+                max_index = molcat[mol_type[mol_max]].ix[molcat_match_list].argmax()
                 bgps.ix[c_index, molcat_cols] = \
                     molcat.ix[molcat_match_list[max_index]]
     bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
