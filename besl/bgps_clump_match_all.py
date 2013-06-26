@@ -240,13 +240,21 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
         bgps = catalog.read_bgps()
     # add new columns, molcat cnum clobbers bgps cnum
     molcat = molcat.rename(columns={'cnum': 'v1cnum'})
+    mol_type = {'HCOP': 'hco_int', 'N2HP': 'nnh_int'}
+    # add column for intensity of dominant molecule
+    molcat['mol_int'] = _np.nan
+    for i in molcat['mol_vlsr_src'].index:
+        mol_select = molcat.ix[i, 'mol_vlsr_src']
+        if mol_select in mol_type.keys():
+            mol_int = molcat.ix[i, mol_type[mol_select]]
+            molcat.ix[i, 'mol_int'] = mol_int
+    # columns
     molcat_cols = molcat.columns
     for col in molcat_cols:
         bgps[col] = _np.nan
     bgps['mol_mult_n'] = _np.nan
     bgps['mol_mult_f'] = _np.nan
     bgps['mol_mult_vsep'] = _np.nan
-    mol_type = {'HCOP': 'hco_int', 'N2HP': 'nnh_int'}
     # make haystacks
     molcat_hs = molcat[['hht_ra', 'hht_dec']].values # galactic
     # loop through clumps
@@ -299,10 +307,8 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
                         bgps['mol_mult_f'][cnum_select] = 0
                     else:
                         bgps['mol_mult_f'][cnum_select] = 1
-                # determine dominant molecule
-                mol_max = molcat['mol_vlsr_src'].ix[molcat_match_list].argmax()
                 # match values for component with peak intensity
-                max_index = molcat[mol_type[mol_max]].ix[molcat_match_list].argmax()
+                max_index = molcat['mol_int'].ix[molcat_match_list].argmax()
                 bgps.ix[c_index, molcat_cols] = \
                     molcat.ix[molcat_match_list[max_index]]
     bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
