@@ -240,7 +240,7 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
         bgps = catalog.read_bgps()
     # add new columns, molcat cnum clobbers bgps cnum
     molcat = molcat.rename(columns={'cnum': 'v1cnum'})
-    mol_type = {'HCOP': 'hco_int', 'N2HP': 'nnh_int'}
+    mol_type = {'HCOP': 'hco_tpk', 'N2HP': 'nnh_tpk'}
     # add column for intensity of dominant molecule
     molcat['mol_int'] = _np.nan
     for i in molcat['mol_vlsr_src'].index:
@@ -263,8 +263,6 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
         c_index = _np.argwhere(cnum_select)[0][0]
         glat = bgps.ix[c_index, 'glat_cen']
         glon = bgps.ix[c_index, 'glon_cen']
-        c_ra = bgps.ix[c_index, 'ra']
-        c_dec = bgps.ix[c_index, 'dec']
         # match molcat
         # TODO mark -9 in outer regions which not observed in v1
         if (glon > 7.5) & (glon < 195):
