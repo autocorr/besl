@@ -11,6 +11,7 @@ import os
 import catalog
 import numpy as _np
 import pandas as _pd
+import ipdb as pdb
 
 def clump_match_maser(bgps=[], out_filen='bgps_maser', verbose=False):
     """
@@ -235,6 +236,7 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
     bgps : pd.DataFrame
     """
     # read in catalogs
+    pdb.set_trace()
     molcat = catalog.read_molcat()
     if len(bgps) == 0:
         bgps = catalog.read_bgps()
@@ -277,7 +279,7 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
                 bgps['mol_mult_f'][cnum_select] = 0
                 if molcat.ix[molcat_match_list]['mol_vlsr_f'] == 2:
                     bgps['mol_mult_f'][cnum_select] = 1
-            if len(molcat_match_list) > 1:
+            elif len(molcat_match_list) > 1:
                 flags = molcat.ix[molcat_match_list]['mol_vlsr_f'].values
                 # if multiple component in a single spectra then confused
                 if 2 in flags:
@@ -305,10 +307,13 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
                         bgps['mol_mult_f'][cnum_select] = 0
                     else:
                         bgps['mol_mult_f'][cnum_select] = 1
+                else:
+                    raise Exception("Unexpected number of flags")
                 # match values for component with peak intensity
                 max_index = molcat['mol_int'].ix[molcat_match_list].argmax()
-                bgps.ix[c_index, molcat_cols] = \
-                    molcat.ix[molcat_match_list[max_index]]
+                bgps.ix[c_index, molcat_cols] = molcat.ix[molcat_match_list[max_index]]
+                if verbose:
+                    print bgps.ix[c_index, molcat_cols]
     bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
     print '-- Molcat catalog file written to {}.csv'.format(out_filen)
     return bgps
