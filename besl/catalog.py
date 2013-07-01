@@ -100,8 +100,8 @@ def read_bgps(exten='none', v=2):
                 na_values=['---'])
             return bgps
     elif exten == 'all':
-        bgps = _pd.load(d.cat_dir + d.bgps_ext_filen.format(vers[2], 'all',
-            'pickle'))
+        bgps = _pd.read_csv(d.cat_dir + d.bgps_ext_filen.format(vers[2], 'all',
+            'csv'))
         return bgps
     elif exten == 'cols':
         cols = open(d.cat_dir + d.bgps2_ext_filen.format(vers[2], 'columns',
