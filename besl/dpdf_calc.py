@@ -167,7 +167,7 @@ def clump_diameter(dist, area, use_kpc=False):
         2 * _np.sqrt(area / _np.pi)
     return diam_dist
 
-def calc_ml_physical_conditions(bgps=[]):
+def calc_ml_physical_conditions(bgps=[], neighbor=False):
     """
     Calculate the physical conditions for all clumps using the maximum
     likelihood distance. Includes: dust mass, diameter, and surface area.
@@ -176,23 +176,31 @@ def calc_ml_physical_conditions(bgps=[]):
     ----------
     bgps : pd.DataFrame
         BGPS dataframe, if left blank, will read exten='all'
+    neighbor : boolean
+        Include neighbor KDAR resolutions in calculations
 
     Returns
     -------
     bgps : pd.DataFrame
     """
     if len(bgps) == 0:
-        bgps = catalog.read_bgps(exten='all', v=v)
-    if 'dML' not in bgps.columns:
+        bgps = catalog.read_bgps(exten='all')
+    if 'dpdf_dML' not in bgps.columns:
         raise ValueError('Incorrect columns')
-    bgps['dust_mass'] = bgps[['dML', 'flux', 'nh3_tkin']].apply(lambda row:
-        clump_simple_dust_mass(row['dML'], row['flux'], row['nh3_tkin'],
+    good_KDARs = ['N', 'F', 'T']
+    if neighbor:
+        bgps['all_dML'] = bgps['neighbor_dML'].combine_first(bgps['dpdf_dML'])
+        dML_col = 'all_dML'
+    else:
+        dML_col = 'dpdf_dML'
+    bgps['dust_mass'] = bgps[[dML_col, 'flux', 'nh3_tkin']].apply(lambda row:
+        clump_simple_dust_mass(row[dML_col], row['flux'], row['nh3_tkin'],
         use_kpc=True), axis=1)
-    bgps['avg_diam'] = bgps[['dML', 'rind_area']].apply(lambda row:
-        clump_diameter(row['dML'], row['rind_area'], use_kpc=True),
+    bgps['avg_diam'] = bgps[[dML_col, 'rind_area']].apply(lambda row:
+        clump_diameter(row[dML_col], row['rind_area'], use_kpc=True),
         axis=1)
-    bgps['rind_surf_area'] = bgps[['dML', 'rind_area']].apply(lambda row:
-        clump_surface_area(row['dML'], row['rind_area'], use_kpc=True),
+    bgps['rind_surf_area'] = bgps[[dML_col, 'rind_area']].apply(lambda row:
+        clump_surface_area(row[dML_col], row['rind_area'], use_kpc=True),
         axis=1)
     return bgps
 
@@ -264,7 +272,7 @@ def plot_dpdf_sampling(n=200):
     _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
 
-def gen_stages(bgps=[]):
+def gen_stages(label, bgps=[]):
     """
     Generate a list of stages from the BGPS catalog.
 
@@ -278,17 +286,15 @@ def gen_stages(bgps=[]):
     -------
     stages : list
     """
-    if len(bgps) == 0:
-        bgps = catalog.read_bgps(exten='all')
     # evo stages
     bgps[label][bgps[label] <= 0] = _np.nan
     starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
     h2o_no = bgps[bgps.h2o_f == 0]
     ir_yes = bgps[bgps.ir_f == 1]
     h2o_yes = bgps[bgps.h2o_f == 1]
-    hii_yes = bgps[bgps.corn_n > 0]
     ego_yes = bgps[bgps.ego_n > 0]
-    stages = [starless, h2o_no, ir_yes, h2o_yes, hii_yes, ego_yes]
+    hii_yes = bgps[bgps.corn_n > 0]
+    stages = [starless, h2o_no, ir_yes, h2o_yes, ego_yes, hii_yes]
     return stages
 
 def stages_hist(label, xlabel, bgps=[]):
@@ -309,7 +315,7 @@ def stages_hist(label, xlabel, bgps=[]):
     ax : matplotlib.Axes
     """
     # evo stages
-    stages = gen_stages(bgps=bgps)
+    stages = gen_stages(label, bgps=bgps)
     # calculate lims and bins
     # TODO
     xmin = _np.nanmin([df[label].min() for df in stages])
@@ -323,10 +329,10 @@ def stages_hist(label, xlabel, bgps=[]):
         {'label': r'${\rm H_2O \ \  N}$'},
         {'label': r'${\rm IR \ \ Y}$'},
         {'label': r'${\rm H_2O \ \ Y}$'},
-        {'label': r'${\rm H\sc{II} \ \ Y}$'},
-        {'label': r'${\rm EGO \ \ Y}$'}]
+        {'label': r'${\rm EGO \ \ Y}$'},
+        {'label': r'${\rm H\sc{II} \ \ Y}$'}]
     stages_labels = [ r'Starless', r'${\rm H_2O \ \  N}$', r'${\rm IR \ \ Y}$',
-        r'${\rm H_2O \ \ Y}$', r'${\rm H\sc{II} \ \ Y}$', r'${\rm EGO \ \ Y}$']
+        r'${\rm H_2O \ \ Y}$', r'${\rm EGO \ \ Y}$', r'${\rm H\sc{II} \ \ Y}$']
     # create plot
     fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
     for i, ax in enumerate(axes):
@@ -353,7 +359,7 @@ def stages_hist(label, xlabel, bgps=[]):
     print '-- stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
 
-def write_all_stages_plots(bgps):
+def write_all_stages_plots(bgps=[]):
     columns = [
         'flux',
         'hco_int',
@@ -367,7 +373,7 @@ def write_all_stages_plots(bgps):
         'voffset_h2o_hco',
         'nh3_tkin',
         'rind_area',
-        'dML',
+        'all_dML',
         'dust_mass',
         'avg_diam',
         'rind_surf_area']
@@ -384,10 +390,10 @@ def write_all_stages_plots(bgps):
         bgps[(bgps.h2o_gbt_f > 0) & (bgps.hco_f.isin([1,3]))],
         bgps[(bgps.nh3_pk11 / bgps.nh3_noise11 > 4) & (bgps.nh3_tkin < 3e2)],
         bgps,
-        bgps[bgps.KDAR.isin(['N','F','T'])],
-        bgps[bgps.KDAR.isin(['N','F','T'])],
-        bgps[bgps.KDAR.isin(['N','F','T'])],
-        bgps[bgps.KDAR.isin(['N','F','T'])]]
+        bgps[bgps.all_dML.notnull()],
+        bgps[bgps.all_dML.notnull()],
+        bgps[bgps.all_dML.notnull()],
+        bgps[bgps.all_dML.notnull()]]
     labels = [
         r'$S_{1.1} \ \ [{\rm Jy}]$',
         r'${\rm I(HCO^+) \ \ [K \ km \ s^{-1}}]$',
