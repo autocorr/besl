@@ -77,6 +77,34 @@ def tkin_distrib(tkins):
     tkin_fn = interp1d(tkins, kernel(tkins))
     return tkin_fn
 
+def draw_dpdf_samples(cnum, nsample=1e4):
+    """
+    Draw a set of sampled distances for a BGPS clump with a DPDF.
+
+    Parameters
+    ----------
+    cnum : number
+        BGPS v2 catalog number
+
+    Returns
+    -------
+    dist_draws : np.array
+    """
+    # Read in DPDFs
+    dpdf = catalog.read_dpdf()
+    # Determine catalog index number
+    flags = _pd.DataFrame(dpdf[1].data)
+    if len(flags) == 0:
+        raise Exception('cnum not in DPDFs: {0}'.format(cnum))
+    i = flags.index[flags.CNUM == cnum][0]
+    # Select data
+    x = _np.arange(1000) * 20. + 20.
+    y = dpdf[5].data[i]
+    lims = [x.min(), x.max(), 0, 1]
+    # Draw distance samples
+    dist_draws, dist_probs = mc_sampler_1d(x, y, lims=lims, nsample=nsample)
+    return dist_draws
+
 def generate_mass_samples(cnum, tkin_err=None):
     """
     Generate a sample of masses with values drawn from the DPDFs and kinetic
@@ -184,7 +212,7 @@ def clump_diameter(dist, area, use_kpc=False):
         distance in pc
     area : number
         Surface area in square arcsec
-    use_kpc : Bool, default False
+    use_kpc : boolean, default False
         Use kpc instead of pc
 
     Returns
@@ -248,7 +276,7 @@ def calc_physical_conditions(bgps=[], v=2, verbose=True):
         BGPS catalog to merge data to
     v : number, default 2
         BGPS version, 1 or 2
-    verbose : Boolean, default False
+    verbose : boolean, default False
 
     Returns
     -------
@@ -284,25 +312,6 @@ def calc_physical_conditions(bgps=[], v=2, verbose=True):
         if verbose:
             print '-- clump {} ({:0>3d} / 609)'.format(cnum, i+1)
     return bgps
-
-def draw_dpdf_samples(cnum, nsample=1e4):
-    """
-    Draw a set of sampled distances for a BGPS clump with a DPDF.
-    """
-    # Read in DPDFs
-    dpdf = catalog.read_dpdf()
-    # Determine catalog index number
-    flags = _pd.DataFrame(dpdf[1].data)
-    if len(flags) == 0:
-        raise Exception('cnum not in DPDFs: {0}'.format(cnum))
-    i = flags.index[flags.CNUM == cnum][0]
-    # Select data
-    x = _np.arange(1000) * 20. + 20.
-    y = dpdf[5].data[i]
-    lims = [x.min(), x.max(), 0, 1]
-    # Draw distance samples
-    dist_draws, dist_probs = mc_sampler_1d(x, y, lims=lims, nsample=nsample)
-    return dist_draws
 
 def plot_dpdf_sampling(n=200):
     """
