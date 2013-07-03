@@ -19,7 +19,7 @@ import pandas as _pd
 import matplotlib.pyplot as _plt
 import catalog, units
 from scipy.interpolate import interp1d
-import ipdb as pdb
+from scipy.stats import gaussian_kde
 
 def mc_sampler_2d(x, y, lims=[0,1,0,1], nsample=1e3):
     """
@@ -58,6 +58,35 @@ def mc_sampler_2d(x, y, lims=[0,1,0,1], nsample=1e3):
     xsamples = xsamples[0:nsample]
     ysamples = fn(xsamples)
     return xsamples, ysamples
+
+def tkin_distrib(tkins):
+    """
+    Interpolate the distribution of a series of temperatures.
+
+    Parameters
+    ----------
+    tkins : list-like
+        Series of temperatures
+
+    Returns
+    -------
+    tkin_fn : scipy.interpolate.interpolate.interp1d
+    """
+    tkins = _np.sort(tkins)
+    kernel = gaussian_kde(tkins)
+    tkin_fn = interp1d(tkins, kernel(tkins))
+    return tkin_fn
+
+def generate_mass_samples():
+    """
+    """
+    # TODO
+    # gen dml samples
+    # gen tkin samples
+    # use tkin error and normal deviates if given value
+    # normalize output distributio
+    # return both a kde and hist
+    pass
 
 def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     """
