@@ -21,7 +21,7 @@ import catalog, units
 from scipy.interpolate import interp1d
 from scipy.stats import gaussian_kde
 
-def mc_sampler_2d(x, y, lims=[0,1,0,1], nsample=1e3):
+def mc_sampler_1d(x, y, lims=[0,1,0,1], nsample=1e3):
     """
     Monte Carlo sampler.
 
@@ -77,16 +77,20 @@ def tkin_distrib(tkins):
     tkin_fn = interp1d(tkins, kernel(tkins))
     return tkin_fn
 
-def generate_mass_samples():
+def generate_mass_samples(cnum, tkin_err=None):
     """
+    Generate a sample of masses with values drawn from the DPDFs and kinetic
+    temperature distributions.
     """
     # TODO
-    # gen dml samples
-    # gen tkin samples
-    # use tkin error and normal deviates if given value
+    # draw dml samples
+    # draw tkin samples
+    #   use tkin error and normal deviates if given value
+    if tkin_err is None:
+        tkin_draw = np.random.normal(loc=tkin, scale=tkin_err, size=1e4)
     # normalize output distributio
     # return both a kde and hist
-    pass
+    return
 
 def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     """
@@ -268,7 +272,7 @@ def calc_physical_conditions(bgps=[], v=2, verbose=True):
         c_dpdf = dpdf_post[i]
         flux = bgps.ix[c_index, 'flux']
         # calculate
-        dists, dist_probs = mc_sampler_2d(dist_axis, c_dpdf, lims=lims,
+        dists, dist_probs = mc_sampler_1d(dist_axis, c_dpdf, lims=lims,
             nsample=1e4)
         mdust, mdust_err = clump_simple_dust_mass(dists, flux, tkin=20.)
         # store physical properties
@@ -281,6 +285,25 @@ def calc_physical_conditions(bgps=[], v=2, verbose=True):
             print '-- clump {} ({:0>3d} / 609)'.format(cnum, i+1)
     return bgps
 
+def draw_dpdf_samples(cnum, nsample=1e4):
+    """
+    Draw a set of sampled distances for a BGPS clump with a DPDF.
+    """
+    # Read in DPDFs
+    dpdf = catalog.read_dpdf()
+    # Determine catalog index number
+    flags = _pd.DataFrame(dpdf[1].data)
+    if len(flags) == 0:
+        raise Exception('cnum not in DPDFs: {0}'.format(cnum))
+    i = flags.index[flags.CNUM == cnum][0]
+    # Select data
+    x = _np.arange(1000) * 20. + 20.
+    y = dpdf[5].data[i]
+    lims = [x.min(), x.max(), 0, 1]
+    # Draw distance samples
+    dist_draws, dist_probs = mc_sampler_1d(x, y, lims=lims, nsample=nsample)
+    return dist_draws
+
 def plot_dpdf_sampling(n=200):
     """
     Plot a Monte Carlo sampling of a DPDF
@@ -289,7 +312,7 @@ def plot_dpdf_sampling(n=200):
     x = _np.arange(1000) * 20. + 20.
     y = dpdf[5].data[0]
     lims = [x.min(), x.max(), 0, 1]
-    samples = mc_sampler_2d(x, y, lims=lims, nsample=1e4)
+    samples = mc_sampler_1d(x, y, lims=lims, nsample=1e4)
     fig = _plt.figure()
     ax = fig.add_subplot(111)
     ax.hist(samples, bins=_np.linspace(lims[0], lims[1], 200), linewidth=2,
