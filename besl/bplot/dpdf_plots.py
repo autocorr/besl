@@ -11,7 +11,7 @@ import numpy as _np
 import pandas as _pd
 import matplotlib.pyplot as _plt
 from besl import catalog, units
-from besl.dpdf_calc import mc_sampler_1d
+from besl.dpdf_calc import mc_sampler_1d, gen_stages
 
 
 def plot_dpdf_sampling(n=200):
