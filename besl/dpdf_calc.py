@@ -333,7 +333,7 @@ def plot_dpdf_sampling(n=200):
     _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
 
-def gen_stages(label, bgps=[]):
+def gen_stages(bgps=[], stages_group=2, label=None):
     """
     Generate a list of stages from the BGPS catalog.
 
@@ -342,21 +342,45 @@ def gen_stages(label, bgps=[]):
     bgps : pd.DataFrame
         BGPS catalog in a pandas dataframe, requires evolutionary flags from an
         all-matched catalog.
+    stages_group : number, default 3
+        Divisions for grouped stages in return list. Options include:
+            * 0 (2) : starless, protostellar
+            * 1 (3) : starless, IR Y / H2O N, IR Y / H2O Y
+            * 2 (6) : starless, H2O N, IR Y, H2O Y, EGO Y, UCHII Y
+    label : string
+        Replace column with NaN's for log plots
 
     Returns
     -------
     stages : list
     """
+    # Nan values for log-plots
+    if label is not None:
+        bgps[label][bgps[label] <= 0] = _np.nan
     # evo stages
-    bgps[label][bgps[label] <= 0] = _np.nan
-    starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
-    h2o_no = bgps[bgps.h2o_f == 0]
-    ir_yes = bgps[bgps.ir_f == 1]
-    h2o_yes = bgps[bgps.h2o_f == 1]
-    ego_yes = bgps[bgps.ego_n > 0]
-    hii_yes = bgps[bgps.corn_n > 0]
-    stages = [starless, h2o_no, ir_yes, h2o_yes, ego_yes, hii_yes]
-    return stages
+    if stages_group == 0:
+        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
+        protostellar = bgps[(bgps.h2o_f == 1) | (bgps.corn_n > 0) | (bgps.ir_f
+            == 1)]
+        stages = [starless, protostellar]
+        return stages
+    elif stages_group == 1:
+        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
+        h2o_no = bgps[(bgps.h2o_f == 0 ) & (bgps.ir_f == 1)]
+        h2o_yes = bgps[(bgps.h2o_f > 0) & (bgps.ir_f == 1)]
+        stages = [starless, h2o_no, h2o_yes]
+        return stages
+    elif stages_group == 2:
+        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
+        h2o_no = bgps[bgps.h2o_f == 0]
+        ir_yes = bgps[bgps.ir_f == 1]
+        h2o_yes = bgps[bgps.h2o_f == 1]
+        ego_yes = bgps[bgps.ego_n > 0]
+        hii_yes = bgps[bgps.corn_n > 0]
+        stages = [starless, h2o_no, ir_yes, h2o_yes, ego_yes, hii_yes]
+        return stages
+    else:
+        raise ValueError('Invalid stages_group: {0}.'.format(stages_group))
 
 def stages_hist(label, xlabel, bgps=[]):
     """
@@ -376,7 +400,7 @@ def stages_hist(label, xlabel, bgps=[]):
     ax : matplotlib.Axes
     """
     # evo stages
-    stages = gen_stages(label, bgps=bgps)
+    stages = gen_stages(bgps=bgps, stages_group=2, label=label)
     # calculate lims and bins
     # TODO
     xmin = _np.nanmin([df[label].min() for df in stages])
