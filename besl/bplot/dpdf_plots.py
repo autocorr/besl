@@ -89,6 +89,8 @@ def stages_hist(label, xlabel, bgps=[]):
         #ax.legend(loc=1, frameon=False, numpoints=None, prop={'size':12})
         ax.annotate(stages_labels[i], xy=(0.875, 0.75), xycoords='axes fraction',
             fontsize=10)
+        ax.annotate(df.shape[0], xy=(0.05, 0.75), xycoords='axes fraction',
+            fontsize=10)
     axes[-1].set_xlabel(xlabel)
     # save
     _plt.subplots_adjust(hspace=0.05)
@@ -113,7 +115,8 @@ def write_all_stages_plots(bgps=[]):
         'all_dML',
         'dust_mass',
         'avg_diam',
-        'rind_surf_area']
+        'rind_surf_area',
+        'mass_surf_dens']
     dfs = [
         bgps,
         bgps[bgps.hco_f.isin([1,3])],
@@ -130,7 +133,8 @@ def write_all_stages_plots(bgps=[]):
         bgps[bgps.all_dML.notnull()],
         bgps[bgps.all_dML.notnull()],
         bgps[bgps.all_dML.notnull()],
-        bgps[bgps.all_dML.notnull()]]
+        bgps[bgps.all_dML.notnull()],
+        bgps]
     labels = [
         r'$S_{1.1} \ \ [{\rm Jy}]$',
         r'${\rm I(HCO^+) \ \ [K \ km \ s^{-1}}]$',
@@ -147,7 +151,8 @@ def write_all_stages_plots(bgps=[]):
         r'${\rm dML} \ \ [{\rm kpc}]$',
         r'$M_{\rm dust} \ \ [M_{\odot}]$',
         r'${\rm Diameter} \ \ [{\rm pc}]$',
-        r'${\rm Surface \ Area} \ \ [{\rm pc}]$']
+        r'${\rm Surface \ Area} \ \ [{\rm pc}]$',
+        r'$\Sigma_{\rm H_2} \ \ [{\rm g \ cm^{-2}}]$']
     for col, label, df in zip(columns, labels, dfs):
         stages_hist(label=col, xlabel=label, bgps=df)
     return

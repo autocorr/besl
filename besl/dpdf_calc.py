@@ -72,12 +72,14 @@ def tkin_distrib(tkins):
     -------
     tkin_fn : scipy.interpolate.interpolate.interp1d
     """
+    if len(tkins) < 20:
+        raise ValueError('tkins : {0} < 20.'.format(len(tkins)))
     tkins = _np.sort(tkins)
     kernel = gaussian_kde(tkins)
     tkin_fn = interp1d(tkins, kernel(tkins))
     return tkin_fn
 
-def draw_tkin_samples(tkin_fn=None, tkin=None, tkin_err=None, nsample=1e4):
+def draw_tkin_samples(tkin_fn=None, tkin=None, tkin_err=None, nsample=1e2):
     """
     Draw a set of sampled NH3 kinetic temperatures from a distribution or use
     Gaussian random deviates if measurement known.
@@ -109,7 +111,7 @@ def draw_tkin_samples(tkin_fn=None, tkin=None, tkin_err=None, nsample=1e4):
     else:
         raise Exception('Unexpected exception.')
 
-def draw_dist_samples(cnum, nsample=1e4):
+def draw_dist_samples(cnum, nsample=1e2):
     """
     Draw a set of sampled distances for a BGPS clump with a DPDF.
 
@@ -126,10 +128,7 @@ def draw_dist_samples(cnum, nsample=1e4):
     dpdf = catalog.read_dpdf()
     # Determine catalog index number
     flags = _pd.DataFrame(dpdf[1].data)
-    try:
-        i = flags.index[flags.CNUM == cnum][0]
-    except:
-        raise Exception('cnum not in DPDFs: {0}'.format(cnum))
+    i = flags.index[flags.CNUM == cnum][0]
     # Select data
     x = _np.arange(1000) * 20. + 20.
     y = dpdf[5].data[i]
@@ -138,21 +137,21 @@ def draw_dist_samples(cnum, nsample=1e4):
     dist_draws, dist_probs = mc_sampler_1d(x, y, lims=lims, nsample=nsample)
     return dist_draws
 
-def generate_mass_samples(cnum, tkin_err=None):
+def generate_mass_samples(cnum, snu11, tkin_fn=None, tkin=None, tkin_err=None,
+    nsample=1e2):
     """
     Generate a sample of masses with values drawn from the DPDFs and kinetic
     temperature distributions.
     """
-    # TODO
-    dpdf = catalog.read_dpdf()
-    # draw dml samples
-    # draw tkin samples
-    #   use tkin error and normal deviates if given value
-    if tkin_err is None:
-        tkin_draw = np.random.normal(loc=tkin, scale=tkin_err, size=1e4)
-    # normalize output distributio
-    # return both a kde and hist
-    return
+    # Draw dml samples
+    dist_samples = draw_dist_samples(cnum, nsample=nsample)
+    # Draw tkin samples
+    tkin_samples = draw_tkin_samples(tkin_fn=tkin_fn, tkin=tkin,
+        tkin_err=tkin_err, nsample=nsample)
+    # Calculate masses
+    mass_samples = clump_simple_dust_mass(dist_samples, snu11,
+        tkin=tkin_samples)
+    return mass_samples
 
 def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     """
