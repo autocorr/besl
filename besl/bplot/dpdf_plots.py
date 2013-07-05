@@ -121,8 +121,8 @@ def marginal_mass_stages_hist(bgps=[]):
     xmax = _np.nanmax([df[label].max() for df in stages]) * 1.5
     lbins = _np.logspace(_np.log10(xmin), _np.log10(xmax), 100)
     # plot settings
-    kwargs_gen = {'bins': lbins, 'color': 'LightGray', 'histtype':
-        'step', 'linestyle': 'solid', 'linewidth': 1, 'alpha': 0.5}
+    kwargs_gen = {'bins': lbins, 'color': 'Black', 'histtype':
+        'step', 'linestyle': 'solid', 'linewidth': 1, 'alpha': 0.2}
     kwargs_labels = [
         {'label': 'Starless'},
         {'label': r'${\rm H_2O \ \  N}$'},
@@ -150,8 +150,6 @@ def marginal_mass_stages_hist(bgps=[]):
                 ymax = top_bin
             medians.append(_np.median(stage_samples))
         ax.plot(_np.median(medians) * _np.ones(2), [0, 1.2 * ymax], 'k--')
-        ax.plot(_np.nanmin(medians) * _np.ones(2), [0, 1.2 * ymax], 'r--')
-        ax.plot(_np.nanmax(medians) * _np.ones(2), [0, 1.2 * ymax], 'r--')
         # plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
         ax.set_ylim([0, 1.1 * ymax])
