@@ -106,7 +106,7 @@ def draw_tkin_samples(tkin_fn=None, tkin=None, tkin_err=None, nsample=1e2):
         tkin_draw, tkin_probs = mc_sampler_1d(x, y, lims=lims, nsample=nsample)
         return tkin_draw
     elif (tkin is not None) & (tkin_err is not None):
-        tkin_draw = np.random.normal(loc=tkin, scale=tkin_err, size=nsample)
+        tkin_draw = _np.random.normal(loc=tkin, scale=tkin_err, size=nsample)
         return tkin_draw
     else:
         raise Exception('Unexpected exception.')
@@ -137,7 +137,7 @@ def draw_dist_samples(cnum, nsample=1e2):
     dist_draws, dist_probs = mc_sampler_1d(x, y, lims=lims, nsample=nsample)
     return dist_draws
 
-def generate_mass_samples(cnum, snu11, tkin_fn=None, tkin=None, tkin_err=None,
+def gen_mass_samples(cnum, snu11, tkin_fn=None, tkin=None, tkin_err=None,
     nsample=1e2):
     """
     Generate a sample of masses with values drawn from the DPDFs and kinetic
@@ -152,6 +152,53 @@ def generate_mass_samples(cnum, snu11, tkin_fn=None, tkin=None, tkin_err=None,
     mass_samples = clump_simple_dust_mass(dist_samples, snu11,
         tkin=tkin_samples)
     return mass_samples
+
+def gen_stage_mass_samples(stage, nsample=1e2):
+    """
+    Generate a sample of masses for a set of clumps in an evolutionary stage.
+
+    Parameters
+    ----------
+    stage : pd.DataFrame
+
+    Returns
+    -------
+    stage_samples : np.array
+    """
+    good_kdars = ['T', 'N', 'F']
+    # Make temperature distribution
+    tkins = stage['nh3_tkin'].values
+    tkins = tkins[_np.isfinite(tkins)]
+    tkin_fn = tkin_distrib(tkins)
+    # Monte Carlo sample each clump in stage
+    stage_samples = []
+    for i in stage.index:
+        # Check for DPDF
+        kdar = stage.ix[i, 'dpdf_KDAR']
+        nkdar = stage.ix[i, 'neighbor_KDAR']
+        if kdar in good_kdars:
+            cnum = stage.ix[i, 'v201cnum']
+        elif nkdar in good_kdars:
+            cnum = stage.ix[i, 'neighbor_KDAR_cnum']
+        else:
+            continue
+        # Properties for the clump
+        snu11 = stage.ix[i, 'flux']
+        tkin = stage.ix[i, 'nh3_tkin']
+        tkin_err = stage.ix[i, 'nh3_tkin_err']
+        # Use temperature distribution
+        if (_np.isnan(tkin)) | (tkin < 7) | (tkin > 150):
+            draw = gen_mass_samples(cnum=cnum, snu11=snu11, tkin_fn=tkin_fn,
+                nsample=nsample)
+        # Use measured temperature and normal deviates
+        elif (_np.isfinite(tkin)) & (tkin > 7) & (tkin < 150):
+            draw = gen_mass_samples(cnum=cnum, snu11=snu11, tkin=tkin,
+                tkin_err=tkin_err, nsample=nsample)
+        else:
+            raise Exception('Unexpected error.')
+        stage_samples.append(draw)
+    stage_samples = _np.ravel(stage_samples)
+    return stage_samples
 
 def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     """

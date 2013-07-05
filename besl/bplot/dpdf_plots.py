@@ -11,7 +11,7 @@ import numpy as _np
 import pandas as _pd
 import matplotlib.pyplot as _plt
 from besl import catalog, units
-from besl.dpdf_calc import mc_sampler_1d, gen_stages
+from besl.dpdf_calc import mc_sampler_1d, gen_stages, gen_stage_mass_samples
 
 
 def plot_dpdf_sampling(n=200):
@@ -96,6 +96,79 @@ def stages_hist(label, xlabel, bgps=[]):
     _plt.subplots_adjust(hspace=0.05)
     _plt.savefig('stages_hist_{}.pdf'.format(label))
     print '-- stages_hist_{}.pdf written'.format(label)
+    return [fig, axes]
+
+def marginal_mass_stages_hist(bgps=[]):
+    """
+    Create a histogram of the marginalized clump dust mass with the
+    evolutionary stages overplotted.
+
+    Parameters
+    ----------
+    bgps : pd.DataFrame
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+    ax : matplotlib.Axes
+    """
+    # evo stages
+    stages = gen_stages(bgps=bgps, stages_group=2)
+    label = 'dust_mass'
+    xlabel = r'$M_{\rm dust} \ \ [{\rm M_{\odot}}]$'
+    # calculate lims and bins
+    xmin = _np.nanmin([df[label].min() for df in stages]) / 1.5
+    xmax = _np.nanmax([df[label].max() for df in stages]) * 1.5
+    lbins = _np.logspace(_np.log10(xmin), _np.log10(xmax), 100)
+    # plot settings
+    kwargs_gen = {'bins': lbins, 'color': 'LightGray', 'histtype':
+        'step', 'linestyle': 'solid', 'linewidth': 1, 'alpha': 0.5}
+    kwargs_labels = [
+        {'label': 'Starless'},
+        {'label': r'${\rm H_2O \ \  N}$'},
+        {'label': r'${\rm IR \ \ Y}$'},
+        {'label': r'${\rm H_2O \ \ Y}$'},
+        {'label': r'${\rm EGO \ \ Y}$'},
+        {'label': r'${\rm H\sc{II} \ \ Y}$'}]
+    stages_labels = [ r'Starless', r'${\rm H_2O \ \  N}$', r'${\rm IR \ \ Y}$',
+        r'${\rm H_2O \ \ Y}$', r'${\rm EGO \ \ Y}$', r'${\rm H\sc{II} \ \ Y}$']
+    # create plot
+    fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
+    for i, ax in enumerate(axes):
+        print '--', i
+        # draw plots
+        kwargs_hist = dict(kwargs_gen.items() + kwargs_labels[i].items())
+        ymax = 0
+        medians = []
+        for j in range(50):
+            print j
+            stage_samples = gen_stage_mass_samples(stages[i], nsample=1e2)
+            ax.hist(stage_samples, **kwargs_hist)
+            hist_heights, hist_edges = _np.histogram(stage_samples, bins=lbins)
+            top_bin = _np.nanmax([_np.max(hist_heights), 1])
+            if top_bin > ymax:
+                ymax = top_bin
+            medians.append(_np.median(stage_samples))
+        ax.plot(_np.median(medians) * _np.ones(2), [0, 1.2 * ymax], 'k--')
+        ax.plot(_np.nanmin(medians) * _np.ones(2), [0, 1.2 * ymax], 'r--')
+        ax.plot(_np.nanmax(medians) * _np.ones(2), [0, 1.2 * ymax], 'r--')
+        # plot attributes
+        ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
+        ax.set_ylim([0, 1.1 * ymax])
+        ax.locator_params(axis='y', tight=True, nbins=5)
+        ax.set_yticklabels(labels=[])
+        ax.set_xscale('log')
+        #ax.legend(loc=1, frameon=False, numpoints=None, prop={'size':12})
+        ax.annotate(stages_labels[i], xy=(0.875, 0.75), xycoords='axes fraction',
+            fontsize=10)
+        c_stage = stages[i]
+        ax.annotate(c_stage[c_stage.all_dML.notnull()].shape[0], xy=(0.05,
+            0.75), xycoords='axes fraction', fontsize=10)
+    axes[-1].set_xlabel(xlabel)
+    # save
+    _plt.subplots_adjust(hspace=0.05)
+    _plt.savefig('marg_stages_hist_{}.pdf'.format(label))
+    print '-- marg_stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
 
 def write_all_stages_plots(bgps=[]):
