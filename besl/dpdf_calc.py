@@ -77,7 +77,39 @@ def tkin_distrib(tkins):
     tkin_fn = interp1d(tkins, kernel(tkins))
     return tkin_fn
 
-def draw_dpdf_samples(cnum, nsample=1e4):
+def draw_tkin_samples(tkin_fn=None, tkin=None, tkin_err=None, nsample=1e4):
+    """
+    Draw a set of sampled NH3 kinetic temperatures from a distribution or use
+    Gaussian random deviates if measurement known.
+
+    Parameters
+    ----------
+    tkin_fn : scipy.interpolate.interpolate.interp1d
+        Interpolated function for distribution of temperatures
+    tkin : number
+        T_K in Kelvin
+    tkin_err : number
+        Uncertainty in T_K in Kelvin
+    nsample : number, default 1e4
+        Number of samples to draw
+
+    Returns
+    -------
+    tkin_draw : np.array
+    """
+    if tkin_fn is not None:
+        x = tkin_fn.x
+        y = tkin_fn.y
+        lims = [x.min(), x.max(), y.min(), y.max()]
+        tkin_draw, tkin_probs = mc_sampler_1d(x, y, lims=lims, nsample=nsample)
+        return tkin_draw
+    elif (tkin is not None) & (tkin_err is not None):
+        tkin_draw = np.random.normal(loc=tkin, scale=tkin_err, size=nsample)
+        return tkin_draw
+    else:
+        raise Exception('Unexpected exception.')
+
+def draw_dist_samples(cnum, nsample=1e4):
     """
     Draw a set of sampled distances for a BGPS clump with a DPDF.
 
@@ -94,9 +126,10 @@ def draw_dpdf_samples(cnum, nsample=1e4):
     dpdf = catalog.read_dpdf()
     # Determine catalog index number
     flags = _pd.DataFrame(dpdf[1].data)
-    if len(flags) == 0:
+    try:
+        i = flags.index[flags.CNUM == cnum][0]
+    except:
         raise Exception('cnum not in DPDFs: {0}'.format(cnum))
-    i = flags.index[flags.CNUM == cnum][0]
     # Select data
     x = _np.arange(1000) * 20. + 20.
     y = dpdf[5].data[i]
@@ -111,6 +144,7 @@ def generate_mass_samples(cnum, tkin_err=None):
     temperature distributions.
     """
     # TODO
+    dpdf = catalog.read_dpdf()
     # draw dml samples
     # draw tkin samples
     #   use tkin error and normal deviates if given value
