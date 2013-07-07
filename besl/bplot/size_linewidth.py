@@ -10,6 +10,8 @@ Plotting routines for size linewidth relationships in the BGPS.
 import numpy as _np
 import pandas as _pd
 import matplotlib.pyplot as _plt
+import matplotlib.patheffects as PathEffects
+from scipy.stats import spearmanr
 from besl import catalog, dpdf_calc, util
 
 
@@ -48,35 +50,40 @@ def general_size_linewidth(stages, xcol, ycol, stages_labels, shape, colors,
     _plt.savefig('size_linewidth_{0}_{1}.pdf'.format(ycol, _np.prod(shape)))
     return fig, ax
 
-def spear_size_linewidth_four(stages, shape, colors, ax_labels):
+def spear_size_linewidth_four(stages):
     """
     """
     # TODO add doc
     ax_labels = [r'$\Delta v_{\rm HCO^+} \ \ [{\rm km \ s^{-1}}]$',
                  r'$R \ \ [{\rm pc}]$']
-    stages_labels = [r'Starless',
+    stages_labels = [r'${\rm Starless}$',
                      r'${\rm H_2O \ \  N}$',
                      r'${\rm IR \ \ Y}$',
                      r'${\rm H_2O \ \ Y}$']
     colors = ['green', 'SlateBlue', 'red', 'DodgerBlue']
     xcol = 'hco_fwhm'
     ycol = 'avg_diam'
-    # Plot settings
+    # Plot limits
+    stages = [df[(df[xcol].notnull()) & (df[ycol].notnull())] for df in stages]
     xmin = _np.nanmin([df[xcol].min() for df in stages])
     xmax = _np.nanmax([df[xcol].max() for df in stages])
     ymin = _np.nanmin([df[ycol].min() for df in stages])
     ymax = _np.nanmax([df[ycol].max() for df in stages])
-    # Begin plot
+    spears = [spearmanr(df[xcol].values, df[ycol].values) for df in stages]
+    spears = [str(i[0])[:4] for i in spears]
+    spears = [r'$\rho_{\rm spear} = ' + s + r'$' for s in spears]
+    # Plot settings
     error_kwargs = {'elinewidth': 0.5, 'ecolor': 'black', 'capsize': 0, 'fmt':
         'D', 'ms': 2.5}
-    fig, axes = _plt.subplots(figsize=(8, 6), nrows=1, ncols=4, sharex=True,
+    # Begin plot
+    fig, axes = _plt.subplots(figsize=(12, 4), nrows=1, ncols=4, sharex=True,
         sharey=True)
     for i, ax in enumerate(axes.flatten()):
         # Error bar plot
         x = stages[i][xcol].values
         y = stages[i][ycol].values
         xerr = stages[i][xcol + '_err'].values
-        yerr = stages[i][ycol].values / 20.
+        yerr = stages[i][ycol].values / 10.
         ax.errorbar(x, y, xerr=xerr, yerr=yerr, color=colors[i], **error_kwargs)
         # Plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
@@ -84,12 +91,45 @@ def spear_size_linewidth_four(stages, shape, colors, ax_labels):
         ax.set_xscale('log')
         ax.set_yscale('log')
         ax.set_xlabel(ax_labels[0])
-        ax.set_ylabel(ax_labels[1])
-        ax.annotate(stages_labels[i], xy=(0.70, 0.85), xycoords='axes fraction',
+        if i == 0:
+            ax.set_ylabel(ax_labels[1])
+        stage_txt = ax.annotate(stages_labels[i], xy=(0.70, 0.90), xycoords='axes fraction',
             fontsize=10)
-    _plt.subplots_adjust(hspace=0.05)
+        spear_txt = ax.annotate(spears[i], xy=(0.65, 0.85), xycoords='axes fraction',
+            fontsize=10)
+        stage_txt.set_path_effects([PathEffects.withStroke(linewidth=2,
+            foreground='w')])
+        spear_txt.set_path_effects([PathEffects.withStroke(linewidth=2,
+            foreground='w')])
+    _plt.subplots_adjust(top=0.9, bottom=0.15, left=0.1, right=0.9, hspace=0.05,
+        wspace=0.05)
     _plt.savefig('size_linewidth_{0}_{1}.pdf'.format('hco', '4panel'))
-    return fig, ax
+    return fig, axes
+
+def spear_marginal_four(stages):
+    """
+    """
+    import ipdb as pdb
+    ax_labels = [r'$\Delta v_{\rm HCO^+} \ \ [{\rm km \ s^{-1}}]$',
+                 r'$R \ \ [{\rm pc}]$']
+    stages_labels = [r'${\rm Starless}$',
+                     r'${\rm H_2O \ \  N}$',
+                     r'${\rm IR \ \ Y}$',
+                     r'${\rm H_2O \ \ Y}$']
+    colors = ['green', 'SlateBlue', 'red', 'DodgerBlue']
+    error_kwargs = {'elinewidth': 0.5, 'ecolor': 'black', 'capsize': 0, 'fmt':
+        'D', 'ms': 2.5}
+    fig, axes = _plt.subplots(figsize=(12, 4), nrows=1, ncols=4, sharex=True,
+        sharey=True)
+    # draw distances
+    # calculate spearman rank for each draw
+    # collect spearman ranks
+    for i, ax in enumerate(axes.flatten()):
+        pass
+    _plt.subplots_adjust(top=0.9, bottom=0.15, left=0.1, right=0.9, hspace=0.05,
+        wspace=0.05)
+    _plt.savefig('size_linewidth_{0}_{1}.pdf'.format('hco', '4panel'))
+    return fig, axes
 
 def write_stages_plot(bgps):
     """
