@@ -72,7 +72,7 @@ def sep(lat1, lon1, lat2, lon2, hd='d'):
     d = 2 * _m.asin(min(1, _m.sqrt(a)))
     return _np.rad2deg(d)
 
-def sep_coords(needle, haystack, min_sep):
+def sep_coords(needle, haystack):
     """
     Match a "needle" single (lon, lat) coordinate to a "haystack" list of
     coordinates in decimal degrees. Use sorted lists for best performance.
@@ -96,11 +96,11 @@ def sep_coords(needle, haystack, min_sep):
     sep = _np.arcsin(_np.minimum(_np.sqrt(a), _np.ones(len(a))))
     return sep
 
-def nearest_match_coords(needle, haystack, min_sep):
+def nearest_match_coords(needle, haystack, min_sep, nearest=True):
     """
-    Calculate the nearest source between a "needle" single (lon, lat) coordinate
-    and a "haystack" list of coordinates in decimal degrees. Use sorted lists
-    for best performance.
+    Search within a radius for sources between a "needle" single (lon, lat)
+    coordinate and a "haystack" list of coordinates in decimal degrees. Use
+    sorted lists for best performance.
 
     Parameters
     ----------
@@ -110,26 +110,37 @@ def nearest_match_coords(needle, haystack, min_sep):
         2 x N list of coordinates in decimal degrees
     min_sep : number
         Minimum seperation in arcseconds.
+    nearest : bool, default True
+        Return only the nearest match
 
     Returns
     -------
-    min_index : number
-        Array index of nearest object
-    min_dist : number
-        Distance to nearest matched object
+    min_index : number or np.array
+        Array index (or indices) of nearest object
+    min_dist : number or np.array
+        Distance (or distances) to nearest matched object
     matchn : number
         Number of matches within the minimum seperation
     """
+    # Convert minimum seperation from arcseconds to radians
     min_sep = 2. * _np.pi * min_sep / (360. * 60. * 60.)
-    dlon = _np.radians(haystack[:,0]) - _np.radians(needle[0])
-    dlat = _np.radians(haystack[:,1]) - _np.radians(needle[1])
-    a = _np.square(_np.sin(dlat / 2.0)) + _np.cos(_np.radians(needle[1])) * \
-        _np.cos(_np.radians(haystack[:,1])) * _np.square(_np.sin(dlon / 2.0))
-    d = _np.arcsin(_np.minimum(_np.sqrt(a), _np.ones(len(a))))
+    #dlon = _np.radians(haystack[:,0]) - _np.radians(needle[0])
+    #dlat = _np.radians(haystack[:,1]) - _np.radians(needle[1])
+    #a = _np.square(_np.sin(dlat / 2.0)) + _np.cos(_np.radians(needle[1])) * \
+    #    _np.cos(_np.radians(haystack[:,1])) * _np.square(_np.sin(dlon / 2.0))
+    #d = _np.arcsin(_np.minimum(_np.sqrt(a), _np.ones(len(a))))
+    d = sep_coords(needle, haystack)
     matchn = len(d[d <= min_sep])
-    min_index = d.argmin()
-    min_dist = _np.degrees(d.min())
-    return matchn, min_index, min_dist
+    if nearest:
+        min_index = d.argmin()
+        min_dist = _np.degrees(d.min())
+        return matchn, min_index, min_dist
+    elif matchn > 0:
+        min_index = d.argsort()[_np.sort(d) <= min_sep]
+        min_dist = _np.degrees(_np.sort(d[d <= min_sep]))
+        return matchn, min_index, min_dist
+    else:
+        return matchn, _np.array([]), _np.array([])
 
 def eq2gal(ra, dec, epoch='2000'):
     """
