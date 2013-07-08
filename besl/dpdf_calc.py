@@ -137,7 +137,7 @@ def draw_dist_samples(cnum, nsample=1e2):
     dist_draws, dist_probs = mc_sampler_1d(x, y, lims=lims, nsample=nsample)
     return dist_draws
 
-def gen_mass_samples(cnum, snu11, tkin_fn=None, tkin=None, tkin_err=None,
+def draw_mass_samples(cnum, snu11, tkin_fn=None, tkin=None, tkin_err=None,
     nsample=1e2):
     """
     Generate a sample of masses with values drawn from the DPDFs and kinetic
@@ -188,17 +188,56 @@ def gen_stage_mass_samples(stage, nsample=1e2):
         tkin_err = stage.ix[i, 'nh3_tkin_err']
         # Use temperature distribution
         if (_np.isnan(tkin)) | (tkin < 7) | (tkin > 150):
-            draw = gen_mass_samples(cnum=cnum, snu11=snu11, tkin_fn=tkin_fn,
+            draw = draw_mass_samples(cnum=cnum, snu11=snu11, tkin_fn=tkin_fn,
                 nsample=nsample)
         # Use measured temperature and normal deviates
         elif (_np.isfinite(tkin)) & (tkin > 7) & (tkin < 150):
-            draw = gen_mass_samples(cnum=cnum, snu11=snu11, tkin=tkin,
+            draw = draw_mass_samples(cnum=cnum, snu11=snu11, tkin=tkin,
                 tkin_err=tkin_err, nsample=nsample)
         else:
             raise Exception('Unexpected error.')
         stage_samples.append(draw)
     stage_samples = _np.ravel(stage_samples)
     return stage_samples
+
+def gen_stage_area_samples(stage, nsample=1e2, radius=False):
+    """
+    Generate a set of area samples from the DPDFs.
+
+    Parameters
+    ----------
+    stage : pd.DataFrame
+        BGPS catalog for a selected evolutionary stage
+    nsample : number
+        Number of samples to draw for each good DPDF clump
+    radius : boolean
+        Return mean radius instead of area
+
+    Returns
+    -------
+    stage_samples : np.array
+    """
+    good_kdars = ['T', 'N', 'F']
+    # Monte Carlo sample each clump in stage
+    stage_samples = []
+    for i in stage.index:
+        area = stage.ix[i, 'rind_area']
+        kdar = stage.ix[i, 'dpdf_KDAR']
+        nkdar = stage.ix[i, 'neighbor_KDAR']
+        # Check for DPDF
+        if kdar in good_kdars:
+            cnum = stage.ix[i, 'v201cnum']
+        elif nkdar in good_kdars:
+            cnum = stage.ix[i, 'neighbor_KDAR_cnum']
+        else:
+            continue
+        draw = draw_dist_samples(cnum=cnum, nsample=nsample)
+        draw = clump_surface_area(draw, area)
+        stage_samples.append(draw)
+    if radius:
+        return _np.sqrt(stage_samples / _np.pi)
+    else:
+        return stage_samples
 
 def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     """
