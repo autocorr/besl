@@ -54,15 +54,15 @@ def spear_size_linewidth_four(stages):
     """
     """
     # TODO add doc
-    ax_labels = [r'$\Delta v_{\rm HCO^+} \ \ [{\rm km \ s^{-1}}]$',
-                 r'$R \ \ [{\rm pc}]$']
+    ax_labels = [r'$R \ \ [{\rm pc}]$',
+                 r'$\Delta v_{\rm HCO^+} \ \ [{\rm km \ s^{-1}}]$']
     stages_labels = [r'${\rm Starless}$',
                      r'${\rm H_2O \ \  N}$',
                      r'${\rm IR \ \ Y}$',
                      r'${\rm H_2O \ \ Y}$']
     colors = ['green', 'SlateBlue', 'red', 'DodgerBlue']
-    xcol = 'hco_fwhm'
-    ycol = 'avg_diam'
+    xcol = 'avg_diam'
+    ycol = 'hco_fwhm'
     # Plot limits
     stages = [df[(df[xcol].notnull()) & (df[ycol].notnull())] for df in stages]
     xmin = _np.nanmin([df[xcol].min() for df in stages])
@@ -82,9 +82,12 @@ def spear_size_linewidth_four(stages):
         # Error bar plot
         x = stages[i][xcol].values
         y = stages[i][ycol].values
-        xerr = stages[i][xcol + '_err'].values
-        yerr = stages[i][ycol].values / 10.
+        xerr = stages[i][xcol].values * 0.1
+        yerr = stages[i][ycol + '_err'].values
         ax.errorbar(x, y, xerr=xerr, yerr=yerr, color=colors[i], **error_kwargs)
+        linex = _np.linspace(0.01, 15, 100)
+        liney = linex**(0.5) * 1.5
+        ax.plot(linex, liney, 'k--', alpha=0.5)
         # Plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
         ax.set_ylim([10**(_np.log10(ymin) - 0.2), 10**(_np.log10(ymax) + 0.2)])
