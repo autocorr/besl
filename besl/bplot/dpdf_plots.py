@@ -11,7 +11,8 @@ import numpy as _np
 import pandas as _pd
 import matplotlib.pyplot as _plt
 from besl import catalog, units
-from besl.dpdf_calc import mc_sampler_1d, gen_stages, gen_stage_mass_samples
+from besl.dpdf_calc import mc_sampler_1d, gen_stages, \
+                           gen_stage_mass_samples, gen_stage_area_samples
 
 
 def plot_dpdf_sampling(n=200):
@@ -100,7 +101,7 @@ def stages_hist(label, xlabel, bgps=[]):
     print '-- stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
 
-def marginal_mass_stages_hist(bgps=[]):
+def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
     """
     Create a histogram of the marginalized clump dust mass with the
     evolutionary stages overplotted.
@@ -108,6 +109,13 @@ def marginal_mass_stages_hist(bgps=[]):
     Parameters
     ----------
     bgps : pd.DataFrame
+    label : string
+        Column to marginalize, valid options include 'dust_mass' and
+        'rind_surf_area' for now.
+    realiz : number
+        Realizations to draw
+    nsample : number
+        Number of samples to draw for each source for each realization
 
     Returns
     -------
@@ -116,8 +124,12 @@ def marginal_mass_stages_hist(bgps=[]):
     """
     # evo stages
     stages = gen_stages(bgps=bgps, stages_group=2)
-    label = 'dust_mass'
-    xlabel = r'$M_{\rm dust} \ \ [{\rm M_{\odot}}]$'
+    if label == 'dust_mass':
+        xlabel = r'$M_{\rm dust} \ \ [{\rm M_{\odot}}]$'
+    elif label == 'rind_surf_area':
+        xlabel = r'${\rm Area} \ \ [{\rm pc}^2]$'
+    else:
+        raise ValueError('Invalid label {0}.'.format(label))
     # calculate lims and bins
     xmin = _np.nanmin([df[label].min() for df in stages]) / 1.5
     xmax = _np.nanmax([df[label].max() for df in stages]) * 1.5
@@ -142,9 +154,14 @@ def marginal_mass_stages_hist(bgps=[]):
         kwargs_hist = dict(kwargs_gen.items() + kwargs_labels[i].items())
         ymax = 0
         medians = []
-        for j in range(50):
+        for j in range(realiz):
             print j
-            stage_samples = gen_stage_mass_samples(stages[i], nsample=1e2)
+            if label == 'dust_mass':
+                stage_samples = gen_stage_mass_samples(stages[i],
+                    nsample=nsample)
+            elif label == 'rind_surf_area':
+                stage_samples = gen_stage_area_samples(stages[i],
+                    nsample=nsample) / 1e6
             ax.hist(stage_samples, **kwargs_hist)
             hist_heights, hist_edges = _np.histogram(stage_samples, bins=lbins)
             top_bin = _np.nanmax([_np.max(hist_heights), 1])
