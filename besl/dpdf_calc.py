@@ -200,7 +200,7 @@ def gen_stage_mass_samples(stage, nsample=1e2):
     stage_samples = _np.ravel(stage_samples)
     return stage_samples
 
-def gen_stage_area_samples(stage, nsample=1e2, radius=False):
+def gen_stage_area_samples(stage, nsample=1e2, radius=False, flatten=True):
     """
     Generate a set of area samples from the DPDFs.
 
@@ -212,6 +212,9 @@ def gen_stage_area_samples(stage, nsample=1e2, radius=False):
         Number of samples to draw for each good DPDF clump
     radius : boolean
         Return mean radius instead of area
+    flatten : boolean
+        Flatten the output data from a row for each clump's samples or into a
+        flat array
 
     Returns
     -------
@@ -234,6 +237,9 @@ def gen_stage_area_samples(stage, nsample=1e2, radius=False):
         draw = draw_dist_samples(cnum=cnum, nsample=nsample)
         draw = clump_surface_area(draw, area)
         stage_samples.append(draw)
+    stage_samples = _np.array(stage_samples)
+    if flatten:
+        stage_samples = _np.ravel(stage_samples)
     if radius:
         return _np.sqrt(stage_samples / _np.pi)
     else:

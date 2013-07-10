@@ -55,6 +55,7 @@ def stages_hist(label, xlabel, bgps=[]):
     stages = gen_stages(bgps=bgps, stages_group=2, label=label)
     # calculate lims and bins
     # TODO
+    colors = ['green', 'SlateBlue', 'red', 'DodgerBlue', 'Orange', 'magenta']
     xmin = _np.nanmin([df[label].min() for df in stages])
     xmax = _np.nanmax([df[label].max() for df in stages])
     lbins = _np.logspace(_np.log10(xmin), _np.log10(xmax), 40)
@@ -79,7 +80,8 @@ def stages_hist(label, xlabel, bgps=[]):
         ymax = _np.nanmax([_np.max(hist_heights), 1])
         df = stages[i][label]
         if len(df) > 0:
-            ax.hist(df[_np.isfinite(df)].values, **kwargs_hist)
+            ax.hist(df[_np.isfinite(df)].values, facecolor=colors[i],
+                **kwargs_hist)
             ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
         # plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
