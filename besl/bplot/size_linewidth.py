@@ -142,12 +142,12 @@ def spear_marginal_four(stages):
             spearman_rank = spearmanr(widths, radii)[0]
             spears[i].append(spearman_rank)
     # Begin plot
-    fig, axes = _plt.subplots(figsize=(12, 4), nrows=1, ncols=4, sharex=True,
+    fig, axes = _plt.subplots(figsize=(12, 1.5), nrows=1, ncols=4, sharex=True,
         sharey=True)
     for i, ax in enumerate(axes.flatten()):
         ax.hist(spears[i], facecolor=colors[i], **hist_kwargs)
         med_spear = _np.median(spears[i])
-        ax.plot(med_spear, 30, 'Dk')
+        ax.plot(med_spear, 40, 'Dk', markersize=5)
         spear_label = r'$\langle\rho_{\rm spear}\rangle_{1/2} = ' \
             + str(med_spear)[:4] + r'$'
         # Plot attributes
@@ -156,15 +156,15 @@ def spear_marginal_four(stages):
         ax.set_xlabel(ax_labels[0])
         ax.set_xticks([0.2, 0.4, 0.6, 0.8])
         ax.set_yticklabels([])
-        stage_txt = ax.annotate(stages_labels[i], xy=(0.70, 0.90), xycoords='axes fraction',
+        stage_txt = ax.annotate(stages_labels[i], xy=(0.70, 0.75), xycoords='axes fraction',
             fontsize=10)
-        spear_txt = ax.annotate(spear_label, xy=(0.55, 0.825), xycoords='axes fraction',
+        spear_txt = ax.annotate(spear_label, xy=(0.55, 0.625), xycoords='axes fraction',
             fontsize=10)
         stage_txt.set_path_effects([PathEffects.withStroke(linewidth=2,
             foreground='w')])
         spear_txt.set_path_effects([PathEffects.withStroke(linewidth=2,
             foreground='w')])
-    _plt.subplots_adjust(top=0.9, bottom=0.15, left=0.1, right=0.9, hspace=0.05,
+    _plt.subplots_adjust(top=0.9, bottom=0.25, left=0.1, right=0.9, hspace=0.05,
         wspace=0.05)
     _plt.savefig('size_linewidth_spearman_{0}_{1}.pdf'.format('hco', '4panel'))
     return fig, axes
