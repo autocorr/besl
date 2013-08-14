@@ -36,18 +36,20 @@ def get_bgps_img(cnum, exten, v=201):
         medmap20   -> median map 20
         noisemap20 -> rms map
     v : number, default 2
-        BGPS version number, valid [2, 201]. This only effects choice in label
+        BGPS version number, valid [2, 201, 'v2d']. This only effects choice in label
         mask.
 
     Returns
     -------
     img : pyfits.HDUList
     """
-    if v not in [2, 201]:
+    if v not in [2, 201, '2d']:
         raise ValueError
     if exten not in ['labelmask', 'map20', 'medmap20', 'noisemap20']:
         raise ValueError('Incorrect exten: {}.'.format(exten))
-    ver_path = {2: 'v2.0.0', 201: 'v2.0.1'}
+    if v == 'v2d':
+        exten = 'labelmask_deeper'
+    ver_path = {2: 'v2.0.0', 201: 'v2.0.1', '2d': 'v2.0.1d'}
     bgps = catalog.read_bgps(exten='none', v=v)
     c_index = _np.argwhere(bgps.cnum == cnum)[0][0]
     field = bgps.ix[c_index, 'field']

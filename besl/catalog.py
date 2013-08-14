@@ -84,7 +84,7 @@ def read_bgps(exten='none', v=2):
     """
     if v not in [1, 2, 201, '2d']:
         raise ValueError('Invalid version, v = {}.'.format(v))
-    vers = {1: '1.0', 2: '2.0', 201: '2.0.1', '2d': '2d'}
+    vers = {1: '1.0', 2: '2.0', 201: '2.0.1', '2d': '2.0d'}
     if exten == 'none':
         if v == 1:
             bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
