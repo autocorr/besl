@@ -86,7 +86,7 @@ def spear_size_linewidth_four(stages):
         yerr = stages[i][ycol + '_err'].values
         ax.errorbar(x, y, xerr=xerr, yerr=yerr, color=colors[i], **error_kwargs)
         linex = _np.linspace(0.01, 30, 100)
-        liney = linex**(0.38) * 2.0
+        liney = linex**(0.50) * 2.0
         ax.plot(linex, liney, 'k--', alpha=0.5)
         # Plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])

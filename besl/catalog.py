@@ -82,9 +82,9 @@ def read_bgps(exten='none', v=2):
     bgps : pandas.DataFrame
         Output catalog in a pandas DataFrame object
     """
-    if v not in [1, 2, 201]:
+    if v not in [1, 2, 201, '2d']:
         raise ValueError('Invalid version, v = {}.'.format(v))
-    vers = {1: '1.0', 2: '2.0', 201: '2.0.1'}
+    vers = {1: '1.0', 2: '2.0', 201: '2.0.1', '2d': '2d'}
     if exten == 'none':
         if v == 1:
             bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
@@ -98,6 +98,9 @@ def read_bgps(exten='none', v=2):
         elif v == 201:
             bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
                 na_values=['---'])
+            return bgps
+        elif v == '2d':
+            bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]))
             return bgps
     elif exten == 'all':
         bgps = _pd.read_csv(d.cat_dir + d.bgps_ext_filen.format(vers[2], 'all',
