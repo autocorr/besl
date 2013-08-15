@@ -7,9 +7,9 @@ Routines for images.
 
 """
 
-import pyfits
 import catalog
 import numpy as _np
+from astropy.io import fits
 
 class Dirs(object):
     """
@@ -21,14 +21,14 @@ class Dirs(object):
         self.bgps_img_filen = 'v2.0_ds2_{}_13pca_{}.fits'
 d = Dirs()
 
-def get_bgps_img(cnum, exten, v=201):
+def get_bgps_img(identifier, exten, v=201):
     """
-    Retrieve BGPS image file in pyfits format. Only works for v2.
+    Retrieve BGPS image file in astropy.io.fits instance. Only works for v2.
 
     Parameters
     ----------
-    cnum : number
-        BGPS catalog number of clump
+    identifier : number
+        BGPS catalog number of clump or a BGPS field string
     exten : string
         Image file extension name. Valid types:
         labelmask  -> source contours, label masks
@@ -41,19 +41,25 @@ def get_bgps_img(cnum, exten, v=201):
 
     Returns
     -------
-    img : pyfits.HDUList
+    img : astropy.io.fits.HDUList
     """
     if v not in [2, 201, '2d']:
         raise ValueError
     if exten not in ['labelmask', 'map20', 'medmap20', 'noisemap20']:
         raise ValueError('Incorrect exten: {}.'.format(exten))
-    if v == 'v2d':
+    if v == '2d':
         exten = 'labelmask_deeper'
     ver_path = {2: 'v2.0.0', 201: 'v2.0.1', '2d': 'v2.0.1d'}
-    bgps = catalog.read_bgps(exten='none', v=v)
-    c_index = _np.argwhere(bgps.cnum == cnum)[0][0]
-    field = bgps.ix[c_index, 'field']
-    img = pyfits.open(d.bgps_dir.format(ver_path[v]) +
+    # cnum or field
+    if isinstance(identifier, (float, int)):
+        bgps = catalog.read_bgps(exten='none', v=v)
+        c_index = _np.argwhere(bgps.cnum == cnum)[0][0]
+        field = bgps.ix[c_index, 'field']
+    elif isinstance(identifier, (str)):
+        field = identifier
+    else:
+        raise ValueError('Improper identifier {0}.'.format(identifier))
+    img = fits.open(d.bgps_dir.format(ver_path[v]) +
         d.bgps_img_filen.format(field, exten))
     return img
 
