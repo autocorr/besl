@@ -15,8 +15,8 @@ import sys as _sys
 import numpy as _np
 import pandas as _pd
 import ephem as _ephem
-import pywcs as _pywcs
-import pyfits as _pyfits
+from astropy import wcs
+from astropy.io import fits
 from scipy.interpolate import interp1d
 from coord import eq2gal, pd_eq2gal
 
@@ -58,6 +58,7 @@ class Dirs(object):
         self.gbt_nh3_3_filen = 'bgps/nh3_rms_fit_objects.sav'
         self.oh94_filen = 'oh94_dust/{}{}.asc'
         self.cornish_filen = 'cornish/cornish_{}.csv'
+        self.pesta_metho_filen = 'pestallozzi05.fit'
 d = Dirs()
 
 ### Read functions ###
@@ -362,7 +363,7 @@ def read_mmb():
 
     Returns
     -------
-    mmb : pandas.DataFrame
+    mmb : `pandas.DataFrame`
         Output catalog in a pandas DataFrame object
     """
     mmb = _pd.read_csv(d.cat_dir + d.mmb_filen, sep=',', na_values=[-999])
@@ -371,6 +372,16 @@ def read_mmb():
     mmb['dec'] = mmb.dec_d + mmb.dec_m / 60. + mmb.dec_s / (60. * 60.)
     mmb = pd_eq2gal(mmb, ['ra', 'dec'], ['glon', 'glat'])
     return mmb
+
+def read_pesta05():
+    """
+    Read aggregate methanol maser survey catalog. Citation: Pestalozzi (2005).
+
+    Returns
+    -------
+    pesta : `pandas.DataFrame`
+    """
+    pass
 
 def read_gbt_h2o():
     """
@@ -541,15 +552,15 @@ def read_dpdf(v=2):
     Returns
     -------
     dpdf : list
-        List of pyfits.hdu
+        List of `astropy.io.fits.FitsHDU`
     """
     if v not in [1, 2]:
         raise ValueError('v = {}. Must be 1 or 2.'.format(v))
     if v == 1:
-        dpdf = _pyfits.open(d.cat_dir + d.v1_dpdf_filen)
+        dpdf = fits.open(d.cat_dir + d.v1_dpdf_filen)
         return dpdf
     if v == 2:
-        dpdf = _pyfits.open(d.cat_dir + d.v2_dpdf_filen)
+        dpdf = fits.open(d.cat_dir + d.v2_dpdf_filen)
         return dpdf
 
 def read_emaf_dist(v=2):
@@ -697,9 +708,9 @@ def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
     field = bgps[bgps.cnum == cnum]['field'].values[0]
     fcnum = bgps[bgps.cnum == cnum]['field_cnum'].values[0]
     # read in label mask
-    bgps_label = _pyfits.open(d.bgps_dir +
+    bgps_label = fits.open(d.bgps_dir +
         'v2.0_ds2_{}_13pca_labelmask.fits'.format(field))
-    bgps_wcs = _pywcs.WCS(bgps_label[0].header)
+    bgps_wcs = wcs.WCS(bgps_label[0].header)
     # select coordinates of all pixels that match
     matched_pixels = _np.argwhere(bgps_label[0].data == fcnum)
     pixel_coords = bgps_wcs.all_pix2sky(matched_pixels[:,1],
