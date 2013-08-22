@@ -58,7 +58,7 @@ class Dirs(object):
         self.gbt_nh3_3_filen = 'bgps/nh3_rms_fit_objects.sav'
         self.oh94_filen = 'oh94_dust/{}{}.asc'
         self.cornish_filen = 'cornish/cornish_{}.csv'
-        self.pesta_metho_filen = 'pestallozzi05.fit'
+        self.pesta_metho_filen = 'pestalozzi05/pestalozzi05.{}'
 d = Dirs()
 
 ### Read functions ###
@@ -70,7 +70,7 @@ def read_bgps(exten='none', v=2):
 
     Parameters
     ----------
-    exten : string, default 'none'
+    exten : str, default 'none'
         BGPS extension.
         'none' -> default BGPS
         'all'  -> super matched BGPS
@@ -363,7 +363,7 @@ def read_mmb():
 
     Returns
     -------
-    mmb : `pandas.DataFrame`
+    mmb : pandas.DataFrame
         Output catalog in a pandas DataFrame object
     """
     mmb = _pd.read_csv(d.cat_dir + d.mmb_filen, sep=',', na_values=[-999])
@@ -373,15 +373,31 @@ def read_mmb():
     mmb = pd_eq2gal(mmb, ['ra', 'dec'], ['glon', 'glat'])
     return mmb
 
-def read_pesta05():
+def read_pesta05(cat_type='csv'):
     """
     Read aggregate methanol maser survey catalog. Citation: Pestalozzi (2005).
 
+    Parameters
+    ----------
+    cat_type : str, default 'csv'
+        Type of catalog file to read, valid options include 'csv' and 'fit'. If
+        'csv' read in as a `pandas.DataFrame`, else if 'fit' read in as a
+        `astropy.io.fit.Fits` object.
+
     Returns
     -------
-    pesta : `pandas.DataFrame`
+    pesta : pandas.DataFrame, astropy.io.fits.Fits
     """
-    pass
+    valid_cats = ['csv', 'fit']
+    if cat_type not in ['csv', 'fit']:
+        raise Exception('`cat_type` must be one of {0}'.format(valid_cats))
+    path = d.cat_dir + d.pesta_metho_filen.format(cat_type)
+    if cat_type == 'csv':
+        return _pd.read_csv(path)
+    elif cat_type == 'fit':
+        return fits.open(path)
+    else:
+        raise Exception('Unexpected exception')
 
 def read_gbt_h2o():
     """
@@ -522,7 +538,7 @@ def read_cornish(exten='all'):
 
     Parameters
     ----------
-    exten : string, default 'all'
+    exten : str, default 'all'
         CORNISH catalog subset. Valid types: all, hii, uchii.
 
     Returns
@@ -594,7 +610,7 @@ def read_oh94_dust(model_type='mrn', modeln=0):
 
     Parameters
     ----------
-    model_type : string, default 'mrn'
+    model_type : str, default 'mrn'
         OH model type, valid inputs: mrn, thick, thin
     modeln : number, default 0
         OH model density number, valid inputs: 0, 5, 6, 7, 8
@@ -625,14 +641,14 @@ def select_bgps_field(lon, lat, coord_type='eq', bool_out=False):
         Galactic longitude in decimal degrees
     glat : number
         Galactic latitude in decimal degrees
-    coord_type : string, default 'eq'
+    coord_type : str, default 'eq'
         Choose 'gal' for Galactic or 'eq' for Equatorial
     bool_out : boolean
         Return True if in BGPS
 
     Returns
     -------
-    field : string
+    field : str
         Image field name
     """
     if coord_type not in ['eq', 'gal']:
@@ -682,7 +698,7 @@ def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
         must be in decimal degrees.
     cnum : number
         Catalog number of BGPS clump
-    coord_type : string ('eq', 'gal'), default 'eq'
+    coord_type : str ('eq', 'gal'), default 'eq'
         Celestial coordinate type, select either 'eq' = equatorial or 'gal' =
         Galactic.
     pix_size : number, default 7.5"
@@ -745,15 +761,15 @@ def create_point_region(lon, lat, text=[], out_filen='ds9', marker='circle',
         Latitude in decimal degrees
     text : array-like
         List of text labels to place at offset position
-    out_filen : string, default 'ds9.reg'
+    out_filen : str, default 'ds9.reg'
         Filename of output DS9 region file.
-    marker_type : string, default 'circle'
+    marker_type : str, default 'circle'
         Region marker type. Supported: {circle, box, diamond, cross, x, arrow,
         boxcircle}. If 'none' no markers are plotted.
-    coord_type : string, default 'fk5'
+    coord_type : str, default 'fk5'
         Celestial coordinate type. Supported: {image, linear, fk4, fk5,
         galactic, ecliptic, icrs, physical, amplifier, detector}.
-    color : string, default 'green'
+    color : str, default 'green'
         Region color. Supported: {white, black, red, green, blue, cyan, magenta,
         yellow}.
     offset : number, default 5 arcsec
