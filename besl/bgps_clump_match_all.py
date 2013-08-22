@@ -376,7 +376,8 @@ def clump_match_gbt_nh3(bgps=[], out_filen='bgps_nh3', verbose=False):
     return bgps
 
 def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
-    col_append='', out_filen='temp', coord_type='gal', verbose=False):
+    col_append='', out_filen='temp', coord_type='gal', verbose=False,
+    match_type='num'):
     """
     Match the BGPS to a general catalog with coordinate columns _Glon and
     _Glat.
@@ -385,19 +386,24 @@ def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
     ----------
     cat : pd.DataFrame
         Catalog to match
-    best_col : string
+    best_col : str
         Column to use max value from when discriminating multiple matches
     bgps : pd.DataFrame, default []
         BGPS or matched catalog to merge into. If empty list is passed then the
         default BGPS v2 is read in.
-    col_append : string, default ''
+    col_append : str, default ''
         Name to append to beginning of columns from cat
     out_filen : string, default 'temp'
         Name of output file
-    coord_type : string, default 'gal'
+    coord_type : str, default 'gal'
         Coordinate type, either Galactic 'gal' or Equatorial 'eq'
     verbose : True
         Print progress per clump
+    match_type : str
+        Type of match to perform, valid types are:
+            'num' -> Append number of matches
+            'det' -> Append number of detections and number of matches
+            'all' -> Append all input catalog rows to BGPS based on `best_col`
 
     Returns
     -------
@@ -425,10 +431,6 @@ def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
         # BGPS properties
         cnum_select = bgps.cnum == cnum
         c_index = _np.argwhere(cnum_select)[0][0]
-        glat = bgps[cnum_select].glat_cen.values[0]
-        glon = bgps[cnum_select].glon_cen.values[0]
-        c_ra = bgps[cnum_select].ra.values[0]
-        c_dec = bgps[cnum_select].dec.values[0]
         # match cat
         match_list = catalog.clump_match(cat_hs, cnum,
             coord_type=coord_type)
