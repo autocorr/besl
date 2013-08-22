@@ -719,29 +719,6 @@ def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
     index_list = _np.unique(index_list)
     return index_list
 
-### Merge functions to match clumps
-def match_h2o_maser():
-    # TODO
-    pass
-
-def match_mmb():
-    # TODO
-    pass
-
-def match_wise():
-    # TODO
-    pass
-
-def match_IR():
-    # TODO
-    pass
-
-def match_all_clumps():
-    # TODO
-    # select clumps in overlap range or put null value if not in overlap range
-    # loop through relevant clumps
-    #   select only clump in label mask fits
-    pass
 
 ### DS9 regions
 def create_point_region(lon, lat, text=[], out_filen='ds9', marker='circle',
