@@ -3,8 +3,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to besl's documentation!
+Welcome to BESL's Documentation!
 ================================
+BESL is a general purpose library written in python for astronomical research by `Brian Svoboda`_. The modules available largely involve manipulating the data for the Bolocam Galactic Plane Survey (BGPS_) and other Galactic plane surveys.
+
+.. _Brian Svoboda: http://autocorr.github.io
+.. _BGPS: http://milkyway.colorado.edu/bgps
+
 
 Contents:
 
