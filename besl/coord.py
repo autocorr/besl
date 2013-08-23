@@ -124,11 +124,6 @@ def nearest_match_coords(needle, haystack, min_sep, nearest=True):
     """
     # Convert minimum seperation from arcseconds to radians
     min_sep = 2. * _np.pi * min_sep / (360. * 60. * 60.)
-    #dlon = _np.radians(haystack[:,0]) - _np.radians(needle[0])
-    #dlat = _np.radians(haystack[:,1]) - _np.radians(needle[1])
-    #a = _np.square(_np.sin(dlat / 2.0)) + _np.cos(_np.radians(needle[1])) * \
-    #    _np.cos(_np.radians(haystack[:,1])) * _np.square(_np.sin(dlon / 2.0))
-    #d = _np.arcsin(_np.minimum(_np.sqrt(a), _np.ones(len(a))))
     d = sep_coords(needle, haystack)
     matchn = len(d[d <= min_sep])
     if nearest:
