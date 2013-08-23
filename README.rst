@@ -1,18 +1,18 @@
 BESL
 ====
-:Author: [Brian Svoboda][1]
+:Author: `Brian Svoboda`_
 :Email: svobodb@email.arizona.edu
 :Source: https://github.com/autocorr/besl
 :Docs: https://besl.readthedocs.org/en/latest
 :Version: alpha
 
-`besl` is a general purpose library written in python for astronomical
+``besl`` is a general purpose library written in python for astronomical
 research.
 
 
 INSTALLING
 ----------
-`besl` is in alpha state so to install, you can clone it from the GitHub repository:
+``besl`` is in alpha state so to install, you can clone it from the GitHub repository:
 
 .. code-block::
 
@@ -20,7 +20,7 @@ INSTALLING
     $ cd besl
     $ python setup.py install
 
-or with `pip`:
+or with ``pip``:
 
 .. code-block::
 
@@ -45,9 +45,9 @@ REQUIREMENTS
 
 USING BESL
 ----------
-Many paths in `besl` are hard-coded for specific directories and will need to be modified on the target machine. You can find info on how to use the sub-modules in the documentation at ReadTheDocs: https://besl.readthedocs.org/en/latest .
+Many paths in ``besl`` are hard-coded for specific directories and will need to be modified on the target machine. You can find info on how to use the sub-modules in the documentation at `ReadTheDocs`_.
 
-To report a bug or request a feature, please use the issue tracker on GitHub. Code contributions are welcome, just open a pull request.
+To report a bug or request a feature, please use the issue tracker on `GitHub`_. Code contributions are welcome, just open a pull request.
 
 
 LICENSE
@@ -66,4 +66,6 @@ PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 BESL. If not, see http://www.gnu.org/licenses/.
 
-[1] http://autocorr.github.io
+.. _Brian Svoboda: http://autocorr.github.io
+.. _ReadTheDocs: https://besl.readthedocs.org/en/latest
+.. _GitHub: https://github.com/autocorr/besl
