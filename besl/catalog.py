@@ -681,6 +681,52 @@ def select_bgps_field(lon, lat, coord_type='eq', bool_out=False):
     else:
         return field.values[0]
 
+def num_in_bounds(cat, fields, cat_labels=['_Glon', '_Glat'],
+    field_labels=['field', 'glon_min', 'glon_max', 'glat_min', 'glat_max'],
+    sum_fields=False):
+    """
+    Calculate the number of sources in the overlap region of a catalog given
+    field names and coordinates for the maximum and minimum in longitude and
+    latitude of each field.
+
+    Parameters
+    ----------
+    cat : pandas.DataFrame
+        Catalog with targets to match
+    fields : pandas.DataFrame
+        Catalog with field names and edge coordinates
+    cat_labels : list
+        List of column labels for longitude and latitude coordinates in `cat`
+    field_labels : list
+        List of column labels for field-id, min longitude, max longitude, min
+        latitude, and max latitude
+    sum_fields : bool, default False
+        Return the sum of all matches in the field
+
+    Returns
+    -------
+    in_bounds : dict
+        Dictionary of field-id names in `fields` to number of overlapping
+        sources in `cat`. If `sum_fields` is set to True, then a number is
+        returned for the sum of all fields.
+    """
+    in_bounds = {}
+    for ii in fields.index:
+        field_id = fields.ix[ii, field_labels[0]]
+        glon_min = fields.ix[ii, field_labels[1]]
+        glon_max = fields.ix[ii, field_labels[2]]
+        glat_min = fields.ix[ii, field_labels[3]]
+        glat_max = fields.ix[ii, field_labels[4]]
+        num = cat[(cat[cat_labels[0] > glon_min) &
+                  (cat[cat_labels[0] < glon_max) &
+                  (cat[cat_labels[1] > glat_min) &
+                  (cat[cat_labels[1] < glat_min)].shape[0]
+        in_bounds[field_id] = num
+    if sum_fields:
+        return _np.sum(in_bounds.values())
+    else:
+        return in_bounds
+
 ### Clump matching
 # Procedures dealing with the BGPS label masks
 def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
