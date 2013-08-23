@@ -1,7 +1,8 @@
 BESL
 ====
-:Author: Brian Svoboda (bsvo@lavabit.com)
+:Author: [Brian Svoboda](http://autocorr.github.io) (svobodb@email.arizona.edu)
 :Source: https://github.com/autocorr/besl
+:Documentation: https://besl.readthedocs.org/en/latest
 :Version: alpha
 
 BESL is a general purpose library written in python for astronomical
