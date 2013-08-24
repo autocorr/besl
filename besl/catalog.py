@@ -725,7 +725,7 @@ def num_in_bounds(cat, fields, cat_labels=['_Glon', '_Glat'],
         match = cat[(_np.abs(ang_diff(cat[cat_labels[0]].values, lon_cen)) <
                      lon_width / 2.) &
                     (cat[cat_labels[1]] > lat_min) &
-                    (cat[cat_labels[1]] < lat_min)].index
+                    (cat[cat_labels[1]] < lat_max)].index
         in_bounds[field_id] = match
     if sum_fields:
         return _np.sum([a.shape[0] for a in in_bounds.values()])
@@ -814,7 +814,7 @@ def create_point_region(lon, lat, text=[], out_filen='ds9', marker='circle',
         List of text labels to place at offset position
     out_filen : str, default 'ds9.reg'
         Filename of output DS9 region file.
-    marker_type : str, default 'circle'
+    marker : str, default 'circle'
         Region marker type. Supported: {circle, box, diamond, cross, x, arrow,
         boxcircle}. If 'none' no markers are plotted.
     coord_type : str, default 'fk5'
