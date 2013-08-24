@@ -10,6 +10,28 @@ Mathematical functions.
 import numpy as _np
 from scipy.special import ellipe
 
+
+def ang_diff(a, b, angle_type='deg'):
+    """
+    Take the difference of two angles between 0 - 360 degrees.
+    Parameters
+    ----------
+    a, b : number
+        Numbers representing two angles.
+    angle_type : str, default 'deg'
+        Type of angle, valid types: 'deg' or 'rad'.
+
+    Returns
+    -------
+    number : number
+    """
+    if angle_type='deg':
+        return 180 - _np.abs(_np.abs(a - b) - 180)
+    elif angle_type='rad':
+        return _np.pi / 2. - _np.abs(_np.abs(a - b) - _np.pi / 2.)
+    else:
+        raise ValueError('Invalid angle type: {0}.'.format(angle_type))
+
 def weighted_mean(a, a_err):
     """
     Compute the weighted mean.
