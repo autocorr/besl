@@ -19,7 +19,7 @@ from astropy import wcs
 from astropy.io import fits
 from scipy.interpolate import interp1d
 from .coord import eq2gal, pd_eq2gal
-from .math import ang_diff
+from .mathf import ang_diff
 
 ### Directories, paths, and environment variables
 class Dirs(object):
@@ -721,11 +721,11 @@ def num_in_bounds(cat, fields, cat_labels=['_Glon', '_Glat'],
         lat_min = fields.ix[ii, field_labels[3]]
         lat_max = fields.ix[ii, field_labels[4]]
         lon_width = ang_diff(lon_max, lon_min)
-        lon_cen = _np.mod((lon_max, lon_min) / 2., 360)
+        lon_cen = _np.mod((lon_max + lon_min) / 2., 360)
         match = cat[(_np.abs(ang_diff(cat[cat_labels[0]].values, lon_cen)) <
                      lon_width / 2.) &
-                    (cat[cat_labels[1] > lat_min) &
-                    (cat[cat_labels[1] < lat_min)].index
+                    (cat[cat_labels[1]] > lat_min) &
+                    (cat[cat_labels[1]] < lat_min)].index
         in_bounds[field_id] = match
     if sum_fields:
         return _np.sum([a.shape[0] for a in in_bounds.values()])
