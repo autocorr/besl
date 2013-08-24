@@ -18,7 +18,8 @@ import ephem as _ephem
 from astropy import wcs
 from astropy.io import fits
 from scipy.interpolate import interp1d
-from coord import eq2gal, pd_eq2gal
+from .coord import eq2gal, pd_eq2gal
+from .math import ang_diff
 
 ### Directories, paths, and environment variables
 class Dirs(object):
@@ -687,7 +688,8 @@ def num_in_bounds(cat, fields, cat_labels=['_Glon', '_Glat'],
     """
     Calculate the number of sources in the overlap region of a catalog given
     field names and coordinates for the maximum and minimum in longitude and
-    latitude of each field.
+    latitude of each field. Note that coordinate values should be in decimal
+    degrees with longitude 0 - 360.
 
     Parameters
     ----------
@@ -706,24 +708,27 @@ def num_in_bounds(cat, fields, cat_labels=['_Glon', '_Glat'],
     Returns
     -------
     in_bounds : dict
-        Dictionary of field-id names in `fields` to number of overlapping
-        sources in `cat`. If `sum_fields` is set to True, then a number is
-        returned for the sum of all fields.
+        Dictionary with keys as field-id names in dataframe `fields` to the
+        dataframe indices of overlapping sources in `cat`. If `sum_fields` is
+        set to True, then a number is returned for the sum of all matched
+        sources in the fields.
     """
     in_bounds = {}
     for ii in fields.index:
         field_id = fields.ix[ii, field_labels[0]]
-        glon_min = fields.ix[ii, field_labels[1]]
-        glon_max = fields.ix[ii, field_labels[2]]
-        glat_min = fields.ix[ii, field_labels[3]]
-        glat_max = fields.ix[ii, field_labels[4]]
-        num = cat[(cat[cat_labels[0] > glon_min) &
-                  (cat[cat_labels[0] < glon_max) &
-                  (cat[cat_labels[1] > glat_min) &
-                  (cat[cat_labels[1] < glat_min)].shape[0]
-        in_bounds[field_id] = num
+        lon_min = fields.ix[ii, field_labels[1]]
+        lon_max = fields.ix[ii, field_labels[2]]
+        lat_min = fields.ix[ii, field_labels[3]]
+        lat_max = fields.ix[ii, field_labels[4]]
+        lon_width = ang_diff(lon_max, lon_min)
+        lon_cen = _np.mod((lon_max, lon_min) / 2., 360)
+        match = cat[(_np.abs(ang_diff(cat[cat_labels[0]].values, lon_cen)) <
+                     lon_width / 2.) &
+                    (cat[cat_labels[1] > lat_min) &
+                    (cat[cat_labels[1] < lat_min)].index
+        in_bounds[field_id] = match
     if sum_fields:
-        return _np.sum(in_bounds.values())
+        return _np.sum([a.shape[0] for a in in_bounds.values()])
     else:
         return in_bounds
 
