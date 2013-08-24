@@ -25,9 +25,9 @@ def ang_diff(a, b, angle_type='deg'):
     -------
     number : number
     """
-    if angle_type='deg':
+    if angle_type == 'deg':
         return 180 - _np.abs(_np.abs(a - b) - 180)
-    elif angle_type='rad':
+    elif angle_type == 'rad':
         return _np.pi / 2. - _np.abs(_np.abs(a - b) - _np.pi / 2.)
     else:
         raise ValueError('Invalid angle type: {0}.'.format(angle_type))
