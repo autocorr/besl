@@ -1,5 +1,8 @@
 numpy
-pandas
 matplotlib
--e git+http://github.com/astropy/astroquery.git#egg=astroquery
+six
+pytz
+python-dateutil
+pandas
 -e git+http://github.com/astropy/astropy.git#egg=astropy
+-e git+http://github.com/astropy/astroquery.git#egg=astroquery
