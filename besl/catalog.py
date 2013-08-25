@@ -65,7 +65,7 @@ d = Dirs()
 
 ### Read functions ###
 # Functions to read catalogs and return pandas DataFrame objects
-def read_cat(filen, print_cats=False):
+def read_cat(filen=None, print_cats=False):
     """
     Read collected catalogs from the `_collected` directory. CSV formats should
     have clean syntax for `pd.read_csv`.
@@ -85,9 +85,12 @@ def read_cat(filen, print_cats=False):
     base_path = d.cat_dir + d.collected
     if print_cats:
         print '-- Available catalogs:'
-        for f in os.listdir(base_path):
-            print '{0}\n'.format(f)
+        for f in _os.listdir(base_path):
+            f, _ = _os.path.splitext(f)
+            print '   {0}'.format(f)
         return
+    if filen is None:
+        raise ValueError('Catalog name is None.')
     df = _pd.read_csv(base_path + filen + '.csv')
     return df
 
