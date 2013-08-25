@@ -1,6 +1,8 @@
 *.py[cod]
 *.swp
+*.swo
 *.fuse*
+_build/
 
 # C extensions
 *.so
