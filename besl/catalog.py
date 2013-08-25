@@ -29,6 +29,7 @@ class Dirs(object):
     def __init__(self):
         self.root_dir = '/mnt/eld_data/'
         self.cat_dir = self.root_dir + 'Catalogs/'
+        self.collected = '_collected/'
         self.bgps_dir = self.root_dir + 'BGPS/Images/v2.0.0/'
         self.working_dir = _os.getcwd() + '/'
         self.out_dir = self.working_dir + 'matched_cats/'
@@ -64,6 +65,32 @@ d = Dirs()
 
 ### Read functions ###
 # Functions to read catalogs and return pandas DataFrame objects
+def read_cat(filen, print_cats=False):
+    """
+    Read collected catalogs from the `_collected` directory. CSV formats should
+    have clean syntax for `pd.read_csv`.
+
+    Parameters
+    ----------
+    filen : str
+        Catalog file name, without extension
+    print_cats : bool, default False
+        Print available catalogs
+
+    Returns
+    -------
+    df : pd.DataFrame
+        DataFrame of catalog.
+    """
+    base_path = d.cat_dir + d.collected
+    if print_cats:
+        print '-- Available catalogs:'
+        for f in os.listdir(base_path):
+            print '{0}\n'.format(f)
+        return
+    df = _pd.read_csv(base_path + filen + '.csv')
+    return df
+
 def read_bgps(exten='none', v=2):
     """
     Read BGPS catalog, defaults to version 2.0.1. Citation: Ginsburg et al.
