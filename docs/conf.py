@@ -42,7 +42,7 @@ class Mock(object):
 if ON_RTD:
     MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'pandas', 'pyfits',
                     'pywcs', 'astropy', 'astroquery', 'photutils', 'atpy',
-                    'pyephem', 'matplotlib.pyplot', 'matplotlib.cm',
+                    'ephem', 'matplotlib.pyplot', 'matplotlib.cm',
                     'scipy.stats', 'scipy.interpolate']
     for mod_name in MOCK_MODULES:
         sys.modules[mod_name] = Mock()

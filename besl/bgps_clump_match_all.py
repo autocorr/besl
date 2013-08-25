@@ -377,7 +377,7 @@ def clump_match_gbt_nh3(bgps=[], out_filen='bgps_nh3', verbose=False):
 
 def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
     col_append='', out_filen='temp', coord_type='gal', verbose=False,
-    match_type='num'):
+    det_col=None, add_all_cols=False):
     """
     Match the BGPS to a general catalog with coordinate columns _Glon and
     _Glat.
@@ -399,17 +399,19 @@ def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
         Coordinate type, either Galactic 'gal' or Equatorial 'eq'
     verbose : True
         Print progress per clump
-    match_type : str
-        Type of match to perform, valid types are:
-            'num' -> Append number of matches
-            'det' -> Append number of detections and number of matches
-            'all' -> Append all input catalog rows to BGPS based on `best_col`
+    det_col : str, default None
+        Column name for detection flags, valid for 0 or 1. If `None` then do
+        nothing.
+    add_all_cols : bool, default False
+        Join all columns from input catalog `cat` to the BGPS.
 
     Returns
     -------
     bgps : pd.DataFrame
         Merged catalog
     """
+    if match_type not in ['num', 'det', 'all']:
+        raise ValueError('`match_type` invalid: {0}'.format(match_type))
     if cat[coord_labels[0]].min() < 0:
         raise ValueError('Longitude must be from 0 to 360')
     if len(bgps) == 0:
@@ -432,14 +434,16 @@ def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
         cnum_select = bgps.cnum == cnum
         c_index = _np.argwhere(cnum_select)[0][0]
         # match cat
-        match_list = catalog.clump_match(cat_hs, cnum,
-            coord_type=coord_type)
-        bgps[col_append + 'match_n'][cnum_select] = len(molcat_match_list)
+        match_list = catalog.clump_match(cat_hs, cnum, coord_type=coord_type)
+        bgps[col_append + '_n'][cnum_select] = len(match_list)
+        if det_col is not None:
+            bgps[col_append + '_f'][cnum_select] = \
+                cat[det_col].ix[match_list].sum()
+        if add_all_cols:
+            max_index = cat[best_col].ix[match_list].argmax()
+            bgps.ix[c_index, cat.columns] = cat.ix[match_list[max_index]]
         if verbose:
             print '-- clump {0:>4d} : {1:>4d}'.format(cnum, len(match_list))
-        # best match
-        max_index = cat[best_col].ix[match_list].argmax()
-        bgps.ix[c_index, cat.columns] = cat.ix[match_list[max_index]]
     bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
     print '-- Catalog file written to {}.csv'.format(out_filen)
     return bgps
