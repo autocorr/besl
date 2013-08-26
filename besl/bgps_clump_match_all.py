@@ -393,11 +393,12 @@ def clump_match_metho(bgps=[], out_filen='bgps_metho', verbose=False):
     if len(bgps) == 0:
         bgps = catalog.read_bgps()
     # use general match TODO put BGPS label masks in cache
-    bgps = clump_match_gen(pandi, bgps=bgps, col_append='pandi',
+    bgps = clump_match_gen(pandi, bgps=bgps, prefix='pandi',
             verbose=verbose)
-    bgps = clump_match_gen(pesta, bgps=bgps, col_append='pesta',
+    bgps = clump_match_gen(pesta, bgps=bgps, prefix='pesta',
             verbose=verbose)
-    bgps = clump_match_gen(mmb, bgps=bgps, col_append='mmb', verbose=verbose)
+    bgps = clump_match_gen(mmb, bgps=bgps, coord_labels=['glon', 'glat'],
+            prefix='mmb', verbose=verbose)
     # mark master ch3oh flag
     bgps['ch3oh_f'] = _np.nan
     bgps['ch3oh_f'][(bgps.pandi_n > 0) | (bgps.pesta_n > 0) |
@@ -408,7 +409,7 @@ def clump_match_metho(bgps=[], out_filen='bgps_metho', verbose=False):
     return bgps
 
 def clump_match_gen(cat, bgps=[], coord_labels=['_Glon', '_Glat'],
-    col_append='', out_filen=None, coord_type='gal', verbose=False,
+    prefix='', out_filen=None, coord_type='gal', verbose=False,
     det_col=None, best_col=None, add_all_cols=False):
     """
     Match the BGPS to a general catalog with coordinate columns _Glon and
@@ -421,7 +422,7 @@ def clump_match_gen(cat, bgps=[], coord_labels=['_Glon', '_Glat'],
     bgps : pd.DataFrame, default []
         BGPS or matched catalog to merge into. If empty list is passed then the
         default BGPS v2 is read in.
-    col_append : str, default ''
+    prefix : str, default ''
         Name to append to beginning of columns from cat
     out_filen : str, default None
         Name of output file, if left None, no output file is written
@@ -443,15 +444,13 @@ def clump_match_gen(cat, bgps=[], coord_labels=['_Glon', '_Glat'],
     bgps : pd.DataFrame
         Merged catalog
     """
-    if match_type not in ['num', 'det', 'all']:
-        raise ValueError('`match_type` invalid: {0}'.format(match_type))
     if cat[coord_labels[0]].min() < 0:
         raise ValueError('Longitude must be from 0 to 360')
     if len(bgps) == 0:
         bgps = catalog.read_bgps()
     # rename columns
     for col in cat.columns:
-        cat = cat.rename(columns={col: col_append + '_' + col})
+        cat = cat.rename(columns={col: prefix + '_' + col})
     # make sure not to clobber column names
     if _np.any(_np.in1d(cat.columns, bgps.columns)):
         overlap_cols = cat.columns[_np.in1d(cat.columns, bgps.columns)]
@@ -460,13 +459,14 @@ def clump_match_gen(cat, bgps=[], coord_labels=['_Glon', '_Glat'],
     # assign new columns to empty values
     for col in cat.columns:
         bgps[col] = _np.nan
-    bgps[col_append + '_n'] = _np.nan
+    bgps[prefix + '_n'] = _np.nan
     if det_col is not None:
-        bgps[col_append + '_f'] = _np.nan
+        bgps[prefix + '_f'] = _np.nan
     if add_all_cols:
         for col in cat.columns:
             bgps[col] = _np.nan
     # make haystack
+    coord_labels = [prefix + '_' + col for col in coord_labels]
     cat_hs = cat[coord_labels].values
     # loop through clumps
     for cnum in bgps['cnum']:
@@ -475,9 +475,9 @@ def clump_match_gen(cat, bgps=[], coord_labels=['_Glon', '_Glat'],
         c_index = _np.argwhere(cnum_select)[0][0]
         # match cat
         match_list = catalog.clump_match(cat_hs, cnum, coord_type=coord_type)
-        bgps[col_append + '_n'][cnum_select] = len(match_list)
+        bgps[prefix + '_n'][cnum_select] = len(match_list)
         if det_col is not None:
-            bgps[col_append + '_f'][cnum_select] = \
+            bgps[prefix + '_f'][cnum_select] = \
                 cat[det_col].ix[match_list].sum()
         if add_all_cols:
             max_index = cat[best_col].ix[match_list].argmax()
