@@ -13,7 +13,7 @@ import numpy as _np
 import pandas as _pd
 import ipdb as pdb
 
-def clump_match_maser(bgps=[], out_filen='bgps_maser', verbose=False):
+def clump_match_water(bgps=[], out_filen='bgps_maser', verbose=False):
     """
     Match maser catalog observations to the BGPS. Includes BGPS GBT, Red MSX,
     Arcetri, MMB, and HOPS.
@@ -36,12 +36,11 @@ def clump_match_maser(bgps=[], out_filen='bgps_maser', verbose=False):
     rms_h2o = catalog.read_rms_h2o()
     arc_val = catalog.read_arcetri_valdettaro()
     hops = catalog.read_hops()
-    mmb = catalog.read_mmb()
     if len(bgps) == 0:
         bgps = catalog.read_bgps()
     # add new columns
     new_cols = ['h2o_gbt_f', 'h2o_gbt_n', 'h2o_arc_f', 'h2o_arc_n',
-            'h2o_hops_f', 'h2o_rms_f', 'h2o_rms_n', 'mmb_n']
+            'h2o_hops_f', 'h2o_rms_f', 'h2o_rms_n']
     gbt_cols = gbt_h2o.columns.drop(labels=['h2o_glon', 'h2o_glat', 'h2o_f'])
     for col in new_cols:
         bgps[col] = _np.nan
@@ -52,7 +51,6 @@ def clump_match_maser(bgps=[], out_filen='bgps_maser', verbose=False):
     rms_h2o_hs = rms_h2o[['_Glon_y', '_Glat_y']].values # galactic
     arc_val_hs = arc_val[['_Glon', '_Glat']].values # galactic
     hops_hs = hops[['lWeight_deg', 'bWeight_deg']].values # galactic
-    mmb_hs = mmb[['ra', 'dec']].values # equatorial
     # loop through clumps
     for cnum in bgps['cnum']:
         cnum_select = bgps.cnum == cnum
@@ -88,12 +86,6 @@ def clump_match_maser(bgps=[], out_filen='bgps_maser', verbose=False):
         bgps['h2o_arc_n'][cnum_select] = len(arc_match_list)
         bgps['h2o_arc_f'][cnum_select] = \
             _np.sum(arc_val.h2o_f.ix[arc_match_list])
-        # match mmb
-        if ((glat > -2.5) & (glat < 2.5) & (((glon < 20) | (glon > 350)) |
-            (glon > 186) & (glon < 217))):
-            mmb_match_list = catalog.clump_match(mmb_hs, cnum,
-                coord_type='eq')
-            bgps['mmb_n'][cnum_select] = len(mmb_match_list)
         if verbose:
             print '-- clump {:>4d}'.format(cnum)
     bgps['h2o_f'] = _np.nan
@@ -375,9 +367,49 @@ def clump_match_gbt_nh3(bgps=[], out_filen='bgps_nh3', verbose=False):
     print '-- NH3 Catalog file written to {}.csv'.format(out_filen)
     return bgps
 
-def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
-    col_append='', out_filen='temp', coord_type='gal', verbose=False,
-    det_col=None, add_all_cols=False):
+def clump_match_metho(bgps=[], out_filen='bgps_metho', verbose=False):
+    """
+    Match known CH3OH maser catalogs to the BGPS.  Citation: Pandian et al.
+    (2007), Pestalozzi et al. (2005), Caswell et al. (2010), Green et al.
+    (2010).
+
+    Paramters
+    ---------
+    bgps : pandas.DataFrame, default []
+        BGPS catalog to match to, defaults to read vanilla catalog
+    out_filen : string, default 'bgps_nh3.csv'
+        Name of output catalog, comma seperated
+    verbose : boolean, default False
+        Print clump and number of matches
+
+    Returns
+    -------
+    bgps : pd.DataFrame
+    """
+    # read in catalogs
+    pandi = catalog.read_cat('pandian07')
+    pesta = catalog.read_cat('pestalozzi05')
+    mmb = catalog.read_mmb()
+    if len(bgps) == 0:
+        bgps = catalog.read_bgps()
+    # use general match TODO put BGPS label masks in cache
+    bgps = clump_match_gen(pandi, bgps=bgps, col_append='pandi',
+            verbose=verbose)
+    bgps = clump_match_gen(pesta, bgps=bgps, col_append='pesta',
+            verbose=verbose)
+    bgps = clump_match_gen(mmb, bgps=bgps, col_append='mmb', verbose=verbose)
+    # mark master ch3oh flag
+    bgps['ch3oh_f'] = _np.nan
+    bgps['ch3oh_f'][(bgps.pandi_n > 0) | (bgps.pesta_n > 0) |
+                    (bgps.mmb_n > 0)] = 1
+    # print to file
+    bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
+    print '-- Catalog file written to {}.csv'.format(out_filen)
+    return bgps
+
+def clump_match_gen(cat, bgps=[], coord_labels=['_Glon', '_Glat'],
+    col_append='', out_filen=None, coord_type='gal', verbose=False,
+    det_col=None, best_col=None, add_all_cols=False):
     """
     Match the BGPS to a general catalog with coordinate columns _Glon and
     _Glat.
@@ -386,15 +418,13 @@ def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
     ----------
     cat : pd.DataFrame
         Catalog to match
-    best_col : str
-        Column to use max value from when discriminating multiple matches
     bgps : pd.DataFrame, default []
         BGPS or matched catalog to merge into. If empty list is passed then the
         default BGPS v2 is read in.
     col_append : str, default ''
         Name to append to beginning of columns from cat
-    out_filen : string, default 'temp'
-        Name of output file
+    out_filen : str, default None
+        Name of output file, if left None, no output file is written
     coord_type : str, default 'gal'
         Coordinate type, either Galactic 'gal' or Equatorial 'eq'
     verbose : True
@@ -402,6 +432,9 @@ def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
     det_col : str, default None
         Column name for detection flags, valid for 0 or 1. If `None` then do
         nothing.
+    best_col : str, default None
+        Column to use max value from when discriminating multiple matches if
+        `add_all_cols` is set to True.
     add_all_cols : bool, default False
         Join all columns from input catalog `cat` to the BGPS.
 
@@ -418,14 +451,21 @@ def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
         bgps = catalog.read_bgps()
     # rename columns
     for col in cat.columns:
-        cat = cat.rename(columns={col: col_append + col})
+        cat = cat.rename(columns={col: col_append + '_' + col})
     # make sure not to clobber column names
     if _np.any(_np.in1d(cat.columns, bgps.columns)):
         overlap_cols = cat.columns[_np.in1d(cat.columns, bgps.columns)]
         for col in overlap_cols:
             cat = cat.rename(columns={col: '_' + col})
+    # assign new columns to empty values
     for col in cat.columns:
         bgps[col] = _np.nan
+    bgps[col_append + '_n'] = _np.nan
+    if det_col is not None:
+        bgps[col_append + '_f'] = _np.nan
+    if add_all_cols:
+        for col in cat.columns:
+            bgps[col] = _np.nan
     # make haystack
     cat_hs = cat[coord_labels].values
     # loop through clumps
@@ -444,8 +484,9 @@ def clump_match_gen(cat, best_col, bgps=[], coord_labels=['_Glon', '_Glat'],
             bgps.ix[c_index, cat.columns] = cat.ix[match_list[max_index]]
         if verbose:
             print '-- clump {0:>4d} : {1:>4d}'.format(cnum, len(match_list))
-    bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
-    print '-- Catalog file written to {}.csv'.format(out_filen)
+    if out_filen is not None:
+        bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
+        print '-- Catalog file written to {}.csv'.format(out_filen)
     return bgps
 
 def clump_match_all():
@@ -462,7 +503,8 @@ def clump_match_all():
     df_list = []
     fn_list = [clump_match_molcat,
                clump_match_gbt_nh3,
-               clump_match_maser,
+               clump_match_water,
+               clump_match_metho,
                clump_match_ir,
                clump_match_hii]
     for fn in fn_list:
