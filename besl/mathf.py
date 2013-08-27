@@ -14,6 +14,7 @@ from scipy.special import ellipe
 def ang_diff(a, b, angle_type='deg'):
     """
     Take the difference of two angles between 0 - 360 degrees.
+
     Parameters
     ----------
     a, b : number
@@ -31,6 +32,25 @@ def ang_diff(a, b, angle_type='deg'):
         return _np.pi / 2. - _np.abs(_np.abs(a - b) - _np.pi / 2.)
     else:
         raise ValueError('Invalid angle type: {0}.'.format(angle_type))
+
+def bin_factor(x):
+    """
+    Factor a decimal integer into it's power of 2 components.
+
+    Parameters
+    ----------
+    x : int
+
+    Returns
+    -------
+    factors : numpy.array
+        Array of non-zero binary factors
+    """
+    if not isinstance(x, int):
+        raise ValueError('Must be an integer: {0}.'.format(x))
+    b = _np.array(list(bin(x)[2:]))[::-1].astype(int)
+    factors = (1 << _np.arange(len(b)))[b.astype(bool)]
+    return factors
 
 def weighted_mean(a, a_err):
     """
