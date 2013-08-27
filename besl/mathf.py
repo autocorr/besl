@@ -40,14 +40,15 @@ def bin_factor(x):
     Parameters
     ----------
     x : int
+        Must be a positive integer
 
     Returns
     -------
     factors : numpy.array
         Array of non-zero binary factors
     """
-    if not isinstance(x, int):
-        raise ValueError('Must be an integer: {0}.'.format(x))
+    if (not isinstance(x, int)) | (x < 0):
+        raise ValueError('Must be a positive integer: {0}.'.format(x))
     b = _np.array(list(bin(x)[2:]))[::-1].astype(int)
     factors = (1 << _np.arange(len(b)))[b.astype(bool)]
     return factors
