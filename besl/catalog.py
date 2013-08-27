@@ -19,7 +19,7 @@ from astropy import wcs
 from astropy.io import fits
 from scipy.interpolate import interp1d
 from .coord import eq2gal, pd_eq2gal
-from .mathf import ang_diff
+from .mathf import ang_diff, bin_factor
 
 ### Directories, paths, and environment variables
 class Dirs(object):
@@ -112,7 +112,7 @@ def read_bgps(exten='none', v=2):
     Returns
     -------
     bgps : pandas.DataFrame
-        Output catalog in a pandas DataFrame object
+        Output catalog
     """
     if v not in [1, 2, 201, '2d']:
         raise ValueError('Invalid version, v = {}.'.format(v))
@@ -154,10 +154,45 @@ def read_bgps_bounds():
     Returns
     -------
     bgps_bounds : pandas.DataFrame
-        Output catalog in a pandas DataFrame object
+        Output catalog
     """
     bgps_bounds = _pd.read_csv(d.cat_dir + d.bgps_bounds_filen)
     return bgps_bounds
+
+def read_bgps_vel():
+    """
+    Read the BGPS collected velocity catalog. Contains HCO+, N2H+, CS, NH3, and
+    On-Off GRS 13CO. Citation: Ellsworth-Bowers (personal communication).
+
+    Returns
+    -------
+    bgps : pandas.DataFrame
+        Output catalog
+    """
+    # Read in catalog
+    bgps = _pd.read_csv(d.cat_dir + d.bgps_ext_filen.format('2.0.1', 'vel',
+                        'csv'), na_values=['-1000.0'])
+    # Column names for each molecule
+    cols = ['vlsr_{0}_f'.format(s) for s in ('hco','nnh','cs','nh3')]
+    for col in cols:
+        bgps[col] = 0
+    # Factor binary flag into four distinct 1/0 flags
+    mask = _np.logical_not(bgps.vlsr_f.isin([-1,0]))
+    bgps['vlsr_hco_f'][mask] = \
+        bgps['vlsr_f'][mask].apply(lambda x: 1 if 1 in bin_factor(x) else 0)
+    bgps['vlsr_nnh_f'][mask] = \
+        bgps['vlsr_f'][mask].apply(lambda x: 1 if 2 in bin_factor(x) else 0)
+    bgps['vlsr_cs_f'][mask] = \
+        bgps['vlsr_f'][mask].apply(lambda x: 1 if 4 in bin_factor(x) else 0)
+    bgps['vlsr_nh3_f'][mask] = \
+        bgps['vlsr_f'][mask].apply(lambda x: 1 if 8 in bin_factor(x) else 0)
+    # Collect velocities in one category
+    bgps['all_vlsr'] = bgps['vlsr']
+    grs_mask = (bgps.vlsr_f == 0) & (bgps.grs_vlsr_f == 1)
+    bgps['all_vlsr'][grs_mask] = bgps['grs_vlsr'][grs_mask]
+    # Don't clobber coordinates
+    bgps = bgps.drop(labels=['glon_peak', 'glat_peak'], axis=1)
+    return bgps
 
 def read_molcat():
     """
