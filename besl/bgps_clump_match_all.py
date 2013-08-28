@@ -370,7 +370,7 @@ def clump_match_gbt_nh3(bgps=[], out_filen='bgps_nh3', verbose=False):
 def clump_match_metho(bgps=[], out_filen='bgps_metho', verbose=False):
     """
     Match known CH3OH maser catalogs to the BGPS.  Citation: Pandian et al.
-    (2007), Pestalozzi et al. (2005), Caswell et al. (2010), Green et al.
+    (2007, 2011), Pestalozzi et al. (2005), Caswell et al. (2010), Green et al.
     (2010).
 
     Paramters
@@ -387,7 +387,7 @@ def clump_match_metho(bgps=[], out_filen='bgps_metho', verbose=False):
     bgps : pd.DataFrame
     """
     # read in catalogs
-    pandi = catalog.read_cat('pandian07')
+    pandi = catalog.read_cat('pandian11')
     pesta = catalog.read_cat('pestalozzi05')
     mmb = catalog.read_mmb()
     if len(bgps) == 0:
