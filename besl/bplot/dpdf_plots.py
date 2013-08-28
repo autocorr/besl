@@ -9,6 +9,7 @@ Plotting routines for DPDFs and sampling.
 
 import numpy as _np
 import pandas as _pd
+from matplotlib import colors, cm
 import matplotlib.pyplot as _plt
 from besl import catalog, units
 from besl.dpdf_calc import mc_sampler_1d, gen_stages, \
@@ -54,9 +55,12 @@ def stages_hist(label, xlabel, bgps=[]):
     """
     # evo stages
     stages = gen_stages(bgps=bgps, stages_group=2, label=label)
+    # colors
+    #colors = ['green', 'SlateBlue', 'red', 'DodgerBlue', 'Orange', 'magenta']
+    cNorm = colors.Normalize(vmin=0, vmax=1)
+    scalarmap = cm.ScalarMappable(norm=cNorm, cmap=cm.cubehelix)
+    rgb = [scalarmap.to_rgba(i) for i in _np.linspace(0, 1, 7)]
     # calculate lims and bins
-    # TODO
-    colors = ['green', 'SlateBlue', 'red', 'DodgerBlue', 'Orange', 'magenta']
     xmin = _np.nanmin([df[label].min() for df in stages])
     xmax = _np.nanmax([df[label].max() for df in stages])
     lbins = _np.logspace(_np.log10(xmin), _np.log10(xmax), 40)
@@ -68,10 +72,10 @@ def stages_hist(label, xlabel, bgps=[]):
         {'label': r'${\rm H_2O \ \  N}$'},
         {'label': r'${\rm IR \ \ Y}$'},
         {'label': r'${\rm H_2O \ \ Y}$'},
+        {'label': r'${\rm CH_3OH \ \ Y}$'},
         {'label': r'${\rm EGO \ \ Y}$'},
         {'label': r'${\rm H\sc{II} \ \ Y}$'}]
-    stages_labels = [ r'Starless', r'${\rm H_2O \ \  N}$', r'${\rm IR \ \ Y}$',
-        r'${\rm H_2O \ \ Y}$', r'${\rm EGO \ \ Y}$', r'${\rm H\sc{II} \ \ Y}$']
+    stages_labels = [i.values()[0] for i in kwargs_labels]
     # create plot
     fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
     for i, ax in enumerate(axes):
@@ -81,7 +85,7 @@ def stages_hist(label, xlabel, bgps=[]):
         ymax = _np.nanmax([_np.max(hist_heights), 1])
         df = stages[i][label]
         if len(df) > 0:
-            ax.hist(df[_np.isfinite(df)].values, facecolor=colors[i],
+            ax.hist(df[_np.isfinite(df)].values, facecolor=rgb[i],
                 **kwargs_hist)
             ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
         # plot attributes
@@ -142,10 +146,10 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
         {'label': r'${\rm H_2O \ \  N}$'},
         {'label': r'${\rm IR \ \ Y}$'},
         {'label': r'${\rm H_2O \ \ Y}$'},
+        {'label': r'${\rm CH_3OH \ \ Y}$'},
         {'label': r'${\rm EGO \ \ Y}$'},
         {'label': r'${\rm H\sc{II} \ \ Y}$'}]
-    stages_labels = [ r'Starless', r'${\rm H_2O \ \  N}$', r'${\rm IR \ \ Y}$',
-        r'${\rm H_2O \ \ Y}$', r'${\rm EGO \ \ Y}$', r'${\rm H\sc{II} \ \ Y}$']
+    stages_labels = [i.values[0] for i in kwargs_labels]
     # create plot
     fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
     for i, ax in enumerate(axes):
@@ -260,14 +264,9 @@ def print_properties(bgps, out_filen='bgps_props.txt'):
         Name of outfile
     """
     out_file = open(out_filen, 'w')
-    starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
-    h2o_no = bgps[bgps.h2o_f == 0]
-    ir_yes = bgps[bgps.ir_f == 1]
-    h2o_yes = bgps[bgps.h2o_f == 1]
-    hii_yes = bgps[bgps.corn_n > 0]
-    ego_yes = bgps[bgps.ego_n > 0]
-    df_list = [starless, h2o_no, ir_yes, h2o_yes, hii_yes, ego_yes]
-    df_names = ['Starless', 'H2O No', 'IR Yes', 'H2O Yes', 'HII Yes', 'EGO Yes']
+    df_list = gen_stages(bgps=bgps)
+    df_names = ['Starless', 'H2O No', 'IR Yes', 'H2O Yes', 'CH3OH Yes',
+                'EGO Yes', 'HII Yes']
     for i, df in enumerate(df_list):
         df['nnh/hco'] = df[((df.hco_f == 1) | (df.hco_f == 3)) &
                            ((df.nnh_f == 1) | (df.nnh_f == 3))]['nnh_int'] / \

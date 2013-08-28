@@ -476,13 +476,15 @@ def gen_stages(bgps=[], stages_group=2, label=None):
         stages = [starless, h2o_no, h2o_yes]
         return stages
     elif stages_group == 2:
-        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
+        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) &
+                        (bgps.ir_f == 0) & (bgps.ch3oh_f != 1)]
         h2o_no = bgps[bgps.h2o_f == 0]
         ir_yes = bgps[bgps.ir_f == 1]
         h2o_yes = bgps[bgps.h2o_f == 1]
+        ch3oh_yes = bgps[bgps.ch3oh_f == 1]
         ego_yes = bgps[bgps.ego_n > 0]
         hii_yes = bgps[bgps.corn_n > 0]
-        stages = [starless, h2o_no, ir_yes, h2o_yes, ego_yes, hii_yes]
+        stages = [starless, h2o_no, ir_yes, h2o_yes, ch3oh_yes, ego_yes, hii_yes]
         return stages
     else:
         raise ValueError('Invalid stages_group: {0}.'.format(stages_group))
