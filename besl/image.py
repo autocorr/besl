@@ -53,7 +53,7 @@ def get_bgps_img(identifier, exten, v=201):
     # cnum or field
     if isinstance(identifier, (float, int)):
         bgps = catalog.read_bgps(exten='none', v=v)
-        c_index = _np.argwhere(bgps.cnum == cnum)[0][0]
+        c_index = _np.argwhere(bgps.cnum == identifier)[0][0]
         field = bgps.ix[c_index, 'field']
     elif isinstance(identifier, (str)):
         field = identifier

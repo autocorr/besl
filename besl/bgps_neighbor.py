@@ -61,8 +61,9 @@ def find_clump_neighbors(cnum, v=201):
 def select_good_neighbors(bgps, cnum, vlsr, visited, v_disp=3.5):
     """
     Select neighbors of clump that satisfy the criteria:
-      * Have HCO+ flag 1 or 3
-      * HCO+ velocity closer than 3.5 km / s
+      * Dense gas flag > 0
+      * If dense gas flag == 0, then GRS flag 1
+      * Velocity closer than 3.5 km / s
       * Do not have a KDAR 'N', 'F', or 'T'
       * Have not already been visited.
 
@@ -86,11 +87,12 @@ def select_good_neighbors(bgps, cnum, vlsr, visited, v_disp=3.5):
         (bgps.v201cnum.isin(all_neighbors)) &
         (_np.logical_not(bgps.v201cnum.isin(visited))) &
         (_np.logical_not(bgps.dpdf_KDAR.isin(['N','F','T']))) &
-        (_np.abs(bgps.mol_vlsr - vlsr) < v_disp) &
-        (bgps.mol_vlsr_f.isin([1,3])), 'v201cnum'].values
+        (_np.abs(bgps.all_vlsr - vlsr) < v_disp) &
+        ((bgps.vlsr_f > 0) | ((bgps.vlsr_f == 0) & (bgps.grs_vlsr_f == 1))),
+        'v201cnum'].values
     return list(good_neighbors)
 
-def broadcast_kdar(bgps=[], verbose=False):
+def broadcast_kdar(bgps=[], v_disp=3.5, verbose=False):
     """
     Calculate the nearest neighbors to the clumps with KDAR resolved by EMAF
     in Ellsworth-Bowers et al. (2013). Only v2.0.1 names supported.
@@ -99,6 +101,8 @@ def broadcast_kdar(bgps=[], verbose=False):
     ----------
     bgps : pd.DataFrame
         BGPS catalog dataframe
+    v_disp : number,
+        Velocity half-width in km/s to use in velocity search
     verbose : bool, default False
 
     Returns
@@ -129,7 +133,7 @@ def broadcast_kdar(bgps=[], verbose=False):
         vlsr = bgps.ix[i, 'mol_vlsr']
         visited = [dpdf_cnum]
         neighbors = select_good_neighbors(bgps, dpdf_cnum, vlsr, visited,
-            v_disp=7)
+            v_disp=v_disp)
         if verbose:
             print '\n-- DPDF clump : {}'.format(dpdf_cnum)
         for neighbor_cnum in neighbors:
@@ -141,7 +145,7 @@ def broadcast_kdar(bgps=[], verbose=False):
             bgps.ix[j, 'neighbor_dML'] = dML
             # check for new clumps
             new_neighbors = select_good_neighbors(bgps, neighbor_cnum,
-                vlsr, visited, v_disp=7)
+                vlsr, visited, v_disp=v_disp)
             neighbors.extend(new_neighbors)
             if verbose:
                 print '.',

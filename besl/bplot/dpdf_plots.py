@@ -86,9 +86,15 @@ def stages_hist(label, xlabel, bgps=[]):
         ymax = _np.nanmax([_np.max(hist_heights), 1])
         df = stages[i][label]
         if len(df) > 0:
+            # histogram
             ax.hist(df[_np.isfinite(df)].values, facecolor=rgb[i],
                 **kwargs_hist)
+            # vertical line for median
+            ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'w-')
             ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
+            # horizontal line for confidence interval
+            ax.plot([_np.percentile(df.values, 10),
+                     _np.percentile(df.values, 90)], _np.ones(2) * ymax, 'k:')
         # plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
         ax.set_ylim([0, 1.1 * ymax])
@@ -165,6 +171,7 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
             if top_bin > ymax:
                 ymax = top_bin
             medians.append(_np.median(stage_samples))
+        ax.plot(_np.median(medians) * _np.ones(2), [0, 1.2 * ymax], 'w-')
         ax.plot(_np.median(medians) * _np.ones(2), [0, 1.2 * ymax], 'k--')
         # plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
@@ -188,6 +195,7 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
 def write_all_stages_plots(bgps=[]):
     columns = [
         'flux',
+        'flux_40',
         'hco_int',
         'hco_fwhm',
         'nnh_int',
@@ -205,6 +213,7 @@ def write_all_stages_plots(bgps=[]):
         'rind_surf_area',
         'mass_surf_dens']
     dfs = [
+        bgps,
         bgps,
         bgps[bgps.hco_f.isin([1,3])],
         bgps[bgps.hco_f.isin([1,3])],
@@ -224,6 +233,7 @@ def write_all_stages_plots(bgps=[]):
         bgps]
     labels = [
         r'$S_{1.1} \ \ [{\rm Jy}]$',
+        r'$S_{1.1}(40^{\prime\prime}) \ \ [{\rm Jy}]$',
         r'${\rm I(HCO^+) \ \ [K \ km \ s^{-1}}]$',
         r'${\rm HCO^+ \ FWHM \ \ [km \ s^{-1}}]$',
         r'${\rm I(N_2H^+) \ \ [K \ km \ s^{-1}}]$',
