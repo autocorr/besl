@@ -16,6 +16,15 @@ from besl.dpdf_calc import mc_sampler_1d, gen_stages, \
                            gen_stage_mass_samples, gen_stage_area_samples
 
 
+anno_labels = [
+    {'label': 'Starless'},
+    {'label': r'${\rm H_2O \ \  N}$'},
+    {'label': r'${\rm IR \ \ Y}$'},
+    {'label': r'${\rm H_2O \ \ Y}$'},
+    {'label': r'${\rm EGO \ \ Y}$'},
+    {'label': r'${\rm CH_3OH \ \ Y}$'},
+    {'label': r'${\rm H\sc{II} \ \ Y}$'}]
+
 def plot_dpdf_sampling(n=200):
     """
     Plot a Monte Carlo sampling of a DPDF
@@ -67,20 +76,12 @@ def stages_hist(label, xlabel, bgps=[]):
     # plot settings
     kwargs_gen = {'bins': lbins, 'color': 'LightGray', 'histtype':
         'stepfilled', 'linestyle': 'solid', 'linewidth': 1}
-    kwargs_labels = [
-        {'label': 'Starless'},
-        {'label': r'${\rm H_2O \ \  N}$'},
-        {'label': r'${\rm IR \ \ Y}$'},
-        {'label': r'${\rm H_2O \ \ Y}$'},
-        {'label': r'${\rm CH_3OH \ \ Y}$'},
-        {'label': r'${\rm EGO \ \ Y}$'},
-        {'label': r'${\rm H\sc{II} \ \ Y}$'}]
-    stages_labels = [i.values()[0] for i in kwargs_labels]
+    stages_labels = [i.values()[0] for i in anno_labels]
     # create plot
     fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
     for i, ax in enumerate(axes):
         # draw plots
-        kwargs_hist = dict(kwargs_gen.items() + kwargs_labels[i].items())
+        kwargs_hist = dict(kwargs_gen.items() + anno_labels[i].items())
         hist_heights, hist_edges = _np.histogram(stages[i][label], bins=lbins)
         ymax = _np.nanmax([_np.max(hist_heights), 1])
         df = stages[i][label]
@@ -141,21 +142,13 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
     # plot settings
     kwargs_gen = {'bins': lbins, 'color': 'Black', 'histtype':
         'step', 'linestyle': 'solid', 'linewidth': 1, 'alpha': 0.2}
-    kwargs_labels = [
-        {'label': 'Starless'},
-        {'label': r'${\rm H_2O \ \  N}$'},
-        {'label': r'${\rm IR \ \ Y}$'},
-        {'label': r'${\rm H_2O \ \ Y}$'},
-        {'label': r'${\rm CH_3OH \ \ Y}$'},
-        {'label': r'${\rm EGO \ \ Y}$'},
-        {'label': r'${\rm H\sc{II} \ \ Y}$'}]
-    stages_labels = [i.values[0] for i in kwargs_labels]
+    stages_labels = [i.values()[0] for i in anno_labels]
     # create plot
     fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
     for i, ax in enumerate(axes):
         print '--', i
         # draw plots
-        kwargs_hist = dict(kwargs_gen.items() + kwargs_labels[i].items())
+        kwargs_hist = dict(kwargs_gen.items() + anno_labels[i].items())
         ymax = 0
         medians = []
         for j in range(realiz):
