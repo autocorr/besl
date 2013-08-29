@@ -16,15 +16,6 @@ from besl.dpdf_calc import mc_sampler_1d, gen_stages, \
                            gen_stage_mass_samples, gen_stage_area_samples
 
 
-anno_labels = [
-    {'label': 'Starless'},
-    {'label': r'${\rm H_2O \ \  N}$'},
-    {'label': r'${\rm IR \ \ Y}$'},
-    {'label': r'${\rm H_2O \ \ Y}$'},
-    {'label': r'${\rm EGO \ \ Y}$'},
-    {'label': r'${\rm CH_3OH \ \ Y}$'},
-    {'label': r'${\rm H\sc{II} \ \ Y}$'}]
-
 def plot_dpdf_sampling(n=200):
     """
     Plot a Monte Carlo sampling of a DPDF
@@ -63,7 +54,7 @@ def stages_hist(label, xlabel, bgps=[]):
     ax : matplotlib.Axes
     """
     # evo stages
-    stages = gen_stages(bgps=bgps, stages_group=2, label=label)
+    stages, anno_labels = gen_stages(bgps=bgps, stages_group=2, label=label)
     # colors
     #colors = ['green', 'SlateBlue', 'red', 'DodgerBlue', 'Orange', 'magenta']
     cNorm = colors.Normalize(vmin=0, vmax=1)
@@ -134,7 +125,7 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
     ax : matplotlib.Axes
     """
     # evo stages
-    stages = gen_stages(bgps=bgps, stages_group=2)
+    stages, anno_labels = gen_stages(bgps=bgps, stages_group=2)
     if label == 'dust_mass':
         xlabel = r'$M_{\rm dust} \ \ [{\rm M_{\odot}}]$'
     elif label == 'rind_surf_area':
@@ -267,9 +258,8 @@ def print_properties(bgps, out_filen='bgps_props.txt'):
         Name of outfile
     """
     out_file = open(out_filen, 'w')
-    df_list = gen_stages(bgps=bgps)
-    df_names = ['Starless', 'H2O No', 'IR Yes', 'H2O Yes', 'CH3OH Yes',
-                'EGO Yes', 'HII Yes']
+    df_list, anno_labels = gen_stages(bgps=bgps)
+    df_names = [i.value()[0] for i in anno_labels]
     for i, df in enumerate(df_list):
         df['nnh/hco'] = df[((df.hco_f == 1) | (df.hco_f == 3)) &
                            ((df.nnh_f == 1) | (df.nnh_f == 3))]['nnh_int'] / \

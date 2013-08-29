@@ -457,24 +457,36 @@ def gen_stages(bgps=[], stages_group=2, label=None):
 
     Returns
     -------
-    stages : list
+    stages : pd.DataFrame
+        List of stages `pd.DataFrames`
+    anno_labels : dict
+        Dictionary of label names
     """
     # Nan values for log-plots
     if label is not None:
         bgps[label][bgps[label] <= 0] = _np.nan
     # evo stages
     if stages_group == 0:
-        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
+        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f ==
+            0) & (bgps.ch3oh_f != 1)]
         protostellar = bgps[(bgps.h2o_f == 1) | (bgps.corn_n > 0) | (bgps.ir_f
-            == 1)]
+            == 1) | (bgps.ch3oh_f == 1)]
         stages = [starless, protostellar]
-        return stages
+        anno_labels = [
+            {'label': 'Starless'},
+            {'label': 'Protostellar'}]
+        return stages, anno_labels
     elif stages_group == 1:
-        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f == 0)]
+        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f ==
+            0) & (bgps.ch3oh_f != 1)]
         h2o_no = bgps[(bgps.h2o_f == 0 ) & (bgps.ir_f == 1)]
         h2o_yes = bgps[(bgps.h2o_f > 0) & (bgps.ir_f == 1)]
         stages = [starless, h2o_no, h2o_yes]
-        return stages
+        anno_labels = [
+            {'label': r'${\rm Starless}$'},
+            {'label': r'${\rm H_2O \ \  N}$'},
+            {'label': r'${\rm H_2O \ \ Y}$'}]
+        return stages, anno_labels
     elif stages_group == 2:
         starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) &
                         (bgps.ir_f == 0) & (bgps.ch3oh_f != 1)]
@@ -485,7 +497,15 @@ def gen_stages(bgps=[], stages_group=2, label=None):
         ch3oh_yes = bgps[bgps.ch3oh_f == 1]
         hii_yes = bgps[bgps.corn_n > 0]
         stages = [starless, h2o_no, ir_yes, h2o_yes, ego_yes, ch3oh_yes, hii_yes]
-        return stages
+        anno_labels = [
+            {'label': r'${\rm Starless}$'},
+            {'label': r'${\rm H_2O \ \  N}$'},
+            {'label': r'${\rm IR \ \ Y}$'},
+            {'label': r'${\rm H_2O \ \ Y}$'},
+            {'label': r'${\rm EGO \ \ Y}$'},
+            {'label': r'${\rm CH_3OH \ \ Y}$'},
+            {'label': r'${\rm H\sc{II} \ \ Y}$'}]
+        return stages, anno_labels
     else:
         raise ValueError('Invalid stages_group: {0}.'.format(stages_group))
 
