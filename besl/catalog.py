@@ -159,10 +159,15 @@ def read_bgps_bounds():
     bgps_bounds = _pd.read_csv(d.cat_dir + d.bgps_bounds_filen)
     return bgps_bounds
 
-def read_bgps_vel():
+def read_bgps_vel(no_clobber=False):
     """
     Read the BGPS collected velocity catalog. Contains HCO+, N2H+, CS, NH3, and
     On-Off GRS 13CO. Citation: Ellsworth-Bowers (personal communication).
+
+    Parameters
+    ----------
+    no_clobber : False
+        If True then drop `glon_peak` and `glat_peak` from table
 
     Returns
     -------
@@ -191,7 +196,8 @@ def read_bgps_vel():
     grs_mask = (bgps.vlsr_f == 0) & (bgps.grs_vlsr_f == 1)
     bgps['all_vlsr'][grs_mask] = bgps['grs_vlsr'][grs_mask]
     # Don't clobber coordinates
-    bgps = bgps.drop(labels=['glon_peak', 'glat_peak'], axis=1)
+    if no_clobber:
+        bgps = bgps.drop(labels=['glon_peak', 'glat_peak'], axis=1)
     return bgps
 
 def read_molcat():
