@@ -10,30 +10,30 @@ Plotting routines for the PPV Grouping and velocity visualization.
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-from ..catalog import read_bgps_vel, read_bgps_bounds
+from mpl_toolkits.mplot3d import Axes3D
+from ..catalog import read_bgps_vel
 
 
-def velocity_color_scatter(field=None, coords=None):
+def velocity_color_scatter(coords):
     """
+    Plot a scatter plot of velocity positions with velocities represented by
+    differently colored points.
+
     Parameters
     ----------
-    field : str, default None
-        If left None, then specify longitude range
     coords : list
+        Coordinate list of [glon_min, glon_max, glat_min, glat_max] in decimal
+        degrees.
 
     Returns
     -------
     (fig, ax) : tuple
     """
+    assert len(coords) == 4
     # data
-    bounds = read_bgps_bounds()
     bgpv = read_bgps_vel()
     # limits
-    ii = bounds[bounds.field == field].index[0]
-    glon_min = bounds.ix[ii, 'glon_min']
-    glon_max = bounds.ix[ii, 'glon_max']
-    glat_min = bounds.ix[ii, 'glat_min']
-    glat_max = bounds.ix[ii, 'glat_max']
+    glon_min, glon_max, glat_min, glat_max = coords
     mask = (bgpv.glon_peak > glon_min) & (bgpv.glon_peak < glon_max) & \
            (bgpv.glat_peak > glat_min) & (bgpv.glat_peak < glat_max) & \
            (bgpv.vlsr_f > 0)
@@ -41,15 +41,20 @@ def velocity_color_scatter(field=None, coords=None):
     glats = bgpv[mask]['glat_peak'].values
     velos = bgpv[mask]['vlsr'].values
     # figure
-    fig, ax = plt.subplots()
-    ax.grid()
-    sc = ax.scatter(glons, glats, c=velos, cmap=cm.jet, vmin=velos.min(),
-                    vmax=velos.max())
-    cb = plt.colorbar(sc, ax=ax)
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    sc = ax.scatter(glons, velos, glats, c=velos, cmap=cm.jet, vmin=velos.min(),
+               vmax=velos.max())
+    cb = plt.colorbar(sc, ax=ax, shrink=0.5, aspect=10)
     # limits
     ax.set_xlim([glon_min, glon_max])
-    ax.set_ylim([glat_min, glat_max])
-    ax.axis('equal')
+    ax.set_ylim([velos.min(), velos.max()])
+    ax.set_zlim([glat_min, glat_max])
+    ax.invert_yaxis()
+    # labels
+    ax.set_xlabel(r'$\ell \ \ [^{\circ}]$')
+    ax.set_ylabel(r'$v \ \ [{\rm km \ s^{-1}}]$')
+    ax.set_zlabel(r'$b \ \ [^{\circ}]$')
     plt.draw()
     return fig, ax
 
