@@ -110,7 +110,7 @@ class ClusterDBSCAN(object):
         self.flag_col = flag_col
         self.lims = lims
         self.min_points = 1
-        self.cluster_id = 0
+        self.cluster_id = 1
         # Initialize tree and BGPS
         self.read_data()
         self.eps = lims[0] / lims[1]
@@ -118,28 +118,51 @@ class ClusterDBSCAN(object):
     def dbscan(self):
         df = self.df
         for ii in df.index:
-            neighbors = self.reqion_query(coord)
-            if len(neighbors) < min_points:
-                pass
+            # Mark as visited
+            self.tree[ii][0] = 1
+            neighbors = self.reqion_query(ii)
+            self.tree[ii][2].extend(neighbors)
+            if len(neighbors) <= min_points:
+                self.tree[ii][1] = -1
             else:
                 self.cluster_id += 1
-                expand_cluster(ii, neighbors, min_points)
+                expand_cluster(ii, neighbors)
 
-    def expand_cluster(self):
-        pass
+    def expand_cluster(self, ix, neighbors):
+        self.tree[ix][1] = self.cluster_id
+        neighbors = list(neighbors)
+        # Recursively search neighbors
+        # FIXME don't modify list in loop
+        for ii in neighbors:
+            visit = self.tree[ii][0]
+            cluster_id = self.tree[ii][1]
+            if visit == 0:
+                # Mark as visited
+                self.tree[ii][0] = 1
+                branch = self.region_query(ii)
+                # Append new neighbors to original neighbors
+                if len(branch) > min_points:
+                    neighbors.extend(branch)
+            # If not yet a member, assign to cluster
+            if cluster_id == 0:
+                self.tree[ii][1] = self.cluster_id
 
-    def region_query(self, coord):
+    def region_query(self, ix):
         df = self.df
-        angle, velo = self.lims
+        lim_a, lim_v = self.lims
         cols = self.cols
+        l, b, v = df.ix[ix].values
         # Select box
-        df = df[(df[cols[0]] > coord[0] - angle) &
-                (df[cols[0]] < coord[0] + angle) &
-                (df[cols[1]] > coord[1] - angle) &
-                (df[cols[1]] < coord[1] + angle) &
-                (df[cols[2]] > coord[2] - velo) &
-                (df[cols[2]] < coord[2] + velo)]
+        df = df[(df[cols[0]] > l - lim_a) &
+                (df[cols[0]] < l + lim_a) &
+                (df[cols[1]] > b - lim_a) &
+                (df[cols[1]] < b + lim_a) &
+                (df[cols[2]] > v - lim_v) &
+                (df[cols[2]] < v + lim_v)]
         # Coordinate query
+        # FIXME doesn't correct latitude
+        neighbors = df[(df[cols[0]] - l)**2 + (df[cols[1]] - b)**2 +
+                       (df[cols[2]] - v)**2 < self.eps**2].index.values
         return neighbors
 
     def read_data(self):
