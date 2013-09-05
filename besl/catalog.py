@@ -51,10 +51,8 @@ class Dirs(object):
         self.hrds_ao_filen = 'hrds/hrds_arecibo_slist.csv'
         self.hrds_gbt_filen = 'hrds/hrds_gbt_slist.csv'
         self.hii_bania_filen = 'hrds/known_hii_bania.csv'
-        self.v1_dpdf_filen = 'emaf/BGPS_V1_dpdf_table.fits'
-        self.v2_dpdf_filen = 'emaf/BGPS_V2_dpdf_table.fits'
-        self.v1_emaf_filen = 'emaf/emaf_dist_V1.csv'
-        self.v2_emaf_filen = 'emaf/emaf_dist_V2.csv'
+        self.dpdf_filen = 'emaf/BGPS_V{}_dpdf_table.fits'
+        self.emaf_filen = 'emaf/emaf_dist_V{}.csv'
         self.gbt_nh3_1_filen = 'bgps/nh3_11B48_fit_objects.sav'
         self.gbt_nh3_2_filen = 'bgps/nh3_bgps_fit_objects.sav'
         self.gbt_nh3_3_filen = 'bgps/nh3_rms_fit_objects.sav'
@@ -633,24 +631,19 @@ def read_dpdf(v=2):
 
     Parameters
     ----------
-    v : number {1, 2}, default 2
+    v : number {1, 2, 21}, default 2
         Version of BGPS to use
-    ret_idl : Boolean, default False
-        Return IDL list of
 
     Returns
     -------
     dpdf : list
         List of `astropy.io.fits.FitsHDU`
     """
-    if v not in [1, 2]:
-        raise ValueError('v = {}. Must be 1 or 2.'.format(v))
-    if v == 1:
-        dpdf = fits.open(d.cat_dir + d.v1_dpdf_filen)
-        return dpdf
-    if v == 2:
-        dpdf = fits.open(d.cat_dir + d.v2_dpdf_filen)
-        return dpdf
+    versions = [1, 2, 21]
+    if v not in versions:
+        raise ValueError('v = {0}. Must be in {1}.'.format(v, versions))
+    dpdf = fits.open(d.cat_dir + d.dpdf_filen.format(v))
+    return dpdf
 
 def read_emaf_dist(v=2):
     """
@@ -659,22 +652,26 @@ def read_emaf_dist(v=2):
 
     Parameters
     ----------
-    v : number {1, 2}, default 2
+    v : number {1, 2, 21}, default 2
         Version of BGPS to use
 
     Returns
     -------
     emaf : pandas.DataFrame
     """
-    if v not in [1, 2]:
-        raise ValueError('v = {}. Must be 1 or 2.'.format(v))
+    versions = [1, 2, 21]
+    if v not in versions:
+        raise ValueError('v = {0}. Must be in {1}.'.format(v, versions))
     if v == 1:
-        emaf = _pd.read_csv(d.cat_dir + d.v1_emaf_filen, sep=';',
+        emaf = _pd.read_csv(d.cat_dir + d.emaf_filen.format(v), sep=';',
             skipinitialspace=True, skiprows=33, na_values=['---'])
         return emaf
     if v == 2:
-        emaf = _pd.read_csv(d.cat_dir + d.v2_emaf_filen, sep=';',
+        emaf = _pd.read_csv(d.cat_dir + d.emaf_filen.format(v), sep=';',
             skipinitialspace=True, skiprows=31, na_values=['---'])
+        return emaf
+    if v == 21:
+        emaf = _pd.read_csv(d.cat_dir + d.emaf_filen.format(v))
         return emaf
 
 def read_oh94_dust(model_type='mrn', modeln=0):
