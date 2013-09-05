@@ -11,7 +11,7 @@ molecular line survey.
 from __future__ import division
 import numpy as np
 from rtree import index
-from .catalog import read_bgps_vel, read_dpdf
+from .catalog import read_bgps_vel, read_cat
 
 
 def build_tree(df=None, cols=['glon_peak','glat_peak','vlsr'],
@@ -61,10 +61,10 @@ class ClusterDBSCAN(object):
     Parameters
     ----------
     df : pd.DataFrame
-    cols : list, default ['glon_peak', 'glat_peak', 'vlsr']
+    cols : list, default ['glon_peak', 'glat_peak', 'all_vlsr']
         List of column names for Galactic longitude, latitude, and velocity in
         decimal degrees and km/s.
-    flag_col : str, 'vlsr_'
+    flag_col : str, 'vlsr_f'
         Flag column to select good velocities from.
     lims : list, default [0.1, 3.5]
         Coordinates search radius for [angle, velocity] where angle is written
@@ -78,7 +78,7 @@ class ClusterDBSCAN(object):
     tree : dict
     """
     def __init__(self,
-                 cols=['glon_peak', 'glat_peak', 'vlsr'],
+                 cols=['glon_peak', 'glat_peak', 'all_vlsr'],
                  flag_col='vlsr_f',
                  lims=[0.1, 3.5],
                  min_points=1,
@@ -154,10 +154,10 @@ class ClusterDBSCAN(object):
 
     def read_data(self):
         df = read_bgps_vel()
-        df = df[(df[self.cols[2]].notnull()) & (df[self.flag_col] > 0)]
-        dpdf = read_dpdf()
-        kdars = dpdf[6].data['KDAR']
-        cnums = dpdf[1].data['CNUM'].astype(int)
+        df = df[df[self.cols[2]].notnull()]
+        dpdf = read_cat('bgps_kdars_v210')
+        cnums = dpdf['v210cnum']
+        kdars = dpdf['kdar']
         # Check well resolved KDAs
         dpdf_mask = np.in1d(kdars, self.good_kdars)
         # Assign as instance variables
@@ -187,7 +187,13 @@ class ClusterDBSCAN(object):
             n_core_nodes = np.ravel(core_nodes.values()).shape[0]
             # KDAR nodes in cluster
             good_cnums = self.good_cnums
+            self.kdar_skipped = 0
             for cnum, kdar in good_cnums:
+                # Should only continue if I use more stringent velocity flags
+                # than Tim
+                if cnum not in df['v210cnum'].values:
+                    self.kdar_skipped += 1
+                    continue
                 ii = df[df['v210cnum'] == cnum].index[0]
                 cid = self.tree[ii][1]
                 cluster_nodes[cid][1].append(kdar)
@@ -203,23 +209,28 @@ class ClusterDBSCAN(object):
                 cluster_nodes.iteritems() if (v[2] == 2) & (k != -1)])
             # Number of nodes in cluster with KDARs
             self.kdar_span_nodes = sum([len(v[0]) for k, v in
-                cluster_nodes.iteritems() if (v[2] in [1,2]) & (k != -1)]) + \
-                len(cluster_nodes[-1][1])
-            self.conflict_frac = self.kdar_conflic_nodes / self.kdar_span_nodes
+                cluster_nodes.iteritems() if (v[2] in [1,2]) & (k != -1)])
+            self.new_kdar_assoc = self.kdar_span_nodes + \
+                len(cluster_nodes[-1][1]) - np.shape(good_cnums)[0] + \
+                self.kdar_skipped
+            self.conflict_frac = self.kdar_conflict_nodes / self.kdar_span_nodes
             # Assign and save results
             self.cluster_ids = cluster_ids
             self.n_clusters = n_clusters
             self.n_core_nodes = n_core_nodes
             self.cluster_nodes = cluster_nodes
             if verbose:
-                print """-- Results:
+                print """
+                -- Results:
                 {0:<10} : Clusters
                 {1:<10} : Cluster (core) nodes
                 {2:<10} : Nodes in clusters containing KDAR clumps
-                {3:<10} : Nodes in clusters containing KDAR conflicts
-                {4:<10} : Ratio of conflicts to all KDAR spanning
+                {3:<10} : Net new KDAR associations for nodes in clusters
+                {4:<10} : Nodes in clusters containing KDAR conflicts
+                {5:<10f} : Ratio of conflicts to all KDAR spanning
                 """.format(n_clusters, n_core_nodes, self.kdar_span_nodes,
-                           self.kdar_conflict_nodes, self.conflict_frac)
+                           self.new_kdar_assoc, self.kdar_conflict_nodes,
+                           self.conflict_frac)
         else:
             raise Exception('Tree has not been built, run `dbscan`.')
 
