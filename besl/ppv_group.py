@@ -98,6 +98,8 @@ class ClusterDBSCAN(object):
     def dbscan(self):
         df = self.df
         for ii in df.index:
+            if self.tree[ii][0]:
+                continue
             # Mark as visited
             self.tree[ii][0] = True
             neighbors = self.region_query(ii)
