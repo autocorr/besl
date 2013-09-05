@@ -11,7 +11,7 @@ molecular line survey.
 from __future__ import division
 import numpy as np
 from rtree import index
-from .catalog import read_bgps_vel
+from .catalog import read_bgps_vel, read_dpdf
 
 
 def build_tree(df=None, cols=['glon_peak','glat_peak','vlsr'],
@@ -89,7 +89,8 @@ class ClusterDBSCAN(object):
         self.lims = lims
         self.min_points = 1
         # Initialize tree and BGPS
-        self.cluster_id = 1
+        self.good_kdars = ['N', 'F', 'T', 'O']
+        self.cluster_id = 0
         self.read_data()
         self.velo_to_ang = lims[0] / lims[1]
         self.__scanned = False
@@ -98,7 +99,7 @@ class ClusterDBSCAN(object):
         df = self.df
         for ii in df.index:
             # Mark as visited
-            self.tree[ii][0] = 1
+            self.tree[ii][0] = True
             neighbors = self.region_query(ii)
             self.tree[ii][2].extend(neighbors)
             if len(neighbors) <= self.min_points:
@@ -110,21 +111,24 @@ class ClusterDBSCAN(object):
 
     def expand_cluster(self, ix, neighbors):
         self.tree[ix][1] = self.cluster_id
-        neighbors = list(neighbors)
+        neighbors = set(neighbors)
+        visited_neighbors = set()
         # Recursively search neighbors
-        # FIXME don't modify list in loop
-        for ii in neighbors:
-            visit = self.tree[ii][0]
-            cluster_id = self.tree[ii][1]
-            if visit == 0:
+        import ipdb; ipdb.set_trace()
+        while neighbors:
+            ii = neighbors.pop()
+            visited = self.tree[ii][0]
+            node_id = self.tree[ii][1]
+            visited_neighbors.add(ii)
+            if not visited:
                 # Mark as visited
-                self.tree[ii][0] = 1
-                branch = self.region_query(ii)
-                # Append new neighbors to original neighbors
+                self.tree[ii][0] = True
+                branch = set(self.region_query(ii))
+                # Union branch to current set of neighbors if not visited
                 if len(branch) > self.min_points:
-                    neighbors.extend(branch)
+                    neighbors.update(branch.difference(visited_neighbors))
             # If not yet a member, assign to cluster
-            if cluster_id == 0:
+            if node_id == 0:
                 self.tree[ii][1] = self.cluster_id
 
     def region_query(self, ix):
@@ -148,26 +152,47 @@ class ClusterDBSCAN(object):
 
     def read_data(self):
         df = read_bgps_vel()
-        self.df = df[(df[self.cols[2]].notnull()) & (df[self.flag_col] > 0)]
-        self.tree = {ix : [0, 0, []] for ix in df.index}
+        df = df[(df[self.cols[2]].notnull()) & (df[self.flag_col] > 0)]
+        dpdf = read_dpdf()
+        kdars = dpdf[6].data['KDAR']
+        cnums = dpdf[1].data['CNUM']
+        # Check well resolved KDAs
+        self.good_cnums = cnums[np.in1d(kdars, self.good_kdars)]
+        self.good_cnums_kdars = kdars[np.in1d(kdars, self.good_kdars)]
+        # Assign as instance variables
+        self.dpdf = dpdf
+        self.df = df
+        self.tree = {ix : [False, 0, []] for ix in df.index}
 
     def analysis(self):
         if self.__scanned:
             tree = self.tree
             df = self.df
-            # Total number of clusters
+            # Number of clusters
             cluster_ids = np.unique([row[1] for row in tree.values()])
             n_clusters = cluster_ids.shape[0]
-            # TODO
-            # Number of nodes in cluster
+            # Cluster nodes
+            cluster_nodes = {}
             for cid in cluster_ids:
-                pass
-            # Number of KDAR nodes in cluster
+                nodes = []
+                for ix in df.ix:
+                    if tree[ix][1] == cid:
+                        nodes.extend(tree[ix][2])
+                cluster_nodes[cid] = list(np.unique(nodes))
+            # TODO
+            # KDAR nodes in cluster
+            all_core_nodes = np.ravel(cluster_nodes.values())
+            good_cnums = self.good_cnums
+            good_cnums_kdars = self.good_cnums_kdars
+            #kdar_cnums = 
             # Number of nodes in cluster with KDARs
             # Number of nodes in clusters with KDAR conflicts
-            # Save results in dictionary or instance variables
+            # Assign and save results
             results = {}
-            results['n_clusters'] = len(np.unique(tree))
+            results['ids'] = cluster_ids
+            results['n_clusters'] = n_clusters
+            results['nodes'] = cluster_nodes
+            self.results = results
         else:
             raise Exception('Tree has not been built, run `dbscan`.')
 
