@@ -116,7 +116,6 @@ class ClusterDBSCAN(object):
         neighbors = set(neighbors)
         visited_neighbors = set()
         # Recursively search neighbors
-        import ipdb; ipdb.set_trace()
         while neighbors:
             ii = neighbors.pop()
             visited = self.tree[ii][0]
@@ -126,6 +125,7 @@ class ClusterDBSCAN(object):
                 # Mark as visited
                 self.tree[ii][0] = True
                 branch = set(self.region_query(ii))
+                self.tree[ii][2].extend(branch)
                 # Union branch to current set of neighbors if not visited
                 if len(branch) > self.min_points:
                     neighbors.update(branch.difference(visited_neighbors))
@@ -157,16 +157,16 @@ class ClusterDBSCAN(object):
         df = df[(df[self.cols[2]].notnull()) & (df[self.flag_col] > 0)]
         dpdf = read_dpdf()
         kdars = dpdf[6].data['KDAR']
-        cnums = dpdf[1].data['CNUM']
+        cnums = dpdf[1].data['CNUM'].astype(int)
         # Check well resolved KDAs
-        self.good_cnums = cnums[np.in1d(kdars, self.good_kdars)]
-        self.good_cnums_kdars = kdars[np.in1d(kdars, self.good_kdars)]
+        dpdf_mask = np.in1d(kdars, self.good_kdars)
         # Assign as instance variables
+        self.good_cnums = zip(cnums[dpdf_mask], kdars[dpdf_mask])
         self.dpdf = dpdf
         self.df = df
         self.tree = {ix : [False, 0, []] for ix in df.index}
 
-    def analysis(self):
+    def analysis(self, verbose=False):
         if self.__scanned:
             tree = self.tree
             df = self.df
@@ -174,27 +174,52 @@ class ClusterDBSCAN(object):
             cluster_ids = np.unique([row[1] for row in tree.values()])
             n_clusters = cluster_ids.shape[0]
             # Cluster nodes
-            cluster_nodes = {}
+            cluster_nodes = {ix : [[], [], 0] for ix in cluster_ids}
             for cid in cluster_ids:
                 nodes = []
-                for ix in df.ix:
+                for ix in df.index:
                     if tree[ix][1] == cid:
                         nodes.extend(tree[ix][2])
-                cluster_nodes[cid] = list(np.unique(nodes))
-            # TODO
+                cluster_nodes[cid][0].extend(np.unique(nodes))
+            # Nodes in clusters
+            core_nodes = cluster_nodes.copy()
+            del core_nodes[-1]
+            n_core_nodes = np.ravel(core_nodes.values()).shape[0]
             # KDAR nodes in cluster
-            all_core_nodes = np.ravel(cluster_nodes.values())
             good_cnums = self.good_cnums
-            good_cnums_kdars = self.good_cnums_kdars
-            #kdar_cnums = 
-            # Number of nodes in cluster with KDARs
+            for cnum, kdar in good_cnums:
+                ii = df[df['v210cnum'] == cnum].index[0]
+                cid = self.tree[ii][1]
+                cluster_nodes[cid][1].append(kdar)
+            # Check unique KDARs
+            for cid in cluster_ids:
+                kdar_assoc = np.unique(cluster_nodes[cid][1]).shape[0]
+                if kdar_assoc == 1:
+                    cluster_nodes[cid][2] = 1
+                elif kdar_assoc > 1:
+                    cluster_nodes[cid][2] = 2
             # Number of nodes in clusters with KDAR conflicts
+            self.kdar_conflict_nodes = sum([len(v[0]) for k, v in
+                cluster_nodes.iteritems() if (v[2] == 2) & (k != -1)])
+            # Number of nodes in cluster with KDARs
+            self.kdar_span_nodes = sum([len(v[0]) for k, v in
+                cluster_nodes.iteritems() if (v[2] in [1,2]) & (k != -1)]) + \
+                len(cluster_nodes[-1][1])
+            self.conflict_frac = self.kdar_conflic_nodes / self.kdar_span_nodes
             # Assign and save results
-            results = {}
-            results['ids'] = cluster_ids
-            results['n_clusters'] = n_clusters
-            results['nodes'] = cluster_nodes
-            self.results = results
+            self.cluster_ids = cluster_ids
+            self.n_clusters = n_clusters
+            self.n_core_nodes = n_core_nodes
+            self.cluster_nodes = cluster_nodes
+            if verbose:
+                print """-- Results:
+                {0:<10} : Clusters
+                {1:<10} : Cluster (core) nodes
+                {2:<10} : Nodes in clusters containing KDAR clumps
+                {3:<10} : Nodes in clusters containing KDAR conflicts
+                {4:<10} : Ratio of conflicts to all KDAR spanning
+                """.format(n_clusters, n_core_nodes, self.kdar_span_nodes,
+                           self.kdar_conflict_nodes, self.conflict_frac)
         else:
             raise Exception('Tree has not been built, run `dbscan`.')
 
