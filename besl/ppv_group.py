@@ -76,6 +76,20 @@ class ClusterDBSCAN(object):
     Returns
     -------
     tree : dict
+
+    Attributes
+    ----------
+    kdar_conflict_nodes : number
+    kdar_conflict_clusters : number
+    kdar_agree_nodes : number
+    kdar_agree_clusters : number
+    kdar_span_nodes : number
+    new_kdar_assoc : number
+    conflict_frac : number
+    cluster_ids : list
+    n_clusters : number
+    n_core_nodes : number
+    self.cluster_nodes : dict
     """
     def __init__(self,
                  cols=['glon_peak', 'glat_peak', 'all_vlsr'],
@@ -96,6 +110,9 @@ class ClusterDBSCAN(object):
         self.__scanned = False
 
     def dbscan(self):
+        """
+        Group clusters of points in PPV-space using the `DBSCAN` algorithm.
+        """
         df = self.df
         for ii in df.index:
             if self.tree[ii][0]:
@@ -112,6 +129,18 @@ class ClusterDBSCAN(object):
         self.__scanned = True
 
     def expand_cluster(self, ix, neighbors):
+        """
+        Recursively search the nodes of `tree` if they are flagged as
+        univisited and add them to the current `cluster_id`. The `self.tree` is
+        modified in place.
+
+        Parameters
+        ----------
+        ix : number
+            Node dataframe index number
+        neighbors : array-like
+            Node neighbor indices
+        """
         self.tree[ix][1] = self.cluster_id
         neighbors = set(neighbors)
         visited_neighbors = set()
@@ -134,6 +163,20 @@ class ClusterDBSCAN(object):
                 self.tree[ii][1] = self.cluster_id
 
     def region_query(self, ix):
+        """
+        Search the node's coordinate neighborhood of index `ix` and return
+        indices of neighbors.
+
+        Parameters
+        ----------
+        ix : number
+            Node dataframe index number
+
+        Returns
+        -------
+        neighbors : np.array
+            Array of neighbor node indices
+        """
         df = self.df
         lim_a, lim_v = self.lims
         cols = self.cols
@@ -153,6 +196,10 @@ class ClusterDBSCAN(object):
         return neighbors
 
     def read_data(self):
+        """
+        Read and process data for DPDFs, velocity catalog, and select sources
+        with well-resolved KDAs.
+        """
         df = read_bgps_vel()
         df = df[df[self.cols[2]].notnull()]
         dpdf = read_cat('bgps_kdars_v210')
@@ -167,6 +214,14 @@ class ClusterDBSCAN(object):
         self.tree = {ix : [False, 0, []] for ix in df.index}
 
     def analysis(self, verbose=False):
+        """
+        Analyze the built tree. Requires `dbscan` to have been already run.
+
+        Parameters
+        ----------
+        verbose : bool
+            Print results to terminal.
+        """
         if self.__scanned:
             tree = self.tree
             df = self.df
@@ -189,8 +244,7 @@ class ClusterDBSCAN(object):
             good_cnums = self.good_cnums
             self.kdar_skipped = 0
             for cnum, kdar in good_cnums:
-                # Should only continue if I use more stringent velocity flags
-                # than Tim
+                # Should only continue if more stringent velocity flags
                 if cnum not in df['v210cnum'].values:
                     self.kdar_skipped += 1
                     continue
@@ -199,21 +253,30 @@ class ClusterDBSCAN(object):
                 cluster_nodes[cid][1].append(kdar)
             # Check unique KDARs
             for cid in cluster_ids:
-                kdar_assoc = np.unique(cluster_nodes[cid][1]).shape[0]
-                if kdar_assoc == 1:
+                kdar_assoc = cluster_nodes[cid][1]
+                kdar_confused = np.unique(kdar_assoc).shape[0]
+                if kdar_confused == 1:
                     cluster_nodes[cid][2] = 1
-                elif kdar_assoc > 1:
+                elif kdar_confused > 1:
                     cluster_nodes[cid][2] = 2
             # Number of nodes in clusters with KDAR conflicts
             self.kdar_conflict_nodes = sum([len(v[0]) for k, v in
                 cluster_nodes.iteritems() if (v[2] == 2) & (k != -1)])
+            self.kdar_conflict_clusters = len([len(v[0]) for k, v in
+                cluster_nodes.iteritems() if (v[2] == 2) & (k != -1)])
+            # Number of nodes in clusters with agreeing KDARs
+            self.kdar_agree_nodes = sum([len(v[0]) for k, v in
+                cluster_nodes.iteritems() if (v[2] == 1) & (len(v[1]))])
+            self.kdar_agree_clusters = len([len(v[0]) for k, v in
+                cluster_nodes.iteritems() if (v[2] == 1) & (len(v[1]))])
             # Number of nodes in cluster with KDARs
             self.kdar_span_nodes = sum([len(v[0]) for k, v in
                 cluster_nodes.iteritems() if (v[2] in [1,2]) & (k != -1)])
             self.new_kdar_assoc = self.kdar_span_nodes + \
                 len(cluster_nodes[-1][1]) - np.shape(good_cnums)[0] + \
                 self.kdar_skipped
-            self.conflict_frac = self.kdar_conflict_nodes / self.kdar_span_nodes
+            self.conflict_frac = self.kdar_conflict_nodes / \
+                (self.kdar_agree_nodes + self.kdar_conflict_nodes)
             # Assign and save results
             self.cluster_ids = cluster_ids
             self.n_clusters = n_clusters
@@ -227,11 +290,17 @@ class ClusterDBSCAN(object):
                 {2:<10} : Nodes in clusters containing KDAR clumps
                 {3:<10} : Net new KDAR associations for nodes in clusters
                 {4:<10} : Nodes in clusters containing KDAR conflicts
-                {5:<10f} : Ratio of conflicts to all KDAR spanning
+                {5:<10} : Nodes in clusters containing KDAR agreements
+                {6:<10f} : Ratio of conflicts to all KDAR spanning
                 """.format(n_clusters, n_core_nodes, self.kdar_span_nodes,
                            self.new_kdar_assoc, self.kdar_conflict_nodes,
-                           self.conflict_frac)
+                           self.kdar_agree_nodes, self.conflict_frac)
         else:
             raise Exception('Tree has not been built, run `dbscan`.')
+
+def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10]):
+    """
+    """
+    pass
 
 
