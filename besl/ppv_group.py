@@ -340,6 +340,10 @@ def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10]):
     return obj_grid, X, Y
 
 def wrapper(c):
+    """
+    Wrapper function on the top-level domain so that the object is pickleable
+    for `multiprocessing.Pool`.
+    """
     c.dbscan()
     c.analysis(verbose=True)
     return c
