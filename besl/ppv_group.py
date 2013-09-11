@@ -327,12 +327,14 @@ def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10], verbose=False):
     y = np.linspace(lims[2], lims[3], points[1])
     X, Y = np.meshgrid(x, y)
     Z = np.empty(X.shape, dtype=object)
-    for a, ii in enumerate(x):
-        for v, jj in enumerate(y):
-            c = ClusterDBSCAN(lims=[a, v])
+    for ii, angle in enumerate(x):
+        for jj, velo in enumerate(y):
+            if verbose:
+                print '-- a = {0}; v = {1}'.format(angle, velo)
+            c = ClusterDBSCAN(lims=[angle, velo])
             c.dbscan()
             c.analysis(verbose=verbose)
-            Z[ii,jj] = c
+            Z[jj,ii] = c
     with open('grid_obj.pickle', 'wb') as f:
         pickle.dump([X, Y, Z], f)
     return X, Y, Z
