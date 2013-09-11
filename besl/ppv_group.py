@@ -10,6 +10,7 @@ molecular line survey.
 
 from __future__ import division
 import numpy as np
+import cPickle as pickle
 from rtree import index
 from .catalog import read_bgps_vel, read_cat
 
