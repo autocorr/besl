@@ -11,6 +11,7 @@ molecular line survey.
 from __future__ import division
 import numpy as np
 import cPickle as pickle
+from multiprocessing import Pool
 from rtree import index
 from .catalog import read_bgps_vel, read_cat
 
@@ -299,9 +300,10 @@ class ClusterDBSCAN(object):
         else:
             raise Exception('Tree has not been built, run `dbscan`.')
 
-def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10], verbose=False):
+def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10]):
     """
-    Run DBSCAN for a grid of angle and velocity search distances.
+    Run DBSCAN for a grid of angle and velocity search distances. Uses
+    multiprocssesing by default.
 
     Parameters
     ----------
@@ -310,33 +312,36 @@ def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10], verbose=False):
         velocity_max].
     points : list
         Number of grid points to sample, end-inclusive.
-    verbose : bool
-        Print progress through grid calculations and analysis for each cluster
-        (passes to `ClusterDBSCAN.analysis`).
 
     Returns
     -------
+    obj_grid : np.array
+        Object array of `ClusterDBSCAN` instances
     X, Y : np.array
         Result of np.meshgrid over arrays of sample points
-    Z : np.array
-        Object array of `ClusterDBSCAN` instances
     """
     assert (len(lims) == 4) & (len(points) == 2)
     assert (points[0] >= 2) & (points[1] >= 2)
     x = np.linspace(lims[0], lims[1], points[0])
     y = np.linspace(lims[2], lims[3], points[1])
     X, Y = np.meshgrid(x, y)
-    Z = np.empty(X.shape, dtype=object)
-    for ii, angle in enumerate(x):
-        for jj, velo in enumerate(y):
-            if verbose:
-                print '-- a = {0}; v = {1}'.format(angle, velo)
-            c = ClusterDBSCAN(lims=[angle, velo])
-            c.dbscan()
-            c.analysis(verbose=verbose)
-            Z[jj,ii] = c
+    limits = np.dstack([X, Y]).reshape(-1, 2)
+    clusters = [ClusterDBSCAN(lims=l) for l in limits]
+    obj_grid = np.empty(X.shape, dtype=object)
+    # Compute clusters with multiprocessing
+    pool = Pool(processes=6)
+    obj_grid = pool.map(wrapper, clusters)
+    pool.close()
+    pool.join()
+    # Reshape to grid
+    obj_grid = np.reshape(obj_grid, X.shape)
     with open('grid_obj.pickle', 'wb') as f:
-        pickle.dump([X, Y, Z], f)
-    return X, Y, Z
+        pickle.dump([obj_grid, X, Y], f)
+    return obj_grid, X, Y
+
+def wrapper(c):
+    c.dbscan()
+    c.analysis(verbose=True)
+    return c
 
 
