@@ -291,16 +291,49 @@ class ClusterDBSCAN(object):
                 {3:<10} : Net new KDAR associations for nodes in clusters
                 {4:<10} : Nodes in clusters containing KDAR conflicts
                 {5:<10} : Nodes in clusters containing KDAR agreements
-                {6:<10f} : Ratio of conflicts to all KDAR spanning
+                {6:<10f} : Ratio of conflict nodes to all multi-KDAR nodes
                 """.format(n_clusters, n_core_nodes, self.kdar_span_nodes,
                            self.new_kdar_assoc, self.kdar_conflict_nodes,
                            self.kdar_agree_nodes, self.conflict_frac)
         else:
             raise Exception('Tree has not been built, run `dbscan`.')
 
-def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10]):
+def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10], verbose=False):
     """
+    Run DBSCAN for a grid of angle and velocity search distances.
+
+    Parameters
+    ----------
+    lims : list
+        List of limits for search [angle_min, angle_max, velocity_min,
+        velocity_max].
+    points : list
+        Number of grid points to sample, end-inclusive.
+    verbose : bool
+        Print progress through grid calculations and analysis for each cluster
+        (passes to `ClusterDBSCAN.analysis`).
+
+    Returns
+    -------
+    X, Y : np.array
+        Result of np.meshgrid over arrays of sample points
+    Z : np.array
+        Object array of `ClusterDBSCAN` instances
     """
-    pass
+    assert (len(lims) == 4) & (len(points) == 2)
+    assert (points[0] >= 2) & (points[1] >= 2)
+    x = np.linspace(lims[0], lims[1], points[0])
+    y = np.linspace(lims[2], lims[3], points[1])
+    X, Y = np.meshgrid(x, y)
+    Z = np.empty(X.shape, dtype=object)
+    for a, ii in enumerate(x):
+        for v, jj in enumerate(y):
+            c = ClusterDBSCAN(lims=[a, v])
+            c.dbscan()
+            c.analysis(verbose=verbose)
+            Z[ii,jj] = c
+    with open('grid_obj.pickle', 'wb') as f:
+        pickle.dump([X, Y, Z], f)
+    return X, Y, Z
 
 
