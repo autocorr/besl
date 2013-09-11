@@ -326,11 +326,11 @@ def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10]):
     y = np.linspace(lims[2], lims[3], points[1])
     X, Y = np.meshgrid(x, y)
     limits = np.dstack([X, Y]).reshape(-1, 2)
-    clusters = [ClusterDBSCAN(lims=l) for l in limits]
+    clusters = (ClusterDBSCAN(lims=l) for l in limits)
     obj_grid = np.empty(X.shape, dtype=object)
     # Compute clusters with multiprocessing
     pool = Pool(processes=6)
-    obj_grid = pool.map(wrapper, clusters)
+    obj_grid = pool.imap(wrapper, clusters)
     pool.close()
     pool.join()
     # Reshape to grid
