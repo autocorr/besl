@@ -300,7 +300,7 @@ class ClusterDBSCAN(object):
         else:
             raise Exception('Tree has not been built, run `dbscan`.')
 
-def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10]):
+def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10], out_filen='obj_grid'):
     """
     Run DBSCAN for a grid of angle and velocity search distances. Uses
     multiprocssesing by default.
@@ -312,6 +312,8 @@ def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10]):
         velocity_max].
     points : list
         Number of grid points to sample, end-inclusive.
+    out_filen : str
+        Filename for pickled object grid, ends in '.pickle' extension.
 
     Returns
     -------
@@ -327,15 +329,14 @@ def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10]):
     X, Y = np.meshgrid(x, y)
     limits = np.dstack([X, Y]).reshape(-1, 2)
     clusters = (ClusterDBSCAN(lims=l) for l in limits)
-    obj_grid = np.empty(X.shape, dtype=object)
     # Compute clusters with multiprocessing
     pool = Pool(processes=6)
     obj_grid = pool.imap(wrapper, clusters)
     pool.close()
     pool.join()
     # Reshape to grid
-    obj_grid = np.reshape(obj_grid, X.shape)
-    with open('grid_obj.pickle', 'wb') as f:
+    obj_grid = np.reshape([obj for obj in obj_grid], X.shape)
+    with open(out_filen + '.pickle', 'wb') as f:
         pickle.dump([obj_grid, X, Y], f)
     return obj_grid, X, Y
 
@@ -347,5 +348,40 @@ def wrapper(c):
     c.dbscan()
     c.analysis(verbose=True)
     return c
+
+def reduce_obj_grid(filen='obj_grid', out_filen='obj_props'):
+    """
+    Extract parameters from object grid into a dictionary of matricies for easy
+    plotting and analysis.
+
+    Parameters
+    ----------
+    filen : str, default 'obj_grid'
+        Filename of the `obj_grid` pickle ending in the '.pickle' extension.
+    out_filen : str, default 'obj_props'
+        Filename of the reduced object parameter dictionary, ends in the
+        '.pickle' extension.
+
+    Returns
+    -------
+    obj_dict : dict
+        Dictionary of the analysis values over each tree in `obj_grid`.
+    """
+    obj_grid, X, Y = pickle.load(open(filen + '.pickle', 'rb'))
+    obj_dict = {}
+    obj_dict['angle'] = X
+    obj_dict['velo'] = Y
+    props = [('n_clusters', lambda c: c.n_clusters),
+             ('kdar_conflict_nodes', lambda c: c.kdar_conflict_nodes),
+             ('kdar_conflict_clusters', lambda c: c.kdar_conflict_clusters),
+             ('kdar_agree_nodes', lambda c: c.kdar_agree_nodes),
+             ('kdar_agree_clusters', lambda c: c.kdar_agree_clusters),
+             ('kdar_span_nodes', lambda c: c.kdar_span_nodes),
+             ('new_kdar_assoc', lambda c: c.new_kdar_assoc),
+             ('conflict_frac', lambda c: c.conflict_frac)]
+    for key, method in props:
+        obj_dict[key] = np.reshape(map(method, obj_grid.flat), X.shape)
+    with open(out_filen + '.pickle', 'wb') as f:
+        pickle.dump(obj_dict, f)
 
 

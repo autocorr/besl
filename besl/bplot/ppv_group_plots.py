@@ -58,4 +58,9 @@ def velocity_color_scatter(coords):
     plt.draw()
     return fig, ax
 
+def tree_params():
+    """
+    """
+    pass
+
 
