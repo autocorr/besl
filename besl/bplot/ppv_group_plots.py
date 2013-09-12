@@ -7,9 +7,12 @@ Plotting routines for the PPV Grouping and velocity visualization.
 
 """
 
+import cPickle as pickle
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as PathEffects
+from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
 from ..catalog import read_bgps_vel
 
@@ -58,9 +61,59 @@ def velocity_color_scatter(coords):
     plt.draw()
     return fig, ax
 
-def tree_params():
+def tree_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
     """
+    Read in the pickled tree parameter dictionary and plot the containing
+    parameters.
+
+    Parameters
+    ----------
+    filen : str
+        File name of pickled reduced property dictionary.
+    out_filen : str
+        Basename of plots, the key of the object dictionary is appended to the
+        filename.
+    log_Z : bool
+        Create plots with logarithmic Z axis
+
+    Returns
+    -------
     """
-    pass
+    obj_dict = pickle.load(open(filen + '.pickle', 'rb'))
+    X = obj_dict['velo']
+    Y = obj_dict['angle']
+    obj_dict['reward'] = np.log10(obj_dict['new_kdar_assoc']) / obj_dict['conflict_frac']
+    params = [(k, v) for k, v in obj_dict.iteritems()
+              if k not in ['velo', 'angle']]
+    clevels = [0.05, 0.10, 0.15]
+    for key, Z in params:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        if log_Z:
+            Z = np.log10(Z)
+            key += '_(log)'
+        pc = ax.pcolor(X, Y, Z, cmap=cm.cubehelix, vmin=Z.min(), vmax=Z.max())
+        cb = plt.colorbar(pc, ax=ax)
+        # Contours for conflict frac
+        cn = ax.contour(X, Y, obj_dict['conflict_frac'], levels=clevels,
+                        colors='r', linewidth=2)
+        # Won't work until Matplotlib 1.3.0
+        #plt.setp(cn.collections,
+        #         path_effects=[PathEffects.withStroke(linewidth=2,
+        #         foreground='w')])
+        cl = ax.clabel(cn, fmt='%1.2f', inline=1, fontsize=12,
+                       use_clabeltext=True)
+        plt.setp(cl, path_effects=[PathEffects.withStroke(linewidth=2,
+                 foreground='w')])
+        # Labels
+        ax.set_xlabel(r'$v \ \ [{\rm km \ s^{-1}}]$')
+        ax.set_ylabel(r'$\theta \ \ [^{\circ}]$')
+        ax.set_title(' '.join(key.split('_')))  # latex doesn't like _
+        # Limits
+        ax.set_xlim([X.min(), X.max()])
+        ax.set_ylim([Y.min(), Y.max()])
+        # Save
+        plt.savefig(out_filen + '_' + key + '.pdf')
+        plt.savefig(out_filen + '_' + key + '.png')
 
 
