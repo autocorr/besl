@@ -96,11 +96,10 @@ def tree_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
         cb = plt.colorbar(pc, ax=ax)
         # Contours for conflict frac
         cn = ax.contour(X, Y, obj_dict['conflict_frac'], levels=clevels,
-                        colors='r', linewidth=2)
-        # Won't work until Matplotlib 1.3.0
-        #plt.setp(cn.collections,
-        #         path_effects=[PathEffects.withStroke(linewidth=2,
-        #         foreground='w')])
+                        colors='k', linewidth=2)
+        plt.setp(cn.collections,
+                 path_effects=[PathEffects.withStroke(linewidth=2,
+                 foreground='w')])
         cl = ax.clabel(cn, fmt='%1.2f', inline=1, fontsize=12,
                        use_clabeltext=True)
         plt.setp(cl, path_effects=[PathEffects.withStroke(linewidth=2,
