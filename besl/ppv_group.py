@@ -11,6 +11,7 @@ molecular line survey.
 from __future__ import division
 import numpy as np
 import cPickle as pickle
+from collections import deque
 from multiprocessing import Pool
 from rtree import index
 from .catalog import read_bgps_vel, read_cat
@@ -383,5 +384,47 @@ def reduce_obj_grid(filen='obj_grid', out_filen='obj_props'):
         obj_dict[key] = np.reshape(map(method, obj_grid.flat), X.shape)
     with open(out_filen + '.pickle', 'wb') as f:
         pickle.dump(obj_dict, f)
+
+def cluster_region(obj, out_filen='ppv_group'):
+    """
+    Write a DS9 regions file with cluster nodes colored by cluster and circles
+    showing the angular search radius, and the nodes velocity visualized.
+
+    Parameters
+    ----------
+    obj : besl.ppv_group.ClusterDBSCAN
+        ClusterDBSCAN instance to extract parameters from
+    out_filen : str
+        Name of regions files, ends in '.reg' extension.
+
+    Returns
+    -------
+    all_lines : str
+        String written to file
+    """
+    angle_rad, velo_rad = obj.lims
+    all_lines = 'global color=green font="helvetica 10 normal" select=1 ' + \
+                'highlite=1 edit=1 move=1 delete=1 include=1 fixed=0\n'
+    all_lines += 'galactic\n'
+    colors = deque(['green', 'red', 'yellow', 'blue', 'magenta', 'cyan'])
+    point_entry = 'x point {l} {b} # text={lcb}{v},{cid}{rcb} color={c}\n'
+    circle_entry = 'circle {l} {b} ' + str(angle_rad) + ' # color={c}\n'
+    braces = {'lcb': '{', 'rcb': '}'}
+    for cid, params in obj.cluster_nodes.iteritems():
+        c = colors[0]
+        nodes = params[0]
+        kdars = params[1]
+        conflict_flag = params[2]
+        for ii in nodes:
+            l = obj.df.ix[ii, 'glon_peak']
+            b = obj.df.ix[ii, 'glat_peak']
+            v = obj.df.ix[ii, 'all_vlsr']
+            all_lines += point_entry.format(l=l, b=b, v=v, cid=ii, c=c,
+                                            **braces)
+            all_lines += circle_entry.format(l=l, b=b, c=c)
+        colors.rotate()
+    with open(out_filen + '.reg', 'w') as f:
+        f.write(all_lines)
+    return all_lines
 
 
