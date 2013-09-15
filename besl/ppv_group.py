@@ -385,7 +385,7 @@ def reduce_obj_grid(filen='obj_grid', out_filen='obj_props'):
     with open(out_filen + '.pickle', 'wb') as f:
         pickle.dump(obj_dict, f)
 
-def cluster_region(obj, out_filen='ppv_group'):
+def cluster_region(obj, out_filen='ppv_group', search_circles=True):
     """
     Write a DS9 regions file with cluster nodes colored by cluster and circles
     showing the angular search radius, and the nodes velocity visualized.
@@ -396,6 +396,8 @@ def cluster_region(obj, out_filen='ppv_group'):
         ClusterDBSCAN instance to extract parameters from
     out_filen : str
         Name of regions files, ends in '.reg' extension.
+    search_circles : bool, default False
+        Include the circular apertures to extent of angular search radius.  
 
     Returns
     -------
@@ -406,23 +408,65 @@ def cluster_region(obj, out_filen='ppv_group'):
     all_lines = 'global color=green font="helvetica 10 normal" select=1 ' + \
                 'highlite=1 edit=1 move=1 delete=1 include=1 fixed=0\n'
     all_lines += 'galactic\n'
-    colors = deque(['green', 'red', 'yellow', 'blue', 'magenta', 'cyan'])
-    point_entry = 'x point {l} {b} # text={lcb}{v},{cid}{rcb} color={c}\n'
+    colors = deque(['green', 'red', 'blue', 'yellow', 'magenta', 'cyan',
+                    'orange'])
+    point_entry = 'x point {l} {b} # text={lcb}{v}:{cid}:{ix}{rcb} color={c}\n'
     circle_entry = 'circle {l} {b} ' + str(angle_rad) + ' # color={c}\n'
     braces = {'lcb': '{', 'rcb': '}'}
     for cid, params in obj.cluster_nodes.iteritems():
-        c = colors[0]
         nodes = params[0]
         kdars = params[1]
         conflict_flag = params[2]
+        if cid == -1:
+            c = 'black'
+        else:
+            c = colors[0]
         for ii in nodes:
             l = obj.df.ix[ii, 'glon_peak']
             b = obj.df.ix[ii, 'glat_peak']
             v = obj.df.ix[ii, 'all_vlsr']
-            all_lines += point_entry.format(l=l, b=b, v=v, cid=ii, c=c,
+            all_lines += point_entry.format(l=l, b=b, v=v, cid=cid, ix=ii, c=c,
                                             **braces)
-            all_lines += circle_entry.format(l=l, b=b, c=c)
+            if search_circles:
+                all_lines += circle_entry.format(l=l, b=b, c=c)
         colors.rotate()
+    with open(out_filen + '.reg', 'w') as f:
+        f.write(all_lines)
+    return all_lines
+
+def kdar_flag_region(out_filen='kdar_flags'):
+    """
+    Write a DS9 region file with the KDA resolution flags at coordinates.
+
+    Parameters
+    ----------
+    out_filen : str
+        Output regions filename with extension '.reg'
+
+    Returns
+    -------
+    all_lines : str
+        Text string for region file content for parsing.
+    """
+    # Read in data
+    df = read_bgps_vel()
+    df = df[df[self.cols[2]].notnull()]
+    df = df.set_index('v210cnum')
+    dpdf = read_cat('bgps_kdars_v210')
+    # Preamble
+    all_lines = 'global color=green font="helvetica 10 normal" select=1 ' + \
+                'highlite=1 edit=1 move=1 delete=1 include=1 fixed=0\n'
+    all_lines += 'galactic\n'
+    all_colors = {'U': 'black', 'F': 'red', 'N': 'green', 'T': 'orange', 'O':
+                  'magenta'}
+    # Plot strings
+    text_entry = 'text {l} {b} # text={lcb}{flag}{rcb} color={c}\n'
+    braces = {'lcb': '{', 'rcb': '}'}
+    for cnum, kdar in dpdf.values:
+        l = df.ix[cnum, 'glon_peak']
+        b = df.ix[cnum, 'glat_peak'] - 0.005
+        c = all_colors[kdar]
+        all_lines += text_entry.format(l=l, b=b, c=color, flag=kdar **brances)
     with open(out_filen + '.reg', 'w') as f:
         f.write(all_lines)
     return all_lines
