@@ -394,10 +394,37 @@ class ClusterRegion(object):
             for ii in nodes:
                 l = obj.df.ix[ii, 'glon_peak']
                 b = obj.df.ix[ii, 'glat_peak']
-                c = all_colors([conflict_flag])
+                c = all_colors[conflict_flag]
                 all_lines += self.circle_entry.format(l=l, b=b, c=c)
         self._write_region(out_filen, text=all_lines)
         self.agree_conflict_text = all_lines
+
+    def single_kdar(self, out_filen='single_kdar_group'):
+        """
+        Write a DS9 regions file for clusters that contain only a single KDAR.
+
+        Parameters
+        ----------
+        out_filen : str
+            Name of regions files, ends in '.reg' extension.
+
+        Attributes
+        ----------
+        single_kdar_text : str
+            String written to file
+        """
+        obj = self.obj
+        all_lines = self.preamble
+        for cid, params in obj.cluster_nodes.iteritems():
+            nodes = params[0]
+            kdars = params[1]
+            if len(kdars) == 1:
+                for ii in nodes:
+                    l = obj.df.ix[ii, 'glon_peak']
+                    b = obj.df.ix[ii, 'glat_peak']
+                    all_lines += self.circle_entry.format(l=l, b=b, c='grey')
+        self._write_region(out_filen, text=all_lines)
+        self.single_kdar_text = all_lines
 
 
 def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10], out_filen='obj_grid'):
