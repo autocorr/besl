@@ -359,8 +359,9 @@ class ClusterRegion(object):
                 l = obj.df.ix[ii, 'glon_peak']
                 b = obj.df.ix[ii, 'glat_peak']
                 v = obj.df.ix[ii, 'all_vlsr']
+                cnum = obj.df.ix[ii, 'v210cnum']
                 all_lines += self.point_entry.format(l=l, b=b, v=v, cid=cid,
-                                                     ix=ii, c=c, **self.braces)
+                                                     ix=cnum, c=c, **self.braces)
                 if search_circles:
                     all_lines += self.circle_entry.format(l=l, b=b, c=c)
             color_ring.rotate()
