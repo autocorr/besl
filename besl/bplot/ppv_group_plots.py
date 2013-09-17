@@ -75,9 +75,6 @@ def tree_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
         filename.
     log_Z : bool
         Create plots with logarithmic Z axis
-
-    Returns
-    -------
     """
     obj_dict = pickle.load(open(filen + '.pickle', 'rb'))
     X = obj_dict['velo']
@@ -114,5 +111,54 @@ def tree_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
         # Save
         plt.savefig(out_filen + '_' + key + '.pdf')
         plt.savefig(out_filen + '_' + key + '.png')
+
+def conflict_hist(filen='good_cluster', out_filen='conflict_hist'):
+    """
+    Read in the pickled `besl.ppv_group.ClusterDBSCAN` instance and plot a
+    histogram of the number of clusters with a given number of nodes.
+
+    Parameters
+    ----------
+    filen : str
+        File name of pickled reduced property dictionary.
+    out_filen : str
+        Basename of plots, the key of the object dictionary is appended to the
+        filename.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+    ax : matplotlib.axes.AxesSubplot
+    """
+    # Read in data
+    obj = pickle.load(open(filen + '.pickle', 'rb'))
+    conflicts, agrees, singles = [], [], []
+    for cid, params in obj.cluster_nodes.iteritems():
+        nodes = params[0]
+        conflict_flag = params[2]
+        if conflict_flag == 1:
+            agrees.append(len(nodes))
+        elif (conflict_flag == 2) & (cid != -1):
+            conflicts.append(len(nodes))
+        elif (conflict_flag == 0):
+            singles.append(len(nodes))
+    nmax = max([max(c) for c in [conflicts, agrees, singles]])
+    bins = np.arange(0, nmax + 1)
+    kwargs = {'bins': bins, 'log': True}
+    # Plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.hist(singles, color='grey', linewidth=2, histtype='stepfilled',
+            **kwargs)
+    ax.hist(conflicts, color='red', hatch='/', histtype='step', **kwargs)
+    ax.hist(agrees, color='green', hatch='\\', histtype='step', **kwargs)
+    ax.set_xlabel(r'${\rm Nodes}$')
+    ax.set_ylabel(r'$N$')
+    ax.set_yscale('log')
+    ax.set_ylim(bottom=0.8)
+    # Save
+    plt.savefig(out_filen + '.pdf')
+    plt.savefig(out_filen + '.png')
+    return fig, ax
 
 
