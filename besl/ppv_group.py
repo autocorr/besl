@@ -276,9 +276,8 @@ class ClusterDBSCAN(object):
             # Number of nodes in cluster with KDARs
             self.kdar_span_nodes = sum([len(v[0]) for k, v in
                 cluster_nodes.iteritems() if (v[2] in [1,2]) & (k != -1)])
-            self.new_kdar_assoc = self.kdar_span_nodes + \
-                len(cluster_nodes[-1][1]) - np.shape(good_cnums)[0] + \
-                self.kdar_skipped
+            self.new_kdar_assoc = sum([len(v[0]) - len(v[1]) for k, v in
+                obj.cluster_nodes.iteritems() if (v[2] in [1, 2]) & (k != -1)])
             self.conflict_frac = self.kdar_conflict_nodes / \
                 (self.kdar_agree_nodes + self.kdar_conflict_nodes)
             # Assign and save results
