@@ -92,7 +92,7 @@ def read_cat(filen=None, print_cats=False):
     df = _pd.read_csv(base_path + filen + '.csv')
     return df
 
-def read_bgps(exten='none', v=2):
+def read_bgps(exten='none', v=200):
     """
     Read BGPS catalog, defaults to version 2.0.1. Citation: Ginsburg et al.
     (2013) for v2, Aguirre et al. (2011) for v1.
@@ -112,15 +112,19 @@ def read_bgps(exten='none', v=2):
     bgps : pandas.DataFrame
         Output catalog
     """
-    if v not in [1, 2, 201, '2d']:
+    vers = {100: '1.0.0',
+            101: '1.0.1',
+            200: '2.0',
+            201: '2.0.1',
+            '2d': '2.0d'}
+    if v not in vers.keys():
         raise ValueError('Invalid version, v = {}.'.format(v))
-    vers = {1: '1.0', 2: '2.0', 201: '2.0.1', '2d': '2.0d'}
     if exten == 'none':
-        if v == 1:
+        if (v == 101) | (v == 100):
             bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
                 comment='#', na_values=['null'], skiprows=4)
             return bgps
-        elif v == 2:
+        elif v == 200:
             bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
                 comment='#', na_values=['null'], skiprows=4)
             bgps['cnum'] = _np.arange(1, bgps.shape[0] + 1)
