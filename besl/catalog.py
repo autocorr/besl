@@ -11,8 +11,9 @@ import os as _os
 import numpy as _np
 import pandas as _pd
 import ephem as _ephem
+from tempfile import TemporaryFile
 from astropy import wcs
-from astropy.io import fits
+from astropy.io import (ascii, fits)
 from scipy.interpolate import interp1d
 from .coord import eq2gal, pd_eq2gal
 from .mathf import ang_diff, bin_factor
@@ -762,6 +763,27 @@ def num_in_bounds(cat, fields, cat_labels=['_Glon', '_Glat'],
         return _np.sum([a.shape[0] for a in in_bounds.values()])
     else:
         return in_bounds
+
+def mrf2df(filen):
+    """
+    Read a CDS table and convert it into a `pandas.DataFrame`. Uses the
+    `astropy.io.ascii` table reader and writers.
+
+    Parameters
+    ----------
+    filen : str
+
+    Returns
+    -------
+    df : pandas.DataFrame
+    """
+    tab = ascii.read(filen)
+    with TemporaryFile() as tmp:
+        ascii.write(tab, tmp, Writer=ascii.Tab)
+        tmp.seek(0)  # rewind to file head
+        df = _pd.read_csv(tmp, sep='\t', na_values=['--'])
+    return df
+
 
 ### Clump matching
 # Procedures dealing with the BGPS label masks
