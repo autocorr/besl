@@ -3,6 +3,7 @@
 *.swo
 *.fuse*
 _build/
+.idea/
 
 # C extensions
 *.so
