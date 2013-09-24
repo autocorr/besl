@@ -6,12 +6,8 @@ Read and Match Catalogs
 Library to match catalogs.
 
 """
-# TODO add survey boundaries to put in null values if not in overlap region
-# TODO add in other WISE catalogs
-# TODO add merge functions
 
 import os as _os
-import sys as _sys
 import numpy as _np
 import pandas as _pd
 import ephem as _ephem
