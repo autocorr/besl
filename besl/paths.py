@@ -10,8 +10,6 @@ Module for relative and absolute paths for files and scripts.
 import os as _os
 
 
-all_paths = Dirs()
-
 ### Directories, paths, and environment variables
 class Dirs(object):
     """
@@ -50,5 +48,8 @@ class Dirs(object):
         self.oh94_filen = 'oh94_dust/{}{}.asc'
         self.cornish_filen = 'cornish/cornish_{}.csv'
         self.pesta_metho_filen = 'pestalozzi05/pestalozzi05.{}'
+
+
+all_paths = Dirs()
 
 
