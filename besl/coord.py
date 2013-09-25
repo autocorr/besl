@@ -11,6 +11,7 @@ import math as _m
 import numpy as _np
 import ephem as _ephem
 
+
 def dec2sexstr(deci, sfigs=1, hd='h', lead_psign=False):
     """
     Convert decimal degree to a sexagesimal string of the form 'HH:MM:SS.S' by
@@ -37,6 +38,7 @@ def dec2sexstr(deci, sfigs=1, hd='h', lead_psign=False):
         _np.abs(int(_np.mod(s,1) * 10**sfigs)), sfigs=sfigs)
     return coord_string
 
+
 def sexstr2dec(sexstr, sep=':', hd='h'):
     """
     Convert a sexagesimal string of delimited by a seperator character, eg
@@ -53,6 +55,7 @@ def sexstr2dec(sexstr, sep=':', hd='h'):
     h, m, s = [float(i) for i in sexstr.split(sep)]
     deci = _np.sign(h) * (_np.abs(h) + m / 60. + s / 3600.) / dform[hd]
     return deci
+
 
 def sep(lat1, lon1, lat2, lon2, hd='d'):
     """
@@ -71,6 +74,7 @@ def sep(lat1, lon1, lat2, lon2, hd='d'):
     a = _m.sin(dlat / 2.0)**2 + _m.cos(lat1) * _m.cos(lat2) * _m.sin(dlon / 2.0)**2
     d = 2 * _m.asin(min(1, _m.sqrt(a)))
     return _np.rad2deg(d)
+
 
 def sep_coords(needle, haystack):
     """
@@ -95,6 +99,7 @@ def sep_coords(needle, haystack):
         _np.cos(_np.radians(haystack[:,1])) * _np.square(_np.sin(dlon / 2.0))
     sep = _np.arcsin(_np.minimum(_np.sqrt(a), _np.ones(len(a))))
     return sep
+
 
 def nearest_match_coords(needle, haystack, min_sep, nearest=True):
     """
@@ -137,6 +142,7 @@ def nearest_match_coords(needle, haystack, min_sep, nearest=True):
     else:
         return matchn, _np.array([]), _np.array([])
 
+
 def eq2gal(ra, dec, epoch='2000'):
     """
     Convert equatorial coordinates in decimal degrees to Galactic.
@@ -160,6 +166,7 @@ def eq2gal(ra, dec, epoch='2000'):
     glon, glat = _np.degrees([gal.lon, gal.lat])
     return (glon, glat)
 
+
 def gal2eq(glon, glat, epoch='2000'):
     """
     Convert Galactic coordinates in decimal degrees to equatorial.
@@ -182,7 +189,8 @@ def gal2eq(glon, glat, epoch='2000'):
     ra, dec = _np.degrees(gal.to_radec())
     return (ra, dec)
 
-def pd_eq2gal(df, labels, new_labels=['glon', 'glat'], epoch='2000'):
+
+def pd_eq2gal(df, labels, new_labels=['glon','glat'], epoch='2000'):
     """
     Convert two coordinate columns of a pandas DataFrame from equatorial to
     Galactic coordinates, both in decimal degrees.
@@ -204,7 +212,8 @@ def pd_eq2gal(df, labels, new_labels=['glon', 'glat'], epoch='2000'):
         eq2gal(row[labels[0]], row[labels[1]], epoch=epoch), axis=1))
     return df
 
-def pd_gal2eq(df, labels, new_labels=['ra', 'dec'], epoch='2000'):
+
+def pd_gal2eq(df, labels, new_labels=['ra','dec'], epoch='2000'):
     """
     Convert two coordinate columns of a pandas DataFrame from Galactic to
     equatorial coordinates, both in decimal degrees.
