@@ -764,20 +764,22 @@ def num_in_bounds(cat, fields, cat_labels=['_Glon', '_Glat'],
     else:
         return in_bounds
 
-def mrf2df(filen):
+def attab2df(filen, **kwargs):
     """
     Read a CDS table and convert it into a `pandas.DataFrame`. Uses the
-    `astropy.io.ascii` table reader and writers.
+    `astropy.io.ascii` table reader and writers. Arguments are passed on to
+    `astropy.io.ascii.read`.
 
     Parameters
     ----------
     filen : str
+        Filename including extension.
 
     Returns
     -------
     df : pandas.DataFrame
     """
-    tab = ascii.read(filen)
+    tab = ascii.read(filen, **kwargs)
     with TemporaryFile() as tmp:
         ascii.write(tab, tmp, Writer=ascii.Tab)
         tmp.seek(0)  # rewind to file head
@@ -816,14 +818,12 @@ def clump_match(haystack_list, cnum, coord_type='eq', pix_size=7.5, bgps_ver=2):
         List of indices for sources that match within label mask
     """
     # TODO support v1
-    import ipdb as pdb
     if bgps_ver not in [1, 2]:
         raise ValueError('bgps_ver = {}. Must be 1 or 2.'.format(v))
     from besl.coord import nearest_match_coords
     search_rad = _np.sqrt(2) * pix_size / 2.
     index_list = []
     # read in catalog
-    bgps_bounds = read_bgps_bounds()
     bgps = read_bgps(v=bgps_ver)
     field = bgps[bgps.cnum == cnum]['field'].values[0]
     fcnum = bgps[bgps.cnum == cnum]['field_cnum'].values[0]
