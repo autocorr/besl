@@ -51,6 +51,7 @@ def read_cat(filen=None, print_cats=False):
     df = _pd.read_csv(base_path + filen + '.csv')
     return df
 
+
 def read_bgps(exten='none', v=200):
     """
     Read BGPS catalog, defaults to version 2.0.1. Citation: Ginsburg et al.
@@ -107,6 +108,7 @@ def read_bgps(exten='none', v=200):
     else:
         raise ValueError('Invalid file extension: exten = {}.'.format(exten))
 
+
 def read_bgps_bounds():
     """
     Read BGPS coordinate boundaries of image files. Citation: Ginsburg et al.
@@ -119,6 +121,7 @@ def read_bgps_bounds():
     """
     bgps_bounds = _pd.read_csv(d.cat_dir + d.bgps_bounds_filen)
     return bgps_bounds
+
 
 def read_bgps_vel(no_clobber=False):
     """
@@ -161,6 +164,7 @@ def read_bgps_vel(no_clobber=False):
         bgps = bgps.drop(labels=['glon_peak', 'glat_peak'], axis=1)
     return bgps
 
+
 def read_molcat():
     """
     Read BGPS HHT molecular line catalog. Citation: Shirley et al. (2013).
@@ -186,6 +190,7 @@ def read_molcat():
     molcat = _pd.merge(molcat, gauss, how='outer', on='cnum')
     molcat = pd_eq2gal(molcat, ['hht_ra','hht_dec'], ['hht_glon', 'hht_glat'])
     return molcat
+
 
 def read_gbt_nh3(ret_idl=False):
     """
@@ -227,6 +232,7 @@ def read_gbt_nh3(ret_idl=False):
     else:
         return gbt_nh3
 
+
 def read_wise():
     """
     Read WISE catalog. Citation: Wright et al. (2010).
@@ -247,6 +253,7 @@ def read_wise():
     wise['w3mw4'] = wise.w3mpro - wise.w4mpro
     return wise
 
+
 def read_wise_sig():
     """
     Read WISE catalog cut for all bands SNR above 7 sigma and no artifact
@@ -264,6 +271,7 @@ def read_wise_sig():
                 (wise.w4snr > 7)]
     wise = wise[wise.cc_flags == '0000']
     return wise
+
 
 def read_red_wise(print_diag=False):
     """
@@ -320,6 +328,7 @@ def read_red_wise(print_diag=False):
         print '-- Total after cuts: {}'.format(end_sources)
     return wise
 
+
 def read_msx():
     """
     Read Red MSX catalog. Citation: Urquhart et al. (2008)
@@ -336,6 +345,7 @@ def read_msx():
     msx = pd_eq2gal(msx, ['ra', 'dec'], ['glon', 'glat'])
     return msx
 
+
 def read_robitaille():
     """
     Read Spitzer Red Sources from GLIMPSE. Citation: Robitaille et al. (2008).
@@ -348,6 +358,7 @@ def read_robitaille():
     robit = _pd.read_csv(d.cat_dir + d.robit_filen, sep=';', skiprows=56,
         skipinitialspace=True)
     return robit
+
 
 def read_ego(out_df_list=False):
     """
@@ -389,6 +400,7 @@ def read_ego(out_df_list=False):
     else:
         return ego
 
+
 def read_mmb():
     """
     Read Methanol Multi-Beam survey catalog. Citation: Green et al. (2010, 2012),
@@ -406,6 +418,7 @@ def read_mmb():
                  (mmb.dec_m / 60. + mmb.dec_s / (60. * 60.))
     mmb = pd_eq2gal(mmb, ['ra', 'dec'], ['glon', 'glat'])
     return mmb
+
 
 def read_pesta05(cat_type='csv'):
     """
@@ -433,6 +446,7 @@ def read_pesta05(cat_type='csv'):
     else:
         raise Exception('Unexpected exception')
 
+
 def read_gbt_h2o():
     """
     Read BGPS GBT H2O maser survey catalog. Citation: Svoboda et al. (2013).
@@ -450,6 +464,7 @@ def read_gbt_h2o():
     gbt_h2o['h2o_int_jy'] = tmb2jy * gbt_h2o['h2o_int']
     gbt_h2o['h2o_int_err_jy'] = tmb2jy * gbt_h2o['h2o_int_err']
     return gbt_h2o
+
 
 def read_rms_h2o():
     """
@@ -472,6 +487,7 @@ def read_rms_h2o():
     rms_h2o['h2o_f'][rms_h2o.Fpeak.isnull()] = 0
     return rms_h2o
 
+
 def read_arcetri_cesaroni():
     """
     Read Arcetri H2O maser survey catalog. Citation: Cesaroni et al. 1988.
@@ -489,6 +505,7 @@ def read_arcetri_cesaroni():
     arcetri_ces['dec'] = arcetri_ces['dec_str'].apply(sexstr2dec, hd='d')
     return arcetri_ces
 
+
 def read_arcetri_valdettaro():
     """
     Read Arcetri H2O maser survey catalog. Citation: Valdettaro et al. (2004).
@@ -505,6 +522,7 @@ def read_arcetri_valdettaro():
     arcetri_val['h2o_f'] = 0
     arcetri_val['h2o_f'][arcetri_val.snr > 5] = 1
     return arcetri_val
+
 
 def read_hops():
     """
@@ -525,6 +543,7 @@ def read_hops():
     hops['vsp'] = _np.abs(hops['vMin_kms'] - hops['vMax_kms'])
     return hops
 
+
 def read_hrds_arecibo():
     """
     Read HII Region Discovery Survey (HRDS) Arcibo catalog. Citation: Bania et
@@ -538,6 +557,7 @@ def read_hrds_arecibo():
     hrds_ao = _pd.read_csv(d.cat_dir + d.hrds_ao_filen, sep=';',
         skipinitialspace=True, skiprows=36)
     return hrds_ao
+
 
 def read_hrds_gbt():
     """
@@ -553,6 +573,7 @@ def read_hrds_gbt():
         skipinitialspace=True, skiprows=49)
     return hrds_gbt
 
+
 def read_hii_bania():
     """
     Read known HII region catalog. Citation: Bania et al. ().
@@ -565,6 +586,7 @@ def read_hii_bania():
     hii_bania = _pd.read_csv(d.cat_dir + d.hii_bania_filen, sep=';',
         skipinitialspace=True, skiprows=8)
     return hii_bania
+
 
 def read_cornish(exten='all'):
     """
@@ -587,6 +609,7 @@ def read_cornish(exten='all'):
            'ra', 'Dec_deg': 'dec'})
     return corn
 
+
 def read_dpdf(v=2):
     """
     Read Distance Probability Distribution Functions. Citation:
@@ -607,6 +630,7 @@ def read_dpdf(v=2):
         raise ValueError('v = {0}. Must be in {1}.'.format(v, versions))
     dpdf = fits.open(d.cat_dir + d.dpdf_filen.format(v))
     return dpdf
+
 
 def read_emaf_dist(v=2):
     """
@@ -637,6 +661,7 @@ def read_emaf_dist(v=2):
         emaf = _pd.read_csv(d.cat_dir + d.emaf_filen.format(v))
         return emaf
 
+
 def read_oh94_dust(model_type='mrn', modeln=0):
     """
     Read OH dust opacity models. Citation: Ossenkopf & Henning (1994).
@@ -661,6 +686,7 @@ def read_oh94_dust(model_type='mrn', modeln=0):
         modeln)).T
     oh94_dust = interp1d(x, y, kind='linear')
     return oh94_dust
+
 
 ### Region match
 def select_bgps_field(lon, lat, coord_type='eq', bool_out=False):
