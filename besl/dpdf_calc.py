@@ -16,10 +16,10 @@ Routines for handling EMAF DPDF's. Citation: Ellsworth-Bowers et al. (2013).
 import os as _os
 import numpy as _np
 import pandas as _pd
-import matplotlib.pyplot as _plt
 import catalog, units
 from scipy.interpolate import interp1d
 from scipy.stats import gaussian_kde
+
 
 def mc_sampler_1d(x, y, lims=[0,1,0,1], nsample=1e3):
     """
@@ -59,6 +59,7 @@ def mc_sampler_1d(x, y, lims=[0,1,0,1], nsample=1e3):
     ysamples = fn(xsamples)
     return xsamples, ysamples
 
+
 def tkin_distrib(tkins):
     """
     Interpolate the distribution of a series of temperatures.
@@ -78,6 +79,7 @@ def tkin_distrib(tkins):
     kernel = gaussian_kde(tkins)
     tkin_fn = interp1d(tkins, kernel(tkins))
     return tkin_fn
+
 
 def draw_tkin_samples(tkin_fn=None, tkin=None, tkin_err=None, nsample=1e2):
     """
@@ -111,6 +113,7 @@ def draw_tkin_samples(tkin_fn=None, tkin=None, tkin_err=None, nsample=1e2):
     else:
         raise Exception('Unexpected exception.')
 
+
 def draw_dist_samples(cnum, nsample=1e2):
     """
     Draw a set of sampled distances for a BGPS clump with a DPDF.
@@ -137,6 +140,7 @@ def draw_dist_samples(cnum, nsample=1e2):
     dist_draws, dist_probs = mc_sampler_1d(x, y, lims=lims, nsample=nsample)
     return dist_draws
 
+
 def draw_mass_samples(cnum, snu11, tkin_fn=None, tkin=None, tkin_err=None,
     nsample=1e2):
     """
@@ -152,6 +156,7 @@ def draw_mass_samples(cnum, snu11, tkin_fn=None, tkin=None, tkin_err=None,
     mass_samples = clump_simple_dust_mass(dist_samples, snu11,
         tkin=tkin_samples)
     return mass_samples
+
 
 def gen_stage_mass_samples(stage, nsample=1e2):
     """
@@ -200,6 +205,7 @@ def gen_stage_mass_samples(stage, nsample=1e2):
     stage_samples = _np.ravel(stage_samples)
     return stage_samples
 
+
 def gen_stage_area_samples(stage, nsample=1e2, radius=False, flatten=True):
     """
     Generate a set of area samples from the DPDFs.
@@ -245,6 +251,7 @@ def gen_stage_area_samples(stage, nsample=1e2, radius=False, flatten=True):
     else:
         return stage_samples
 
+
 def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     """
     Calculate the dust mass from the distance, specific flux density, and
@@ -266,11 +273,11 @@ def clump_dust_mass(dist, snu=1, tkin=20., nu=2.725e11):
     mdust : np.array
     """
     # TODO add planck function
-    from besl.units import cgs
-    #bnu = planck_fn(nu, tkin, freq=True)
+    bnu = planck_fn(nu, tkin, freq=True)
     oh5 = catalog.read_oh94_dust(model_type='thick', modeln=0)
     kapp = oh5(2.)
     return (snu * dist**2) / (kapp * bnu)
+
 
 def clump_simple_dust_mass(dist, snu11, tkin=20., use_kpc=False):
     """
@@ -300,6 +307,7 @@ def clump_simple_dust_mass(dist, snu11, tkin=20., use_kpc=False):
         dist_factor)**2
     return mdust
 
+
 def clump_surface_area(dist, area, use_kpc=False):
     """
     Calculate the clump surface area in square pc based on the BGPS label mask
@@ -327,6 +335,7 @@ def clump_surface_area(dist, area, use_kpc=False):
         area
     return area_dist
 
+
 def clump_diameter(dist, area, use_kpc=False):
     """
     Calculate the clump diameter in pc based on the BGPS label mask area.
@@ -352,6 +361,7 @@ def clump_diameter(dist, area, use_kpc=False):
     diam_dist = (units.cgs.au / units.cgs.pc) * (dist * dist_factor) * \
         2 * _np.sqrt(area / _np.pi)
     return diam_dist
+
 
 def calc_ml_physical_conditions(bgps=[], neighbor=False):
     """
@@ -389,6 +399,7 @@ def calc_ml_physical_conditions(bgps=[], neighbor=False):
         clump_surface_area(row[dML_col], row['rind_area'], use_kpc=True),
         axis=1)
     return bgps
+
 
 def calc_physical_conditions(bgps=[], v=2, verbose=True):
     """
@@ -437,6 +448,7 @@ def calc_physical_conditions(bgps=[], v=2, verbose=True):
         if verbose:
             print '-- clump {} ({:0>3d} / 609)'.format(cnum, i+1)
     return bgps
+
 
 def gen_stages(bgps=[], stages_group=2, label=None):
     """
@@ -509,6 +521,7 @@ def gen_stages(bgps=[], stages_group=2, label=None):
     else:
         raise ValueError('Invalid stages_group: {0}.'.format(stages_group))
 
+
 def write_dpdf_outfiles(out_dir='dpdf_ascii', v=2):
     """
     Print out ascii files for the posterior DPDF.
@@ -520,7 +533,7 @@ def write_dpdf_outfiles(out_dir='dpdf_ascii', v=2):
     v : number, default 2
         BGPS version number
     """
-    if not os.path.exists(out_dir):
+    if not _os.path.exists(out_dir):
         raise Exception('Out path does not exist.')
     if v not in [1, 2]:
         raise ValueError('Incorrect version.')
@@ -530,6 +543,7 @@ def write_dpdf_outfiles(out_dir='dpdf_ascii', v=2):
         _np.savetxt(out_dir + '/v{0}_{1:0>4d}.txt'.format(v,
             flags.CNUM.iloc[i]), row, fmt='%.10e')
     return
+
 
 def match_dpdf_to_tim_calc(bgps=[]):
     """
@@ -561,24 +575,27 @@ def match_dpdf_to_tim_calc(bgps=[]):
     bgps = bgps.drop(labels=['Seq'], axis=1)
     return bgps
 
+
 def write_emaf_table():
     """
     Create a CSV table from DPDF fits table in Ellsworth-Bowers et al. (2013).
+    Only works on v2.1.0.
     """
-    dpdf = catalog.read_dpdf()
+    # Read in data
+    dpdf = catalog.read_dpdf(v=21)
     tab1 = _pd.DataFrame(dpdf[1].data)
     tab1 = tab1.rename(columns={key: 'dpdf_' + key.lower() + '_f' for key in
         tab1.columns})
-    tab1 = tab1.rename(columns={'dpdf_cnum_f': 'v201cnum'})
+    tab1 = tab1.rename(columns={'dpdf_cnum_f': 'v210cnum'})
     tab2 = []
     tab2_header = ['dpdf_' + elem for elem in ['dML', 'dMLm', 'dMLp', 'dBAR',
     'dBAR_err', 'PML', 'FW68', 'dtan', 'KDAR']]
-    for row in dpdf[6].data:
+    for row in dpdf[8].data:
         tab2.append([row[0][0], row[0][1], row[0][2], row[1][0], row[1][1],
             row[3], row[4], row[5], row[6]])
     tab2 = _pd.DataFrame(tab2, columns=tab2_header)
     emaf = tab1.join(tab2)
-    emaf.to_csv('emaf_dist_V2.csv', index=False)
+    emaf.to_csv('emaf_dist_v210.csv', index=False)
     return emaf
 
 

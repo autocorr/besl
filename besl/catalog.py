@@ -47,7 +47,7 @@ def read_cat(filen=None):
     return _pd.read_csv(base_path + filen + '.csv')
 
 
-def read_bgps(exten='none', v=200):
+def read_bgps(exten='none', v=201):
     """
     Read BGPS catalog, defaults to version 2.0.1. Citation: Ginsburg et al.
     (2013) for v2, Aguirre et al. (2011) for v1.
