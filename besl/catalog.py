@@ -22,7 +22,7 @@ from .paths import all_paths as d
 
 ### Read functions ###
 # Functions to read catalogs and return pandas DataFrame objects
-def read_cat(filen=None, print_cats=False):
+def read_cat(filen=None):
     """
     Read collected catalogs from the `_collected` directory. CSV formats should
     have clean syntax for `pd.read_csv`.
@@ -31,8 +31,6 @@ def read_cat(filen=None, print_cats=False):
     ----------
     filen : str
         Catalog file name, without extension
-    print_cats : bool, default False
-        Print available catalogs
 
     Returns
     -------
@@ -40,16 +38,13 @@ def read_cat(filen=None, print_cats=False):
         DataFrame of catalog.
     """
     base_path = d.cat_dir + d.collected
-    if print_cats:
+    paths = [_os.path.splitext(f)[0] for f in _os.listdir(base_path)]
+    if filen is None:
         print '-- Available catalogs:'
-        for f in _os.listdir(base_path):
-            f, _ = _os.path.splitext(f)
+        for f in paths:
             print '   {0}'.format(f)
         return
-    if filen is None:
-        raise ValueError('Catalog name is None.')
-    df = _pd.read_csv(base_path + filen + '.csv')
-    return df
+    return _pd.read_csv(base_path + filen + '.csv')
 
 
 def read_bgps(exten='none', v=200):
