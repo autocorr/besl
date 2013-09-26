@@ -73,25 +73,53 @@ def get_bgps_img(identifier, exten, v=201):
     return img
 
 
-def sample_bgps_img(coord):
+def sample_img(img, coord):
+    """
+    Parameters
+    ----------
+    img : astropy.io.hdu.hdulist.HDUList
+        Fits image.
+    coord : tuple
+        Coordinates in (lon, lat) form appropriate for native coordinates in
+        the fits image header.
+
+    Returns
+    -------
+    sample : number
+        Returns `np.nan` if coordinate not present in image
+    """
+    img_wcs = wcs.WCS(img[0].header)
+    # Convert coordinates to pixel values
+    pix = _np.round(img_wcs.wcs_world2pix(coord[0], coord[1], 1)).astype(int)
+    # Sample pixel value
+    try:
+        sample = img[0].data[pix[1],pix[0]]
+    except:
+        sample = _np.nan
+    finally:
+        return sample
+
+
+def sample_bgps_img(lon, lat, exten='labelmask', v=210):
     """
     Retrieve a value from the BGPS images or labelmasks at a coordinate
     position.
 
     Parameters
     ----------
-    coord : tuple
-        Galactic coordinates in decimal degrees. Formed in (lon, lat).
+    lon : number
+    lat : number
+        Galactic coordinates in decimal degrees.
 
     Returns
     -------
     sample : number
-        Returns `None` if not contained in the BGPS.
+        Returns `np.nan` if not contained in the BGPS bounds file.
     """
-    # Get field of image
-    # If no field, return None
-    # Use field to query `get_bgps_image` and get image
-    # get wcs information
-    # convert coordinates to pixel values
-    # sample pixel value and return
-    pass
+    # Get field identifier at coordinates
+    field = select_bgps_field(lon=lon, lat=lat, coord_type='gal')
+    if not isinstance(field, str):
+        return _np.nan
+    return sample_img(img=img, coord=(lon, lat))
+
+
