@@ -785,7 +785,7 @@ def num_in_bounds(cat, fields, cat_labels=['_Glon', '_Glat'],
     else:
         return in_bounds
 
-def attab2df(filen, **kwargs):
+def aptab2df(filen, **kwargs):
     """
     Read a CDS table and convert it into a `pandas.DataFrame`. Uses the
     `astropy.io.ascii` table reader and writers. Arguments are passed on to

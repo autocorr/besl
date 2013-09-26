@@ -11,6 +11,7 @@ import catalog, mathf, image, units
 import numpy as _np
 import pandas as _pd
 
+
 def bgps_rind_area(cnum):
     """
     Calculate the area of a BGPS clump from the number of pixels in the
@@ -32,6 +33,7 @@ def bgps_rind_area(cnum):
     clump_pixels = _np.argwhere(rind[0].data == field_cnum)
     area = clump_pixels.shape[0] * 7.2**2
     return area
+
 
 def bgps_rind_perim_pix(cnum):
     """
@@ -58,6 +60,7 @@ def bgps_rind_perim_pix(cnum):
          (rind[0].data[1:-1,0:-2] != cnum) |
          (rind[0].data[1:-1,2:  ] != cnum)))
     return perim_pixels.shape[0]
+
 
 def bgps_add_areas(bgps, verbose=False):
     """
