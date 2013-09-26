@@ -33,6 +33,7 @@ def ang_diff(a, b, angle_type='deg'):
     else:
         raise ValueError('Invalid angle type: {0}.'.format(angle_type))
 
+
 def bin_factor(x):
     """
     Factor a decimal integer into it's power of 2 components.
@@ -53,6 +54,7 @@ def bin_factor(x):
     factors = (1 << _np.arange(len(b)))[b.astype(bool)]
     return factors
 
+
 def weighted_mean(a, a_err):
     """
     Compute the weighted mean.
@@ -67,6 +69,7 @@ def weighted_mean(a, a_err):
     """
     return _np.sum(a / a_err**2) / _np.sum(1 / a_err**2)
 
+
 def med_abs_dev(a):
     """
     Compute the median absolute deviation.
@@ -77,6 +80,7 @@ def med_abs_dev(a):
         Values.
     """
     return _np.median(_np.abs(a - _np.median(a)))
+
 
 def sigfigs(a, figs=1):
     """
@@ -94,6 +98,7 @@ def sigfigs(a, figs=1):
         in a])
     return a
 
+
 def arcsinhspace(start, stop, num=50):
     """
     Return numbers spaced evenly on an arcsinh scale.
@@ -108,6 +113,7 @@ def arcsinhspace(start, stop, num=50):
         number of intervales between start and stop
     """
     return _np.sinh(_np.linspace(_np.arcsinh(start), _np.arcsinh(stop), num))
+
 
 def ellipse_area(major, minor, semi=True):
     """
@@ -131,6 +137,7 @@ def ellipse_area(major, minor, semi=True):
         return _np.pi * major * minor
     elif not semi:
         return _np.pi * major * minor / 4.
+
 
 def ellipse_circumf(major, minor, semi=True):
     """

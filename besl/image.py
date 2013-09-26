@@ -8,9 +8,9 @@ Routines for images.
 """
 
 import numpy as _np
-from .catalog import (read_bgps, select_bgps_field)
 from astropy.io import fits
 from astropy import wcs
+from .catalog import (read_bgps, select_bgps_field)
 
 
 class Dirs(object):

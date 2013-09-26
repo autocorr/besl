@@ -9,7 +9,6 @@ Calculate the area of a BGPS clump on the sky.
 
 import catalog, mathf, image, units
 import numpy as _np
-import pandas as _pd
 
 
 def bgps_rind_area(cnum):

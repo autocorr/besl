@@ -8,7 +8,7 @@ General routines and utility functions
 """
 
 import pandas as _pd
-from catalog import read_bgps
+from .catalog import read_bgps
 
 def bgps_import_check(bgps, exten='all'):
     if len(bgps) == 0:

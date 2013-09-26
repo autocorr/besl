@@ -8,7 +8,7 @@ Routines for writing proposals.
 """
 
 import pandas as pd
-from besl.coord import dec2sexstr
+from .coord import dec2sexstr
 
 def create_gbt_prop_out(file_name='bgps_master1.cat', out_name='source_list'):
     """

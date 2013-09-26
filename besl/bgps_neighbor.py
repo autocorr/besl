@@ -7,11 +7,8 @@ Match and analyze BGPS nearest neighbors in label masks.
 
 """
 
-import pyfits
 import numpy as _np
-import pandas as _pd
 import catalog, image
-import ipdb as pdb
 
 def find_clump_neighbors(cnum, v=201):
     """
