@@ -71,26 +71,26 @@ def read_bgps(exten='none', v=201):
             101: '1.0.1',
             200: '2.0',
             201: '2.0.1',
-            '2d': '2.0d'}
+            '2d': '2.0d',
+            210: '2.1.0'}
     if v not in vers.keys():
         raise ValueError('Invalid version, v = {}.'.format(v))
     if exten == 'none':
         if (v == 101) | (v == 100):
             bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
                 comment='#', na_values=['null'], skiprows=4)
-            return bgps
         elif v == 200:
             bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
                 comment='#', na_values=['null'], skiprows=4)
             bgps['cnum'] = _np.arange(1, bgps.shape[0] + 1)
-            return bgps
-        elif v == 201:
+        elif (v == 201) | (v == 210):
             bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]),
                 na_values=['---'])
-            return bgps
         elif v == '2d':
             bgps = _pd.read_csv(d.cat_dir + d.bgps_filen.format(vers[v]))
-            return bgps
+        else:
+            raise Exception('Unexpected Error.')
+        return bgps
     elif exten == 'all':
         bgps = _pd.read_csv(d.cat_dir + d.bgps_ext_filen.format(vers[2], 'all',
             'csv'))

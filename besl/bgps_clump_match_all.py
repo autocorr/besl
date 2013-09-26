@@ -13,6 +13,7 @@ import numpy as _np
 import pandas as _pd
 import ipdb as pdb
 
+
 def clump_match_water(bgps=[], out_filen='bgps_maser', verbose=False):
     """
     Match maser catalog observations to the BGPS. Includes BGPS GBT, Red MSX,
@@ -97,6 +98,7 @@ def clump_match_water(bgps=[], out_filen='bgps_maser', verbose=False):
     print '-- Maser catalog file written to {}.csv'.format(out_filen)
     return bgps
 
+
 def clump_match_hii(bgps=[], out_filen='bgps_hii', verbose=False):
     """
     Match HII and UCHII catalog observations to the BGPS. Include CORNISH and
@@ -142,6 +144,7 @@ def clump_match_hii(bgps=[], out_filen='bgps_hii', verbose=False):
     bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
     print '-- Hii catalog file written to {}.csv'.format(out_filen)
     return bgps
+
 
 def clump_match_ir(bgps=[], out_filen='bgps_ir', verbose=False):
     """
@@ -208,6 +211,7 @@ def clump_match_ir(bgps=[], out_filen='bgps_ir', verbose=False):
     bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
     print '-- IR catalog file written to {}.csv'.format(out_filen)
     return bgps
+
 
 def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
     """
@@ -310,6 +314,7 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
     print '-- Molcat catalog file written to {}.csv'.format(out_filen)
     return bgps
 
+
 def clump_match_gbt_nh3(bgps=[], out_filen='bgps_nh3', verbose=False):
     """
     Match the BGPS GBT NH3 survey observations to the BGPS.  Citation:
@@ -367,6 +372,7 @@ def clump_match_gbt_nh3(bgps=[], out_filen='bgps_nh3', verbose=False):
     print '-- NH3 Catalog file written to {}.csv'.format(out_filen)
     return bgps
 
+
 def clump_match_metho(bgps=[], out_filen='bgps_metho', verbose=False):
     """
     Match known CH3OH maser catalogs to the BGPS.  Citation: Pandian et al.
@@ -407,6 +413,7 @@ def clump_match_metho(bgps=[], out_filen='bgps_metho', verbose=False):
     bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
     print '-- Catalog file written to {}.csv'.format(out_filen)
     return bgps
+
 
 def clump_match_gen(cat, bgps=[], coord_labels=['_Glon', '_Glat'],
     prefix='', out_filen=None, coord_type='gal', verbose=False,
@@ -488,6 +495,7 @@ def clump_match_gen(cat, bgps=[], coord_labels=['_Glon', '_Glat'],
         bgps.to_csv(os.getcwd() + '/' + out_filen + '.csv', index=False)
         print '-- Catalog file written to {}.csv'.format(out_filen)
     return bgps
+
 
 def clump_match_all():
     """
