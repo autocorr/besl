@@ -120,6 +120,7 @@ def sample_bgps_img(lon, lat, exten='labelmask', v=210):
     field = select_bgps_field(lon=lon, lat=lat, coord_type='gal')
     if not isinstance(field, str):
         return _np.nan
+    img = get_bgps_img(field, exten=exten, v=v)
     return sample_img(img=img, coord=(lon, lat))
 
 
