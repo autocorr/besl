@@ -34,13 +34,10 @@ REQUIREMENTS
     numpy      >= 1.7.1
     scipy      >= 0.10.1
     pandas     >= 0.11.0
-    matplotlib >= 1.2.1
+    matplotlib >= 1.3.0
     astropy    >= 0.3.dev5057
     photutils  >= 0.0.dev128
-    atpy       >= 0.9.6
     pyephem    >= 3.7.5.1
-    pywcs      >= 1.11-4.8.2
-    pyfits     >= 3.1.2
 
 
 USING BESL
