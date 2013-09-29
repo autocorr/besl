@@ -93,7 +93,7 @@ def sample_img(img, coord):
     pix = _np.round(img_wcs.wcs_world2pix(coord[0], coord[1], 1)).astype(int)
     # Sample pixel value
     try:
-        sample = img[0].data[pix[1],pix[0]]
+        sample = img[0].data[pix[1], pix[0]]
     except:
         sample = _np.nan
     finally:
