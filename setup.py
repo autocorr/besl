@@ -2,7 +2,9 @@
 
 # Python 2.x
 from distutils.command.build_py import build_py
+from setuptools import setup
 from besl import __version__ as version
+
 
 setup(name='besl',
       version=version,
