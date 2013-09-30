@@ -426,6 +426,33 @@ class ClusterRegion(object):
         self._write_region(out_filen, text=all_lines)
         self.single_kdar_text = all_lines
 
+    def no_kdar(self, out_filen='no_kdar_group'):
+        """
+        Write a DS9 regions file for clusters that contain no KDAR.
+
+        Parameters
+        ----------
+        out_filen : str
+            Name of regions file, ends in '.reg' extension.
+
+        Attributes
+        ----------
+        no_kdar_text : str
+            String written to file
+        """
+        obj = self.obj
+        all_lines = self.preamble
+        for cid, params in obj.cluster_nodes.iteritems():
+            nodes = params[0]
+            kdars = params[1]
+            if len(kdars) == 0:
+                for ii in nodes:
+                    l = obj.df.ix[ii, 'glon_peak']
+                    b = obj.df.ix[ii, 'glat_peak']
+                    all_lines += self.circle_entry.format(l=l, b=b, c='black')
+        self._write_region(out_filen, text=all_lines)
+        self.no_kdar_text = all_lines
+
 
 def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10], out_filen='obj_grid'):
     """
