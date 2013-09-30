@@ -134,7 +134,7 @@ def read_bgps_vel(no_clobber=False):
         Output catalog
     """
     # Read in catalog
-    bgps = _pd.read_csv(d.cat_dir + d.bgps_ext_filen.format('2.0.1', 'vel',
+    bgps = _pd.read_csv(d.cat_dir + d.bgps_ext_filen.format('2.1.0', 'vel',
                         'csv'), na_values=['-1000.0'])
     # Column names for each molecule
     cols = ['vlsr_{0}_f'.format(s) for s in ('hco','nnh','cs','nh3')]
@@ -152,7 +152,7 @@ def read_bgps_vel(no_clobber=False):
         bgps['vlsr_f'][mask].apply(lambda x: 1 if 8 in bin_factor(x) else 0)
     # Collect velocities in one category
     bgps['all_vlsr'] = bgps['vlsr']
-    grs_mask = (bgps.vlsr_f == 0) & (bgps.grs_vlsr_f == 1)
+    grs_mask = (bgps.vlsr_f == 0) & (bgps.grs_vlsr_f.isin([1, 2]))
     bgps['all_vlsr'][grs_mask] = bgps['grs_vlsr'][grs_mask]
     # Don't clobber coordinates
     if no_clobber:
