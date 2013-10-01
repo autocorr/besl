@@ -277,7 +277,7 @@ class ClusterDBSCAN(object):
             self.kdar_span_nodes = sum([len(v[0]) for k, v in
                 cluster_nodes.iteritems() if (v[2] in [1,2]) & (k != -1)])
             self.new_kdar_assoc = sum([len(v[0]) - len(v[1]) for k, v in
-                obj.cluster_nodes.iteritems() if (v[2] in [1, 2]) & (k != -1)])
+                cluster_nodes.iteritems() if (v[2] in [1, 2]) & (k != -1)])
             self.conflict_frac = self.kdar_conflict_nodes / \
                 (self.kdar_agree_nodes + self.kdar_conflict_nodes)
             # Assign and save results
@@ -325,6 +325,16 @@ class ClusterRegion(object):
     def _write_region(self, out_filen, text):
         with open(out_filen + '.reg', 'w') as f:
             f.write(text)
+
+    def write_all(self):
+        """
+        Do all write methods with default parameters.
+        """
+        self.clusters()
+        self.clusters(out_filen='ppv_group_nocirc', search_circles=False)
+        self.agree_conflict()
+        self.single_kdar()
+        self.no_kdar()
 
     def clusters(self, out_filen='ppv_group', search_circles=True):
         """
