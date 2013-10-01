@@ -259,10 +259,13 @@ class ClusterDBSCAN(object):
             for cid in cluster_ids:
                 kdar_assoc = cluster_nodes[cid][1]
                 kdar_confused = np.unique(kdar_assoc).shape[0]
-                if kdar_confused == 1:
+                not_outer = 'O' not in np.unique(kdar_assoc)
+                if (kdar_confused == 1) & not_outer:
                     cluster_nodes[cid][2] = 1
                 elif kdar_confused > 1:
                     cluster_nodes[cid][2] = 2
+                elif not_outer:
+                    cluster_nodes[cid][2] = 3
             # Number of nodes in clusters with KDAR conflicts
             self.kdar_conflict_nodes = sum([len(v[0]) for k, v in
                 cluster_nodes.iteritems() if (v[2] == 2) & (k != -1)])
@@ -275,7 +278,7 @@ class ClusterDBSCAN(object):
                 cluster_nodes.iteritems() if (v[2] == 1) & (len(v[1]))])
             # Number of nodes in cluster with KDARs
             self.kdar_span_nodes = sum([len(v[0]) for k, v in
-                cluster_nodes.iteritems() if (v[2] in [1,2]) & (k != -1)])
+                cluster_nodes.iteritems() if (v[2] in [1,2,3]) & (k != -1)])
             self.new_kdar_assoc = sum([len(v[0]) - len(v[1]) for k, v in
                 cluster_nodes.iteritems() if (v[2] in [1, 2]) & (k != -1)])
             self.conflict_frac = self.kdar_conflict_nodes / \
