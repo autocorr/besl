@@ -261,20 +261,21 @@ class ClusterDBSCAN(object):
             cluster_nodes[cid][1].append(kdar)
         # Check unique KDARs
         for cid in cluster_ids:
+            if cid == -1:
+                continue
             kdar_assoc = cluster_nodes[cid][1]
             kdar_unique = np.unique(kdar_assoc)
-            kdar_confused = kdar_unique.shape[0]
-            only_tans = ('T' in kdar_unique) & (len(kdar_unique) == 1)
-            outer = 'O' in np.unique(kdar_assoc)
+            kdar_disagree = ('N' in kdar_unique) & ('F' in kdar_unique)
+            outer = 'O' in kdar_unique
             group_f = 0
-            if (kdar_confused == 1) & (not outer):
-                group_f = 1
-            elif kdar_confused > 1:
-                group_f = 2
-            elif only_tans:
+            if outer:
                 group_f = 3
-            elif outer:
-                group_f = 4
+            elif len(kdar_unique) == 1:
+                group_f = 1
+            elif (len(kdar_unique) > 1) & (not kdar_disagree):
+                group_f = 1
+            elif (len(kdar_unique) > 1) & kdar_disagree:
+                group_f = 2
             cluster_nodes[cid][2] = group_f
         # Number of nodes in clusters with KDAR conflicts
         self.kdar_conflict_nodes = sum([len(v[0]) for k, v in
@@ -319,14 +320,21 @@ class ClusterDBSCAN(object):
         """
         if not self.__scanned:
             raise Exception('Tree has not been built, run `dbscan`.')
-        cols = [self.ver + 'cnum', 'cid', 'group_f']
+        cols = [self.ver + 'cnum', 'cid', 'group_size', 'group_f',
+                'group_kdars']
         table_data = []
         for ix in self.tree.iterkeys():
             cnum = self.df.ix[ix, self.ver + 'cnum']
             cid = self.tree[ix][1]
             group_f = self.cluster_nodes[cid][2]
-            table_data.append([cnum, cid, group_f])
-        self.cluster_df = pd.DataFrame(table_data, columns=cols)
+            if cid == -1:
+                group_size = 0
+                group_kdars = 0
+            else:
+                group_size = len(self.cluster_nodes[cid][0])
+                group_kdars = len(self.cluster_nodes[cid][1])
+            table_data.append([cnum, cid, group_size, group_f, group_kdars])
+        self.cluster_df = pd.DataFrame(table_data, columns=cols).sort(cols[0])
         return self.cluster_df
 
 
