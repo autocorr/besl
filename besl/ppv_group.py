@@ -10,6 +10,7 @@ molecular line survey.
 
 from __future__ import division
 import numpy as np
+import pandas as pd
 import cPickle as pickle
 from collections import deque
 from multiprocessing import Pool
@@ -95,6 +96,9 @@ class ClusterDBSCAN(object):
     n_core_nodes : number
     self.cluster_nodes : dict
     """
+    ver = 'v210'
+    good_kdars = ['N', 'F', 'T', 'O']
+
     def __init__(self,
                  cols=['glon_peak', 'glat_peak', 'all_vlsr'],
                  flag_col='vlsr_f',
@@ -107,7 +111,6 @@ class ClusterDBSCAN(object):
         self.lims = lims
         self.min_points = 1
         # Initialize tree and BGPS
-        self.good_kdars = ['N', 'F', 'T', 'O']
         self.cluster_id = 0
         self.read_data()
         self.velo_to_ang = lims[0] / lims[1]
@@ -206,8 +209,8 @@ class ClusterDBSCAN(object):
         """
         df = read_bgps_vel()
         df = df[df[self.cols[2]].notnull()]
-        dpdf = read_cat('bgps_kdars_v210')
-        cnums = dpdf['v210cnum']
+        dpdf = read_cat('bgps_kdars_' + self.ver)
+        cnums = dpdf[self.ver + 'cnum']
         kdars = dpdf['kdar']
         # Check well resolved KDAs
         dpdf_mask = np.in1d(kdars, self.good_kdars)
@@ -226,83 +229,105 @@ class ClusterDBSCAN(object):
         verbose : bool
             Print results to terminal.
         """
-        if self.__scanned:
-            tree = self.tree
-            df = self.df
-            # Number of clusters
-            cluster_ids = np.unique([row[1] for row in tree.values()])
-            n_clusters = cluster_ids.shape[0]
-            # Cluster nodes
-            cluster_nodes = {ix : [[], [], 0] for ix in cluster_ids}
-            for cid in cluster_ids:
-                nodes = []
-                for ix in df.index:
-                    if tree[ix][1] == cid:
-                        nodes.extend(tree[ix][2])
-                cluster_nodes[cid][0].extend(np.unique(nodes))
-            # Nodes in clusters
-            core_nodes = cluster_nodes.copy()
-            del core_nodes[-1]
-            n_core_nodes = np.ravel(core_nodes.values()).shape[0]
-            # KDAR nodes in cluster
-            good_cnums = self.good_cnums
-            self.kdar_skipped = 0
-            for cnum, kdar in good_cnums:
-                # Should only continue if more stringent velocity flags
-                if cnum not in df['v210cnum'].values:
-                    self.kdar_skipped += 1
-                    continue
-                ii = df[df['v210cnum'] == cnum].index[0]
-                cid = self.tree[ii][1]
-                cluster_nodes[cid][1].append(kdar)
-            # Check unique KDARs
-            for cid in cluster_ids:
-                kdar_assoc = cluster_nodes[cid][1]
-                kdar_confused = np.unique(kdar_assoc).shape[0]
-                not_outer = 'O' not in np.unique(kdar_assoc)
-                if (kdar_confused == 1) & not_outer:
-                    cluster_nodes[cid][2] = 1
-                elif kdar_confused > 1:
-                    cluster_nodes[cid][2] = 2
-                elif not_outer:
-                    cluster_nodes[cid][2] = 3
-            # Number of nodes in clusters with KDAR conflicts
-            self.kdar_conflict_nodes = sum([len(v[0]) for k, v in
-                cluster_nodes.iteritems() if (v[2] == 2) & (k != -1)])
-            self.kdar_conflict_clusters = len([len(v[0]) for k, v in
-                cluster_nodes.iteritems() if (v[2] == 2) & (k != -1)])
-            # Number of nodes in clusters with agreeing KDARs
-            self.kdar_agree_nodes = sum([len(v[0]) for k, v in
-                cluster_nodes.iteritems() if (v[2] == 1) & (len(v[1]))])
-            self.kdar_agree_clusters = len([len(v[0]) for k, v in
-                cluster_nodes.iteritems() if (v[2] == 1) & (len(v[1]))])
-            # Number of nodes in cluster with KDARs
-            self.kdar_span_nodes = sum([len(v[0]) for k, v in
-                cluster_nodes.iteritems() if (v[2] in [1,2,3]) & (k != -1)])
-            self.new_kdar_assoc = sum([len(v[0]) - len(v[1]) for k, v in
-                cluster_nodes.iteritems() if (v[2] in [1, 2]) & (k != -1)])
-            self.conflict_frac = self.kdar_conflict_nodes / \
-                (self.kdar_agree_nodes + self.kdar_conflict_nodes)
-            # Assign and save results
-            self.cluster_ids = cluster_ids
-            self.n_clusters = n_clusters
-            self.n_core_nodes = n_core_nodes
-            self.cluster_nodes = cluster_nodes
-            if verbose:
-                print """
-                -- Results:
-                {0:<10} : Clusters
-                {1:<10} : Cluster (core) nodes
-                {2:<10} : Nodes in clusters containing KDAR clumps
-                {3:<10} : Net new KDAR associations for nodes in clusters
-                {4:<10} : Nodes in clusters containing KDAR conflicts
-                {5:<10} : Nodes in clusters containing KDAR agreements
-                {6:<10f} : Ratio of conflict nodes to all multi-KDAR nodes
-                """.format(n_clusters, n_core_nodes, self.kdar_span_nodes,
-                           self.new_kdar_assoc, self.kdar_conflict_nodes,
-                           self.kdar_agree_nodes, self.conflict_frac)
-        else:
+        if not self.__scanned:
             raise Exception('Tree has not been built, run `dbscan`.')
+        tree = self.tree
+        df = self.df
+        # Number of clusters
+        cluster_ids = np.unique([row[1] for row in tree.values()])
+        n_clusters = cluster_ids.shape[0]
+        # Cluster nodes
+        cluster_nodes = {ix : [[], [], 0] for ix in cluster_ids}
+        for cid in cluster_ids:
+            nodes = []
+            for ix in df.index:
+                if tree[ix][1] == cid:
+                    nodes.extend(tree[ix][2])
+            cluster_nodes[cid][0].extend(np.unique(nodes))
+        # Nodes in clusters
+        core_nodes = cluster_nodes.copy()
+        del core_nodes[-1]
+        n_core_nodes = np.ravel(core_nodes.values()).shape[0]
+        # KDAR nodes in cluster
+        good_cnums = self.good_cnums
+        self.kdar_skipped = 0
+        for cnum, kdar in good_cnums:
+            # Should only continue if more stringent velocity flags
+            if cnum not in df[self.ver + 'cnum'].values:
+                self.kdar_skipped += 1
+                continue
+            ii = df[df[self.ver + 'cnum'] == cnum].index[0]
+            cid = self.tree[ii][1]
+            cluster_nodes[cid][1].append(kdar)
+        # Check unique KDARs
+        for cid in cluster_ids:
+            kdar_assoc = cluster_nodes[cid][1]
+            kdar_unique = np.unique(kdar_assoc)
+            kdar_confused = kdar_unique.shape[0]
+            only_tans = ('T' in kdar_unique) & (len(kdar_unique) == 1)
+            outer = 'O' in np.unique(kdar_assoc)
+            group_f = 0
+            if (kdar_confused == 1) & (not outer):
+                group_f = 1
+            elif kdar_confused > 1:
+                group_f = 2
+            elif only_tans:
+                group_f = 3
+            elif outer:
+                group_f = 4
+            cluster_nodes[cid][2] = group_f
+        # Number of nodes in clusters with KDAR conflicts
+        self.kdar_conflict_nodes = sum([len(v[0]) for k, v in
+            cluster_nodes.iteritems() if (v[2] == 2) & (k != -1)])
+        self.kdar_conflict_clusters = len([len(v[0]) for k, v in
+            cluster_nodes.iteritems() if (v[2] == 2) & (k != -1)])
+        # Number of nodes in clusters with agreeing KDARs
+        self.kdar_agree_nodes = sum([len(v[0]) for k, v in
+            cluster_nodes.iteritems() if (v[2] == 1) & (len(v[1]))])
+        self.kdar_agree_clusters = len([len(v[0]) for k, v in
+            cluster_nodes.iteritems() if (v[2] == 1) & (len(v[1]))])
+        # Number of nodes in cluster with KDARs
+        self.kdar_span_nodes = sum([len(v[0]) for k, v in
+            cluster_nodes.iteritems() if (v[2] in [1,2,3]) & (k != -1)])
+        self.new_kdar_assoc = sum([len(v[0]) - len(v[1]) for k, v in
+            cluster_nodes.iteritems() if (v[2] in [1, 2]) & (k != -1)])
+        self.conflict_frac = self.kdar_conflict_nodes / \
+            (self.kdar_agree_nodes + self.kdar_conflict_nodes)
+        # Assign and save results
+        self.cluster_ids = cluster_ids
+        self.n_clusters = n_clusters
+        self.n_core_nodes = n_core_nodes
+        self.cluster_nodes = cluster_nodes
+        if verbose:
+            print """
+            -- Results:
+            {0:<10} : Clusters
+            {1:<10} : Cluster (core) nodes
+            {2:<10} : Nodes in clusters containing KDAR clumps
+            {3:<10} : Net new KDAR associations for nodes in clusters
+            {4:<10} : Nodes in clusters containing KDAR conflicts
+            {5:<10} : Nodes in clusters containing KDAR agreements
+            {6:<10f} : Ratio of conflict nodes to all multi-KDAR nodes
+            """.format(n_clusters, n_core_nodes, self.kdar_span_nodes,
+                       self.new_kdar_assoc, self.kdar_conflict_nodes,
+                       self.kdar_agree_nodes, self.conflict_frac)
+
+    def to_df(self):
+        """
+        Return the cluster-ID and group flag for a BGPS catalog number in
+        DataFrame format.
+        """
+        if not self.__scanned:
+            raise Exception('Tree has not been built, run `dbscan`.')
+        cols = [self.ver + 'cnum', 'cid', 'group_f']
+        table_data = []
+        for ix in self.tree.iterkeys():
+            cnum = self.df.ix[ix, self.ver + 'cnum']
+            cid = self.tree[ix][1]
+            group_f = self.cluster_nodes[cid][2]
+            table_data.append([cnum, cid, group_f])
+        self.cluster_df = pd.DataFrame(table_data, columns=cols)
+        return self.cluster_df
 
 
 class ClusterRegion(object):
@@ -371,7 +396,7 @@ class ClusterRegion(object):
                 l = obj.df.ix[ii, 'glon_peak']
                 b = obj.df.ix[ii, 'glat_peak']
                 v = obj.df.ix[ii, 'all_vlsr']
-                cnum = obj.df.ix[ii, 'v210cnum']
+                cnum = obj.df.ix[ii, self.ver + 'cnum']
                 all_lines += self.point_entry.format(l=l, b=b, v=v, cid=cid,
                                                      ix=cnum, c=c, **self.braces)
                 if search_circles:
