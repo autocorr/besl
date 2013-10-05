@@ -42,17 +42,25 @@ def dec2sexstr(deci, sfigs=1, hd='h', lead_psign=False):
 def sexstr2dec(sexstr, sep=':', hd='h'):
     """
     Convert a sexagesimal string of delimited by a seperator character, eg
-    "+HH:MM:SS.S" with ":", into a decimal float.
+    "+HH:MM:SS.S" with ":", into a decimal float. Can also be a tuple of
+    numbers.
 
     Parameters
     ----------
+    sexstr : str, tuple
+        Sexagesimal coordinate in seperated string or tuple of numbers
     sep : string
         Seperator character between hours, minutes, and seconds
     hd : string, ('h', 'd')
         Hour or degree convention
     """
     dform = {'h': 24. / 360., 'd': 1.}
-    h, m, s = [float(i) for i in sexstr.split(sep)]
+    if isinstance(sexstr, str):
+        h, m, s = [float(i) for i in sexstr.split(sep)]
+    elif isinstance(sexstr, tuple):
+        h, m, s = sexstr
+    else:
+        raise ValueError('Invalid input')
     deci = _np.sign(h) * (_np.abs(h) + m / 60. + s / 3600.) / dform[hd]
     return deci
 

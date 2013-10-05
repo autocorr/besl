@@ -18,8 +18,8 @@ from rtree import index
 from .catalog import read_bgps_vel, read_cat
 
 
-def build_tree(df=None, cols=['glon_peak','glat_peak','vlsr'],
-        flag_col='vlsr_f', box_size=[0.2, 0.2, 6]):
+def build_tree(df=None, cols=('glon_peak','glat_peak','vlsr'),
+        flag_col='vlsr_f', box_size=(0.2, 0.2, 6)):
     """
     Build the R-tree datastructure for the PPV values. If the function is not
     passed any arguments, then the BGPS HCO+/N2H+ catalog is used.
@@ -32,7 +32,7 @@ def build_tree(df=None, cols=['glon_peak','glat_peak','vlsr'],
         decimal degrees and km/s.
     flag_col : str
         Flag column to select good velocities from.
-    box_size : list
+    box_size : tuple
         Query region for each data point, specifies the halfwidth of the box.
 
     Returns
@@ -53,7 +53,7 @@ def build_tree(df=None, cols=['glon_peak','glat_peak','vlsr'],
     # Add coordinates
     box_size = np.array(box_size)
     for ii in df.index:
-        coords = df.ix[ii, cols].values
+        coords = df.ix[ii, list(cols)].values
         box = np.ravel([coords - box_size, coords + box_size])
         ix3d.insert(ii, box)
     return ix3d
@@ -346,6 +346,8 @@ class ClusterRegion(object):
     ----------
     obj : besl.ppv_group.ClusterDBSCAN
     """
+    ver = 'v210'
+
     def __init__(self, obj, **kwargs):
         self.obj = obj
         self.angle_rad, self.velo_rad = obj.lims
