@@ -11,7 +11,7 @@ import os
 import numpy as _np
 import pandas as _pd
 import catalog
-from .catalog import read_bgps
+from .catalog import (read_bgps, read_cat)
 from .image import sample_bgps_img
 
 
@@ -552,19 +552,14 @@ class Matcher(object):
             cnum = sample_bgps_img(coord[0], coord[1], v=self.data.v)
             self._enter_matched(cat_ix, cnum)
 
-    def process(self):
-        """
-        Simple processing to add number of matches to catalog.
-        """
-        self.matched_n = {k: len(v) for k, v in self.matched_ix.iteritems()}
-
 
 class Data(object):
     v = 210
 
-    def __init__(self, cat, coord_cols, det_col=None, choose_col=None):
-        assert len(coord_cols) == 2
+    def __init__(self):
         self.bgps = read_bgps(v=self.v)
+        self._add_new_cols()
+        self._make_haystack()
 
     def _add_new_cols(self):
         # Don't clobber original columns in BGPS
@@ -573,35 +568,29 @@ class Data(object):
         for col in self.cat.columns:
             self.bgps[col] = _np.nan
 
+    def _make_haystack(self):
+        self.haystack = self.cat[[self.glon_col, self.glat_col]].values
+
+    def process(self):
+        """
+        Simple processing to add number of matches or number of
+        detections to catalog.
+        """
+        self.match()
+        self.matched_n = {k: len(v) for k, v in self.matched_ix.iteritems()}
+
     def to_df(self):
         self.bgps.to_csv(self.name + '.csv', index=False)
 
 
-class Processor(object):
-    def __init__(self, data, matcher):
-        self.data = data
-        self.matcher = matcher(data)
-
-    def process(self):
-        self.data.reduce()
-        self.matcher(data)
-        self.matcher.match()
-        cat_ix = self.matched.cat_ix
-
-
-class DataSet(object):
-    def __init__(self):
-        pass
-
-
 class WaterGBT(Data):
     def __init__(self):
+        self.name = 'gbt_h2o'
+        self.cat = read_cat('gbt_h2o')
+        self.lon_col = 'h2o_glon'
+        self.lat_col = 'h2o_glat'
+        self.det_col = 'h2o_f'
+        self.choose_col = 'h2o_tpk'
         super(WaterGBT, self).__init__()
-        self.cat = cat
-        self.lon_col = coord_cols[0]
-        self.lat_col = coord_cols[1]
-        self.det_col = det_col
-        self.choose_col = choose_col
-    pass
 
 

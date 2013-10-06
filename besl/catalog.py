@@ -41,6 +41,7 @@ def read_cat(filen=None):
     line_item = '   {0}'
     base_path = d.cat_dir + d.collected
     paths = [_os.path.splitext(f)[0] for f in _os.listdir(base_path)]
+    paths.sort()
     if filen is None:
         print '-- Available catalogs:'
         for f in paths:
