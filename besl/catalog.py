@@ -11,6 +11,7 @@ import os as _os
 import numpy as _np
 import pandas as _pd
 import ephem as _ephem
+from difflib import get_close_matches
 from tempfile import TemporaryFile
 from astropy import wcs
 from astropy.io import (ascii, fits)
@@ -37,12 +38,20 @@ def read_cat(filen=None):
     df : pd.DataFrame
         DataFrame of catalog.
     """
+    line_item = '   {0}'
     base_path = d.cat_dir + d.collected
     paths = [_os.path.splitext(f)[0] for f in _os.listdir(base_path)]
     if filen is None:
         print '-- Available catalogs:'
         for f in paths:
-            print '   {0}'.format(f)
+            print line_item.format(f)
+        return
+    elif filen not in paths:
+        print '-- Searching catalogs:'
+        for f in paths:
+            match_sub_words = get_close_matches(filen, f.split('_'))
+            if len(match_sub_words) > 0:
+                print line_item.format(f)
         return
     return _pd.read_csv(base_path + filen + '.csv')
 
