@@ -8,10 +8,11 @@ Merge catalogs based on clump label masks
 """
 
 import os
-import catalog
 import numpy as _np
 import pandas as _pd
-import ipdb as pdb
+import catalog
+from .catalog import read_bgps
+from .image import sample_bgps_img
 
 
 def clump_match_water(bgps=[], out_filen='bgps_maser', verbose=False):
@@ -183,22 +184,23 @@ def clump_match_ir(bgps=[], out_filen='bgps_ir', verbose=False):
         cnum_select = bgps.cnum == cnum
         glat = bgps[cnum_select].glat_cen.values[0]
         glon = bgps[cnum_select].glon_cen.values[0]
-        c_ra = bgps[cnum_select].ra.values[0]
-        c_dec = bgps[cnum_select].dec.values[0]
         if verbose:
             print '-- clump {:>4d}'.format(cnum)
         # match egos
-        if ((glat < 1.05) & (glat > -1.05) & (glon > 10) & (glat < 65)):
+        if (glat < 1.05) & (glat > -1.05) & (glon < 65):
             ego_match_list = catalog.clump_match(ego_hs, cnum,
                 coord_type='gal')
             bgps['ego_n'][cnum_select] = len(ego_match_list)
         # match robit
-        if ((glat < 1.05) & (glat > -1.05) & (glon > 10) & (glat < 65)):
-            robit_match_list = catalog.clump_match(robit_hs, cnum,
+        if (glat < 65):
+            robit_agb_match_list = catalog.clump_match(robit_hs, cnum,
                 coord_type='gal')
-            bgps['robit_n'][cnum_select] = len(robit_match_list)
+            robit_yso_match_list = catalog.clump_match(robit_hs, cnum,
+                                                   coord_type='gal')
+            bgps['robit_agb_n'][cnum_select] = len(robit_agb_match_list)
+            bgps['robit_yso_n'][cnum_select] = len(robit_yso_match_list)
         # match rms msx
-        if ((glat < 5) & (glat > -5) & (glon > 10) & (glat < 220)):
+        if (glat < 5) & (glat > -5) & (glon > 10) & (glat < 220):
             msx_match_list = catalog.clump_match(msx_hs, cnum,
                 coord_type='eq')
             bgps['msx_n'][cnum_select] = len(msx_match_list)
@@ -232,7 +234,6 @@ def clump_match_molcat(bgps=[], out_filen='bgps_molcat', verbose=False):
     bgps : pd.DataFrame
     """
     # read in catalogs
-    pdb.set_trace()
     molcat = catalog.read_molcat()
     if len(bgps) == 0:
         bgps = catalog.read_bgps()
@@ -522,5 +523,85 @@ def clump_match_all():
     bgps_all.to_csv('bgps_all.csv', index=False)
     bgps_all.save('bgps_all.pickle')
     return bgps_all
+
+
+###############################################################################
+#                            Class Based Approach
+###############################################################################
+
+
+class Matcher(object):
+    v = 210
+
+    def __init__(self, data):
+        self.data = data
+        self.ids = data.cat.index
+        self.haystack = data.haystack
+        self.matched_ix = {}
+
+    def _enter_matched(self, ix, cnum):
+        if cnum not in self.matched_ix.keys():
+            self.matched_ix[cnum] = []
+        if (not _np.isnan(cnum)) | (cnum != 0):
+            self.matched_ix[cnum].append(ix)
+
+    def match(self):
+        ids = self.ids
+        haystack = self.haystack
+        for cat_ix, coord in zip(ids, haystack):
+            cnum = sample_bgps_img(coord[0], coord[1], v=self.data.v)
+            self._enter_matched(cat_ix, cnum)
+
+    def process(self):
+        """
+        Simple processing to add number of matches to catalog.
+        """
+        self.matched_n = {k: len(v) for k, v in self.matched_ix.iteritems()}
+
+
+class Data(object):
+    v = 210
+
+    def __init__(self, cat, coord_cols, det_col=None, choose_col=None):
+        assert len(coord_cols) == 2
+        self.bgps = read_bgps(v=self.v)
+
+    def _add_new_cols(self):
+        # Don't clobber original columns in BGPS
+        for col in self.cat.columns:
+            self.cat.rename(columns={col: '_' + col})
+        for col in self.cat.columns:
+            self.bgps[col] = _np.nan
+
+    def to_df(self):
+        self.bgps.to_csv(self.name + '.csv', index=False)
+
+
+class Processor(object):
+    def __init__(self, data, matcher):
+        self.data = data
+        self.matcher = matcher(data)
+
+    def process(self):
+        self.data.reduce()
+        self.matcher(data)
+        self.matcher.match()
+        cat_ix = self.matched.cat_ix
+
+
+class DataSet(object):
+    def __init__(self):
+        pass
+
+
+class WaterGBT(Data):
+    def __init__(self):
+        super(WaterGBT, self).__init__()
+        self.cat = cat
+        self.lon_col = coord_cols[0]
+        self.lat_col = coord_cols[1]
+        self.det_col = det_col
+        self.choose_col = choose_col
+    pass
 
 
