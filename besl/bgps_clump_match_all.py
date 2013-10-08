@@ -625,8 +625,14 @@ class Matcher(object):
         """
         Simple processing to add:
             number of matches
-            number of detections (if `det_col` specified)
-            all columns (if `choose_col` and `noise_col` specified)
+            number of detections
+                If `det_col` is specified.
+            all columns
+                If `choose_col` and `noise_col` are specified then the
+                maximum in `choose_col` will be used, or if all are null
+                values, then source with minimum noise will be chosen.
+                If `noise_col` is `None` then the first source in the sub-index
+                will be used.
         columns to BGPS catalog.
         """
         # New column for number of matched sources
@@ -638,9 +644,11 @@ class Matcher(object):
                 self.bgps.ix[cnum, self.bgps_det_col] = num_dets
             if self.choose_col is not None:
                 choose_ix = self.cat.ix[cat_indices, self.choose_col].idxmax()
-                if _np.isnan(choose_ix):
+                if _np.isnan(choose_ix) & (self.noise_col is not None):
                     choose_ix = self.cat.ix[cat_indices,
                                             self.noise_col].idxmin()
+                else:
+                    choose_ix = cat_indices[0]
                 self.bgps.ix[cnum, self.cat.columns] = self.cat.ix[choose_ix]
 
     def to_csv(self):
@@ -661,6 +669,9 @@ class DataSet(object):
 
 
 class Data(object):
+    """
+    Parent class for object-catalogs to be matched with `Matcher`
+    """
     def match(self):
         self.matcher = Matcher(self)
         self.matcher.process()
@@ -708,3 +719,40 @@ class WaterHops(Data):
         self.noise_col = 'RMS_K'
 
 
+class WaterRMS(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'h2o_rms'
+        self.cat = read_cat('urquhart11_red_msx_h2o')
+        self.lon_col = '_Glon_1_'
+        self.lat_col = '_Glat_1_'
+        self.det_col = 'H2O_1_'
+        self.det_flags = ['y']
+        self.choose_col = 'log_SdV__2_'
+        self.noise_col = 'rms_2_'
+
+
+class Cornish(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'cornish'
+        self.cat = read_cat('cornish_uchii')
+        self.lon_col = 'l_deg'
+        self.lat_col = 'b_deg'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = 'Flux_mJy'
+        self.noise_col = 'dFlux_mJy'
+
+
+class Egos(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'egos'
+        self.cat = read_cat('ego_all')
+        self.lon_col = '_Glon'
+        self.lat_col = '_Glat'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = '[4.5]'
+        self.noise_col = None
