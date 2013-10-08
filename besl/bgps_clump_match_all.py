@@ -756,3 +756,55 @@ class Egos(Data):
         self.det_flags = None
         self.choose_col = '[4.5]'
         self.noise_col = None
+
+
+class AmmoniaGBT(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'gbt_nh3'
+        self.cat = read_cat('gbt_nh3')
+        self.lon_col = 'glon'
+        self.lat_col = 'glat'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = 'pk11'
+        self.noise_col = 'noise11'
+
+
+class MethoPandian(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'pandi_ch3oh'
+        self.cat = read_cat('pandian11')
+        self.lon_col = 'glon'
+        self.lat_col = 'glat'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = None
+        self.noise_col = None
+
+
+class MethoPestalozzi(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'pesta_ch3oh'
+        self.cat = read_cat('pestalozzi05')
+        self.lon_col = '_Glon'
+        self.lat_col = '_Glat'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = 'PFlux'
+        self.noise_col = None
+
+
+class MethoMMB(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'mmb_ch3oh'
+        self.cat = read_cat('mmb_all')
+        self.lon_col = 'glon'
+        self.lat_col = 'glat'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = 'spk_mx'
+        self.noise_col = None
