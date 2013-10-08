@@ -102,11 +102,11 @@ def read_bgps(exten='none', v=201):
             raise Exception('Unexpected Error.')
         return bgps
     elif exten == 'all':
-        bgps = _pd.read_csv(d.cat_dir + d.bgps_ext_filen.format(vers[2], 'all',
-            'csv'))
+        bgps = _pd.read_csv(d.cat_dir + d.bgps_ext_filen.format('2.0',
+                            'all', 'csv'))
         return bgps
     elif exten == 'cols':
-        cols = open(d.cat_dir + d.bgps2_ext_filen.format(vers[2], 'columns',
+        cols = open(d.cat_dir + d.bgps2_ext_filen.format(vers[201], 'columns',
             'txt'))
         print cols.read()
         return

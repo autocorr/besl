@@ -534,10 +534,44 @@ class Matcher(object):
     v = 210
 
     def __init__(self, data):
+        # Parametes from data object
+        self.name = data.name
+        self.cat = data.cat
+        self.lon_col = data.lon_col
+        self.lat_col = data.lat_col
+        self.det_col = data.det_col
+        self.det_flags = data.det_flags
+        self.choose_col = data.choose_col
+        self.noise_col = data.noise_col
         self.data = data
-        self.ids = data.cat.index
-        self.haystack = data.haystack
-        self.matched_ix = {}
+        # BGPS data
+        self.bgps = read_bgps(v=self.v)
+        # Process and match
+        self._add_new_cols()
+        self._make_haystack()
+        self._match()
+
+    def _add_new_cols(self):
+        # Don't clobber original columns in BGPS
+        #  Do first so as to not rename following named flags
+        if self.choose_col is not None:
+            for col in self.cat.columns:
+                if col in self.bgps.columns:
+                    self.cat.rename(columns={col:
+                                    self.name + '_' + col})
+            for col in self.cat.columns:
+                self.bgps[col] = _np.nan
+        # New column for number of matched sources
+        self.bgps_count_col = self.name + '_n'
+        self.bgps[self.bgps_count_col] = _np.nan
+        # For number of detections
+        if self.det_col is not None:
+            self.bgps_det_col = self.name + '_f'
+            self.bgps[self.bgps_det_col] = _np.nan
+
+    def _make_haystack(self):
+        self.haystack = self.cat[[self.lon_col,
+                                  self.lat_col]].values
 
     def _enter_matched(self, ix, cnum):
         if cnum not in self.matched_ix.keys():
@@ -545,52 +579,50 @@ class Matcher(object):
         if (not _np.isnan(cnum)) | (cnum != 0):
             self.matched_ix[cnum].append(ix)
 
-    def match(self):
-        ids = self.ids
+    def _match(self):
+        self.matched_ix = {}
+        ids = self.cat.index
         haystack = self.haystack
         for cat_ix, coord in zip(ids, haystack):
-            cnum = sample_bgps_img(coord[0], coord[1], v=self.data.v)
+            cnum = sample_bgps_img(coord[0], coord[1], v=self.v)
             self._enter_matched(cat_ix, cnum)
-
-
-class Data(object):
-    v = 210
-
-    def __init__(self):
-        self.bgps = read_bgps(v=self.v)
-        self._add_new_cols()
-        self._make_haystack()
-
-    def _add_new_cols(self):
-        # Don't clobber original columns in BGPS
-        for col in self.cat.columns:
-            self.cat.rename(columns={col: '_' + col})
-        for col in self.cat.columns:
-            self.bgps[col] = _np.nan
-
-    def _make_haystack(self):
-        self.haystack = self.cat[[self.glon_col, self.glat_col]].values
 
     def process(self):
         """
         Simple processing to add number of matches or number of
         detections to catalog.
         """
-        self.match()
-        self.matched_n = {k: len(v) for k, v in self.matched_ix.iteritems()}
+        # New column for number of matched sources
+        for cnum, cat_indices in self.matched_ix.iteritems():
+            self.bgps.ix[cnum, self.bgps_count_col] = len(cat_indices)
+            if self.det_col is not None:
+                matches = self.cat.ix[cat_indices, self.det_col]
+                num_dets = matches[matches.isin(self.det_flags)].shape[0]
+                self.bgps.ix[cnum, self.bgps_det_col] = num_dets
+            if self.choose_col is not None:
+                choose_ix = self.cat.ix[cat_indices, self.choose_col].idxmax()
+                if _np.isnan(choose_ix):
+                    choose_ix = self.cat.ix[cat_indices,
+                                            self.noise_col].idxmin()
+                self.bgps.ix[cnum, self.cat.columns] = self.cat.ix[choose_ix]
 
     def to_df(self):
-        self.bgps.to_csv(self.name + '.csv', index=False)
+        self.bgps.to_csv('bgps' + self.name + '.csv', index=False)
 
 
-class WaterGBT(Data):
+class WaterGBT(object):
     def __init__(self):
+        # Catalog parameters
         self.name = 'gbt_h2o'
         self.cat = read_cat('gbt_h2o')
         self.lon_col = 'h2o_glon'
         self.lat_col = 'h2o_glat'
         self.det_col = 'h2o_f'
+        self.det_flags = [1]
         self.choose_col = 'h2o_tpk'
-        super(WaterGBT, self).__init__()
+        self.noise_col = 'h2o_tpk_err'
+        # Process catalog
+        self.matcher = Matcher(self)
+        self.matcher.process()
 
 
