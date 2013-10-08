@@ -531,6 +531,25 @@ def clump_match_all():
 
 
 class Matcher(object):
+    """
+    Matching class to match sources sources to the BGPS based on the label
+    masks. A data object is given and then the catalog is processed.
+
+    Parameters
+    ----------
+    The `data` object is required to have the following attributes:
+    name : str
+        Name used for a unique identifier for output
+    cat : pd.DataFrame
+        The catalog to match
+    lon_col : str
+        Galactic longitude column name in decimal degrees
+    lat_col : str
+        Galactic latitude column name in decimal degrees
+
+    Attributes
+    ----------
+    """
     v = 210
 
     def __init__(self, data):
@@ -552,6 +571,10 @@ class Matcher(object):
         self._match()
 
     def _add_new_cols(self):
+        """
+        Add new columns to the BGPS catalog depending on the available
+        columns to match to in the child catalog.
+        """
         # Don't clobber original columns in BGPS
         #  Do first so as to not rename following named flags
         if self.choose_col is not None:
@@ -570,16 +593,27 @@ class Matcher(object):
             self.bgps[self.bgps_det_col] = _np.nan
 
     def _make_haystack(self):
+        """
+        Make 2xN array of coordinate positions for each source in the child
+        catalog.
+        """
         self.haystack = self.cat[[self.lon_col,
                                   self.lat_col]].values
 
     def _enter_matched(self, ix, cnum):
+        """
+        Insert the indices of the matched sources into the matched source
+        dictionary with the BGPS cnum as the key.
+        """
         if cnum not in self.matched_ix.keys():
             self.matched_ix[cnum] = []
         if (not _np.isnan(cnum)) | (cnum != 0):
             self.matched_ix[cnum].append(ix)
 
     def _match(self):
+        """
+        Match each source in the child catalog to the BGPS.
+        """
         self.matched_ix = {}
         ids = self.cat.index
         haystack = self.haystack
@@ -589,8 +623,11 @@ class Matcher(object):
 
     def process(self):
         """
-        Simple processing to add number of matches or number of
-        detections to catalog.
+        Simple processing to add:
+            number of matches
+            number of detections (if `det_col` specified)
+            all columns (if `choose_col` and `noise_col` specified)
+        columns to BGPS catalog.
         """
         # New column for number of matched sources
         for cnum, cat_indices in self.matched_ix.iteritems():
@@ -606,14 +643,36 @@ class Matcher(object):
                                             self.noise_col].idxmin()
                 self.bgps.ix[cnum, self.cat.columns] = self.cat.ix[choose_ix]
 
-    def to_df(self):
+    def to_csv(self):
+        """
+        Write BGPS catalog to `.csv` file.
+        """
         self.bgps.to_csv('bgps' + self.name + '.csv', index=False)
 
 
-class WaterGBT(object):
+class DataSet(object):
+    def __init__(self):
+        # Should collect and run each catalog
+        # Execute the match script methods
+        # Write each matched catalog to file
+        # Perform additional operations for group flags
+        # Write master catalog to file
+        pass
+
+
+class Data(object):
+    def match(self):
+        self.matcher = Matcher(self)
+        self.matcher.process()
+
+    def write(self):
+        self.matcher.to_csv()
+
+
+class WaterGBT(Data):
     def __init__(self):
         # Catalog parameters
-        self.name = 'gbt_h2o'
+        self.name = 'h2o_gbt'
         self.cat = read_cat('gbt_h2o')
         self.lon_col = 'h2o_glon'
         self.lat_col = 'h2o_glat'
@@ -621,8 +680,31 @@ class WaterGBT(object):
         self.det_flags = [1]
         self.choose_col = 'h2o_tpk'
         self.noise_col = 'h2o_tpk_err'
-        # Process catalog
-        self.matcher = Matcher(self)
-        self.matcher.process()
+
+
+class WaterArcetri(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'h2o_arc'
+        self.cat = read_cat('valdettaro01_arcetri')
+        self.lon_col = '_Glon'
+        self.lat_col = '_Glat'
+        self.det_col = 'h2o_f'
+        self.det_flags = [1]
+        self.choose_col = 'Stot'
+        self.noise_col = 'Sig'
+
+
+class WaterHops(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'h2o_hops'
+        self.cat = read_cat('walsh11_hosp_h2o')
+        self.lon_col = 'lPeak_deg'
+        self.lat_col = 'bPeak_deg'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = 'T_peak_K'
+        self.noise_col = 'RMS_K'
 
 
