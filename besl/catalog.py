@@ -920,9 +920,9 @@ def create_point_region(lon, lat, text=[], out_filen='ds9', marker='circle',
     if coord_type not in ['image', 'linear', 'fk4', 'fk5', 'galactic',
         'ecliptic', 'icrs', 'physical', 'amplifier', 'detector']:
         raise ValueError('Invalid coordinate type.')
-    if color not in ['white', 'black', 'red', 'green', 'blue', 'cyan',
-        'magenta', 'yellow']:
-        raise ValueError('Invalid color.')
+    #if color not in ['white', 'black', 'red', 'green', 'blue', 'cyan',
+    #    'magenta', 'yellow']:
+    #    raise ValueError('Invalid color.')
     if len(text) != len(lon):
         text = [''] * len(lon)
     out_file = open(out_filen + '.reg', 'w')

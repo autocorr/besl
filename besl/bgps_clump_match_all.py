@@ -808,3 +808,16 @@ class MethoMMB(Data):
         self.det_flags = None
         self.choose_col = 'spk_mx'
         self.noise_col = None
+
+
+class Higal70(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'higal_70'
+        self.cat = read_cat('higal_70')
+        self.lon_col = 'glon_70'
+        self.lat_col = 'glat_70'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = 's70cx'
+        self.noise_col = 'err_s70cx'
