@@ -659,11 +659,43 @@ class Matcher(object):
 
 
 class DataSet(object):
+    all_objs = [WaterGBT,
+                WaterArcetri,
+                WaterHops,
+                WaterRMS,
+                Cornish,
+                Egos,
+                AmmoniaGBT,
+                MethoPandian,
+                MethoPestalozzi,
+                MethoMMB,
+                Higal70,
+                RedSpitzer,
+                RedMSX,
+                Molcat]
+    all_data = []
+
     def __init__(self):
-        # Should collect and run each catalog
-        # Execute the match script methods
-        # Write each matched catalog to file
+        for obj in self.all_objs:
+            data = obj()
+            data.match()
+            data.write()
+            self.all_data.append(data)
+        self.process()
+
+    def process(self):
+        self.merge()
+        self.add_evol_flags()
+        self.write()
+
+    def merge(self):
+        pass
+
+    def add_evo_flags(self):
         # Perform additional operations for group flags
+        pass
+
+    def write(self):
         # Write master catalog to file
         pass
 
@@ -673,10 +705,12 @@ class Data(object):
     Parent class for object-catalogs to be matched with `Matcher`
     """
     def match(self):
+        print '-- Matching {0}'.format(self.name)
         self.matcher = Matcher(self)
         self.matcher.process()
 
     def write(self):
+        print '-- Writing {0}'.format(self.name)
         self.matcher.to_csv()
 
 
@@ -719,7 +753,7 @@ class WaterHops(Data):
         self.noise_col = 'RMS_K'
 
 
-class WaterRMS(Data):
+class WaterRms(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'h2o_rms'
@@ -821,3 +855,44 @@ class Higal70(Data):
         self.det_flags = None
         self.choose_col = 's70cx'
         self.noise_col = 'err_s70cx'
+
+
+class RedSpitzer(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'robit'
+        self.cat = read_cat('robitaille08_red_spitzer')
+        self.lon_col = '_Glon'
+        self.lat_col = '_Glat'
+        self.det_col = 'Class'
+        self.det_flags = ['cYSO']
+        self.choose_col = '[8,0]'
+        self.noise_col = None
+
+
+class RedMSX(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'red_msx'
+        self.cat = read_cat('lumsden13_red_msx')
+        self.lon_col = 'glon'
+        self.lat_col = 'glat'
+        self.det_col = 'Type'
+        self.det_flags = ['YSO', 'HII/YSO', 'Young/old star']
+        self.choose_col = '[8,0]'
+        self.noise_col = None
+
+
+class Molcat(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'mol'
+        self.cat = read_cat('shirley13_molcat')
+        self.lon_col = 'hht_glon'
+        self.lat_col = 'hht_glat'
+        self.det_col = 'mol_vlsr_f'
+        self.det_flags = [1, 2, 3]
+        self.choose_col = 'hco_tpk'
+        self.noise_col = 'hco_tpk_err'
+
+
