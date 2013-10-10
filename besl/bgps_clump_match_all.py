@@ -554,7 +554,7 @@ class Matcher(object):
     cnum_col = 'v210cnum'
 
     def __init__(self, data):
-        # Parametes from data object
+        # Parameters from data object
         self.name = data.name
         self.cat = data.cat
         self.lon_col = data.lon_col
@@ -578,10 +578,11 @@ class Matcher(object):
         """
         # Don't clobber original columns in BGPS
         #  Do first so as to not rename following named flags
-        self.cat = self.cat.rename(columns={col: self.name + '_' + col for
-                                            col in self.cat.columns})
         for col in self.cat.columns:
-            self.bgps[col] = _np.nan
+            if col in self.bgps.columns:
+                self.bgps['_' + col] = _np.nan
+            else:
+                self.bgps[col] = _np.nan
         # New column for number of matched sources
         self.bgps_count_col = self.name + '_n'
         self.bgps[self.bgps_count_col] = _np.nan
@@ -652,7 +653,9 @@ class Matcher(object):
         """
         Write BGPS catalog to `.csv` file.
         """
-        self.bgps.to_csv('bgps' + self.name + '.csv', index=False)
+        self.bgps = self.bgps.rename(columns={col: self.name + '_' + col for
+                                              col in self.bgps.columns[20:]})
+        self.bgps.to_csv('bgps_' + self.name + '.csv', index=False)
 
 
 class DataSet(object):
@@ -800,7 +803,7 @@ class WaterHops(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'h2o_hops'
-        self.cat = read_cat('walsh11_hosp_h2o')
+        self.cat = read_cat('walsh11_hops_h2o')
         self.lon_col = 'lPeak_deg'
         self.lat_col = 'bPeak_deg'
         self.det_col = None
@@ -922,7 +925,7 @@ class RedSpitzer(Data):
         self.lat_col = '_Glat'
         self.det_col = 'Class'
         self.det_flags = ['cYSO']
-        self.choose_col = '[8,0]'
+        self.choose_col = '[8.0]'
         self.noise_col = None
 
 
@@ -935,7 +938,7 @@ class RedMsx(Data):
         self.lat_col = 'glat'
         self.det_col = 'Type'
         self.det_flags = ['YSO', 'HII/YSO', 'Young/old star']
-        self.choose_col = '[8,0]'
+        self.choose_col = None
         self.noise_col = None
 
 
