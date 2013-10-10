@@ -659,19 +659,19 @@ class Matcher(object):
 
 
 class DataSet(object):
-    all_objs = [WaterGBT,
+    all_objs = [WaterGbt,
                 WaterArcetri,
                 WaterHops,
-                WaterRMS,
+                WaterRms,
                 Cornish,
                 Egos,
-                AmmoniaGBT,
+                AmmoniaGbt,
                 MethoPandian,
                 MethoPestalozzi,
-                MethoMMB,
+                MethoMmb,
                 Higal70,
                 RedSpitzer,
-                RedMSX,
+                RedMsx,
                 Molcat]
     all_data = []
 
@@ -683,21 +683,25 @@ class DataSet(object):
             self.all_data.append(data)
         self.process()
 
+    def _merge(self):
+        print '-- Merging data'
+        merged_data = read_bgps(v=210)
+        for data in self.all_data:
+            merged_data = merged_data.merge(data, how='left')
+        self.merged_data = merged_data
+
+    def _add_evo_flags(self):
+        print '-- Adding evolutionary flags'
+        self.merged_data = append_evo_flags(md=self.merged_data)
+
+    def _write(self):
+        print '-- Writing all merged data'
+        self.merged_data.to_csv('bgps_v210_all.csv', index=False)
+
     def process(self):
-        self.merge()
-        self.add_evol_flags()
-        self.write()
-
-    def merge(self):
-        pass
-
-    def add_evo_flags(self):
-        # Perform additional operations for group flags
-        pass
-
-    def write(self):
-        # Write master catalog to file
-        pass
+        self._merge()
+        self._add_evo_flags()
+        self._write()
 
 
 class Data(object):
@@ -714,7 +718,61 @@ class Data(object):
         self.matcher.to_csv()
 
 
-class WaterGBT(Data):
+def append_evo_flags(bgps):
+    """
+    Calculate and append evolutionary flags to BGPS catalog
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
+    evo_flags = ['h2o_f', 'ch3oh_f', 'ego_f', 'ir_f', 'uchii_f', 'sf_f']
+    for col in evo_flags:
+        bgps[col] = _np.nan
+    # H2O flags
+    bgps[((bgps['h2o_gbt_n'] > 0) & (bgps['h2o_gbt_f'] == 0)) &
+         _np.logical_not(bgps['h2o_rms_n'] > 0) &
+         _np.logical_not(bgps['h2o_arc_n'] > 0) &
+         _np.logical_not(bgps['h2o_hops_n'] > 0)]['h2o_f'] = 0
+    bgps[(bgps['h2o_gbt_f'] > 0) |
+         (bgps['h2o_rms_n'] > 0) |
+         (bgps['h2o_arc_n'] > 0) |
+         (bgps['h2o_hops_n'] > 0)]['h2o_f'] = 1
+    # CH3OH flags
+    bgps[(bgps['ch3oh_pesta'] > 0) |
+         (bgps['ch3oh_pandi'] > 0) |
+         (bgps['ch3oh_mmb'] > 0)]['ch3oh_f'] = 1
+    # EGO flags
+    bgps[(bgps['ego_n'] > 0)]['ego_f'] = 1
+    # IR flags
+    bgps[(bgps['robit_f'] > 0) |
+         (bgps['red_msx_f'] > 0) |
+         (bgps['ego_n'] > 0)]['ir_f'] = 1
+    bgps[(bgps['ir_f'] != 1) &
+         (((bgps['robit_n'] > 0) & (bgps['robit_f'] == 0)) |
+          ((bgps['red_msx_n'] > 0) & (bgps['red_msx_f'] == 0)))]['ir_f'] = 2
+    # UCHII flags
+    bgps[(bgps['corn_n'] > 0)]['uchii_f'] = 1
+    # Starless
+    bgps[(bgps['h2o_f'] == 0) &
+         (bgps['ch3oh_f'] != 1) &
+         _np.logical_not(bgps['ir_f'].isin([1, 2])) &
+         (bgps['uchii_f'] != 1)]['sf_f'] = 0
+    bgps[(bgps['h2o_f'] == 1) |
+         (bgps['ch3oh_f'] == 1) |
+         (bgps['ir_f'] == 1) |
+         (bgps['uchii_f'] == 1)]['sf_f'] = 1
+    return bgps
+
+
+###############################################################################
+#                          Catalog Data Objects
+###############################################################################
+
+
+class WaterGbt(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'h2o_gbt'
@@ -769,7 +827,7 @@ class WaterRms(Data):
 class Cornish(Data):
     def __init__(self):
         # Catalog parameters
-        self.name = 'cornish'
+        self.name = 'corn'
         self.cat = read_cat('cornish_uchii')
         self.lon_col = 'l_deg'
         self.lat_col = 'b_deg'
@@ -782,7 +840,7 @@ class Cornish(Data):
 class Egos(Data):
     def __init__(self):
         # Catalog parameters
-        self.name = 'egos'
+        self.name = 'ego'
         self.cat = read_cat('ego_all')
         self.lon_col = '_Glon'
         self.lat_col = '_Glat'
@@ -792,10 +850,10 @@ class Egos(Data):
         self.noise_col = None
 
 
-class AmmoniaGBT(Data):
+class AmmoniaGbt(Data):
     def __init__(self):
         # Catalog parameters
-        self.name = 'gbt_nh3'
+        self.name = 'nh3_gbt'
         self.cat = read_cat('gbt_nh3')
         self.lon_col = 'glon'
         self.lat_col = 'glat'
@@ -808,7 +866,7 @@ class AmmoniaGBT(Data):
 class MethoPandian(Data):
     def __init__(self):
         # Catalog parameters
-        self.name = 'pandi_ch3oh'
+        self.name = 'ch3oh_pandi'
         self.cat = read_cat('pandian11')
         self.lon_col = 'glon'
         self.lat_col = 'glat'
@@ -821,7 +879,7 @@ class MethoPandian(Data):
 class MethoPestalozzi(Data):
     def __init__(self):
         # Catalog parameters
-        self.name = 'pesta_ch3oh'
+        self.name = 'ch3oh_pesta'
         self.cat = read_cat('pestalozzi05')
         self.lon_col = '_Glon'
         self.lat_col = '_Glat'
@@ -831,10 +889,10 @@ class MethoPestalozzi(Data):
         self.noise_col = None
 
 
-class MethoMMB(Data):
+class MethoMmb(Data):
     def __init__(self):
         # Catalog parameters
-        self.name = 'mmb_ch3oh'
+        self.name = 'ch3oh_mmb'
         self.cat = read_cat('mmb_all')
         self.lon_col = 'glon'
         self.lat_col = 'glat'
@@ -847,7 +905,7 @@ class MethoMMB(Data):
 class Higal70(Data):
     def __init__(self):
         # Catalog parameters
-        self.name = 'higal_70'
+        self.name = 'higal70'
         self.cat = read_cat('higal_70')
         self.lon_col = 'glon_70'
         self.lat_col = 'glat_70'
@@ -870,7 +928,7 @@ class RedSpitzer(Data):
         self.noise_col = None
 
 
-class RedMSX(Data):
+class RedMsx(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'red_msx'
