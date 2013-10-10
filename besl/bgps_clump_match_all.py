@@ -551,6 +551,7 @@ class Matcher(object):
     ----------
     """
     v = 210
+    cnum_col = 'v210cnum'
 
     def __init__(self, data):
         # Parametes from data object
@@ -564,7 +565,7 @@ class Matcher(object):
         self.noise_col = data.noise_col
         self.data = data
         # BGPS data
-        self.bgps = read_bgps(v=self.v)
+        self.bgps = read_bgps(v=self.v).set_index(self.cnum_col)
         # Process and match
         self._add_new_cols()
         self._make_haystack()
@@ -577,13 +578,10 @@ class Matcher(object):
         """
         # Don't clobber original columns in BGPS
         #  Do first so as to not rename following named flags
-        if self.choose_col is not None:
-            for col in self.cat.columns:
-                if col in self.bgps.columns:
-                    self.cat.rename(columns={col:
-                                    self.name + '_' + col})
-            for col in self.cat.columns:
-                self.bgps[col] = _np.nan
+        self.cat = self.cat.rename(columns={col: self.name + '_' + col for
+                                            col in self.cat.columns})
+        for col in self.cat.columns:
+            self.bgps[col] = _np.nan
         # New column for number of matched sources
         self.bgps_count_col = self.name + '_n'
         self.bgps[self.bgps_count_col] = _np.nan
@@ -600,16 +598,6 @@ class Matcher(object):
         self.haystack = self.cat[[self.lon_col,
                                   self.lat_col]].values
 
-    def _enter_matched(self, ix, cnum):
-        """
-        Insert the indices of the matched sources into the matched source
-        dictionary with the BGPS cnum as the key.
-        """
-        if cnum not in self.matched_ix.keys():
-            self.matched_ix[cnum] = []
-        if (not _np.isnan(cnum)) | (cnum != 0):
-            self.matched_ix[cnum].append(ix)
-
     def _match(self):
         """
         Match each source in the child catalog to the BGPS.
@@ -620,6 +608,15 @@ class Matcher(object):
         for cat_ix, coord in zip(ids, haystack):
             cnum = sample_bgps_img(coord[0], coord[1], v=self.v)
             self._enter_matched(cat_ix, cnum)
+
+    def _enter_matched(self, ix, cnum):
+        """
+        Insert the indices of the matched sources into the matched source
+        dictionary with the BGPS cnum as the key.
+        """
+        if (not _np.isnan(cnum)) & (cnum != 0):
+            self.matched_ix.setdefault(cnum, [])
+            self.matched_ix[cnum].append(ix)
 
     def process(self):
         """
@@ -659,24 +656,23 @@ class Matcher(object):
 
 
 class DataSet(object):
-    all_objs = [WaterGbt,
-                WaterArcetri,
-                WaterHops,
-                WaterRms,
-                Cornish,
-                Egos,
-                AmmoniaGbt,
-                MethoPandian,
-                MethoPestalozzi,
-                MethoMmb,
-                Higal70,
-                RedSpitzer,
-                RedMsx,
-                Molcat]
-    all_data = []
-
     def __init__(self):
-        for obj in self.all_objs:
+        self.all_data = []
+        all_objs = [WaterGbt,
+                    WaterArcetri,
+                    WaterHops,
+                    WaterRms,
+                    Cornish,
+                    Egos,
+                    AmmoniaGbt,
+                    MethoPandian,
+                    MethoPestalozzi,
+                    MethoMmb,
+                    Higal70,
+                    RedSpitzer,
+                    RedMsx,
+                    Molcat]
+        for obj in all_objs:
             data = obj()
             data.match()
             data.write()
@@ -685,14 +681,16 @@ class DataSet(object):
 
     def _merge(self):
         print '-- Merging data'
-        merged_data = read_bgps(v=210)
+        merged_data = read_bgps(v=210).set_index('v210cnum')
         for data in self.all_data:
-            merged_data = merged_data.merge(data, how='left')
+            merged_data = merged_data.merge(data, how='left',
+                                            left_index=True,
+                                            right_index=True)
         self.merged_data = merged_data
 
-    def _add_evo_flags(self):
+    def _append_evo_flags(self):
         print '-- Adding evolutionary flags'
-        self.merged_data = append_evo_flags(md=self.merged_data)
+        self.merged_data = append_evo_flags(bgps=self.merged_data)
 
     def _write(self):
         print '-- Writing all merged data'
@@ -700,7 +698,7 @@ class DataSet(object):
 
     def process(self):
         self._merge()
-        self._add_evo_flags()
+        self._append_evo_flags()
         self._write()
 
 
@@ -733,8 +731,8 @@ def append_evo_flags(bgps):
         bgps[col] = _np.nan
     # H2O flags
     bgps[((bgps['h2o_gbt_n'] > 0) & (bgps['h2o_gbt_f'] == 0)) &
+         _np.logical_not(bgps['h2o_arc_f'] > 0) &
          _np.logical_not(bgps['h2o_rms_n'] > 0) &
-         _np.logical_not(bgps['h2o_arc_n'] > 0) &
          _np.logical_not(bgps['h2o_hops_n'] > 0)]['h2o_f'] = 0
     bgps[(bgps['h2o_gbt_f'] > 0) |
          (bgps['h2o_rms_n'] > 0) |
