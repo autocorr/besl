@@ -552,6 +552,7 @@ class Matcher(object):
     """
     v = 210
     cnum_col = 'v210cnum'
+    n_bgps_cols = 20  # with cnum as index
 
     def __init__(self, data):
         # Parameters from data object
@@ -584,11 +585,11 @@ class Matcher(object):
             else:
                 self.bgps[col] = _np.nan
         # New column for number of matched sources
-        self.bgps_count_col = self.name + '_n'
+        self.bgps_count_col = 'n'
         self.bgps[self.bgps_count_col] = _np.nan
         # For number of detections
         if self.det_col is not None:
-            self.bgps_det_col = self.name + '_f'
+            self.bgps_det_col = 'f'
             self.bgps[self.bgps_det_col] = _np.nan
 
     def _make_haystack(self):
@@ -619,6 +620,14 @@ class Matcher(object):
             self.matched_ix.setdefault(cnum, [])
             self.matched_ix[cnum].append(ix)
 
+    def _drop_orig_cols(self):
+        """
+        Drop original columns to the BGPS leaving just the matched and the
+        catlaog number as the index.
+        """
+        self.bgps_culled = self.bgps.drop(labels=self.bgps.columns[
+                                          :self.n_bgps_cols], axis=1)
+
     def process(self):
         """
         Simple processing to add:
@@ -648,13 +657,15 @@ class Matcher(object):
                 else:
                     choose_ix = cat_indices[0]
                 self.bgps.ix[cnum, self.cat.columns] = self.cat.ix[choose_ix]
+        self.bgps = self.bgps.rename(columns={col: self.name + '_' + col for
+                                              col in self.bgps.columns[
+                                              self.n_bgps_cols:]})
+        self._drop_orig_cols()
 
     def to_csv(self):
         """
         Write BGPS catalog to `.csv` file.
         """
-        self.bgps = self.bgps.rename(columns={col: self.name + '_' + col for
-                                              col in self.bgps.columns[20:]})
         self.bgps.to_csv('bgps_' + self.name + '.csv', index=False)
 
 
@@ -686,7 +697,8 @@ class DataSet(object):
         print '-- Merging data'
         merged_data = read_bgps(v=210).set_index('v210cnum')
         for data in self.all_data:
-            merged_data = merged_data.merge(data, how='left',
+            merge_cat = data.matcher.bgps_culled
+            merged_data = merged_data.merge(merge_cat, how='left',
                                             left_index=True,
                                             right_index=True)
         self.merged_data = merged_data
@@ -715,7 +727,6 @@ class Data(object):
         self.matcher.process()
 
     def write(self):
-        print '-- Writing {0}'.format(self.name)
         self.matcher.to_csv()
 
 
