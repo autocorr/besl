@@ -698,7 +698,7 @@ class DataSet(object):
         merged_data = read_bgps(v=210).set_index('v210cnum')
         for data in self.all_data:
             merge_cat = data.matcher.bgps_culled
-            merged_data = merged_data.merge(merge_cat, how='left',
+            merged_data = merged_data.merge(merge_cat,
                                             left_index=True,
                                             right_index=True)
         self.merged_data = merged_data
@@ -744,38 +744,38 @@ def append_evo_flags(bgps):
     for col in evo_flags:
         bgps[col] = _np.nan
     # H2O flags
-    bgps[((bgps['h2o_gbt_n'] > 0) & (bgps['h2o_gbt_f'] == 0)) &
-         _np.logical_not(bgps['h2o_arc_f'] > 0) &
-         _np.logical_not(bgps['h2o_rms_n'] > 0) &
-         _np.logical_not(bgps['h2o_hops_n'] > 0)]['h2o_f'] = 0
-    bgps[(bgps['h2o_gbt_f'] > 0) |
-         (bgps['h2o_rms_n'] > 0) |
-         (bgps['h2o_arc_n'] > 0) |
-         (bgps['h2o_hops_n'] > 0)]['h2o_f'] = 1
+    bgps['h2o_f'][((bgps['h2o_gbt_n'] > 0) & (bgps['h2o_gbt_f'] == 0)) &
+                  _np.logical_not(bgps['h2o_arc_f'] > 0) &
+                  _np.logical_not(bgps['h2o_rms_n'] > 0) &
+                  _np.logical_not(bgps['h2o_hops_n'] > 0)] = 0
+    bgps['h2o_f'][(bgps['h2o_gbt_f'] > 0) |
+                  (bgps['h2o_rms_n'] > 0) |
+                  (bgps['h2o_arc_n'] > 0) |
+                  (bgps['h2o_hops_n'] > 0)] = 1
     # CH3OH flags
-    bgps[(bgps['ch3oh_pesta'] > 0) |
-         (bgps['ch3oh_pandi'] > 0) |
-         (bgps['ch3oh_mmb'] > 0)]['ch3oh_f'] = 1
+    bgps['ch3oh_f'][(bgps['ch3oh_pesta_n'] > 0) |
+                    (bgps['ch3oh_pandi_n'] > 0) |
+                    (bgps['ch3oh_mmb_n'] > 0)] = 1
     # EGO flags
-    bgps[(bgps['ego_n'] > 0)]['ego_f'] = 1
+    bgps['ego_f'][(bgps['ego_n'] > 0)] = 1
     # IR flags
-    bgps[(bgps['robit_f'] > 0) |
-         (bgps['red_msx_f'] > 0) |
-         (bgps['ego_n'] > 0)]['ir_f'] = 1
-    bgps[(bgps['ir_f'] != 1) &
-         (((bgps['robit_n'] > 0) & (bgps['robit_f'] == 0)) |
-          ((bgps['red_msx_n'] > 0) & (bgps['red_msx_f'] == 0)))]['ir_f'] = 2
+    bgps['ir_f'][(bgps['robit_f'] > 0) |
+                 (bgps['red_msx_f'] > 0) |
+                 (bgps['ego_n'] > 0)] = 1
+    bgps['ir_f'][(bgps['ir_f'] != 1) &
+                 (((bgps['robit_n'] > 0) & (bgps['robit_f'] == 0)) |
+                  ((bgps['red_msx_n'] > 0) & (bgps['red_msx_f'] == 0)))] = 2
     # UCHII flags
-    bgps[(bgps['corn_n'] > 0)]['uchii_f'] = 1
+    bgps['uchii_f'][(bgps['corn_n'] > 0)] = 1
     # Starless
-    bgps[(bgps['h2o_f'] == 0) &
-         (bgps['ch3oh_f'] != 1) &
-         _np.logical_not(bgps['ir_f'].isin([1, 2])) &
-         (bgps['uchii_f'] != 1)]['sf_f'] = 0
-    bgps[(bgps['h2o_f'] == 1) |
-         (bgps['ch3oh_f'] == 1) |
-         (bgps['ir_f'] == 1) |
-         (bgps['uchii_f'] == 1)]['sf_f'] = 1
+    bgps['sf_f'][(bgps['h2o_f'] == 0) &
+                 (bgps['ch3oh_f'] != 1) &
+                 _np.logical_not(bgps['ir_f'].isin([1, 2])) &
+                 (bgps['uchii_f'] != 1)] = 0
+    bgps['sf_f'][(bgps['h2o_f'] == 1) |
+                 (bgps['ch3oh_f'] == 1) |
+                 (bgps['ir_f'] == 1) |
+                 (bgps['uchii_f'] == 1)] = 1
     return bgps
 
 
