@@ -709,7 +709,7 @@ class DataSet(object):
 
     def _write(self):
         print '-- Writing all merged data'
-        self.merged_data.to_csv('bgps_v210_all.csv', index=False)
+        self.merged_data.to_csv('bgps_v210_all_full.csv', index=False)
 
     def process(self):
         self._merge()

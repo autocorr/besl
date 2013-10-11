@@ -11,7 +11,7 @@ import catalog, mathf, image, units
 import numpy as _np
 
 
-def bgps_rind_area(cnum):
+def bgps_rind_area(cnum, v=210):
     """
     Calculate the area of a BGPS clump from the number of pixels in the
     rind map / labelmask.
@@ -26,10 +26,8 @@ def bgps_rind_area(cnum):
     area : number
         Area of clump in square arcseconds
     """
-    bgps = catalog.read_bgps()
-    field_cnum = bgps[bgps.cnum == cnum]['field_cnum'].values[0]
-    rind = image.get_bgps_img(cnum, exten='labelmask')
-    clump_pixels = _np.argwhere(rind[0].data == field_cnum)
+    rind = image.get_bgps_img(cnum, exten='labelmask', v=210)
+    clump_pixels = _np.argwhere(rind[0].data == cnum)
     area = clump_pixels.shape[0] * 7.2**2
     return area
 

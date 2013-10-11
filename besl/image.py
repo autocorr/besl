@@ -59,10 +59,12 @@ def get_bgps_img(identifier, exten, v=201):
                 210: 'v2.1.0'}
     ver_init = {1: 'v1.0.2', 2: 'v2.0_ds2', 201: 'v2.0_ds2',
                 '2d': 'v2.0_ds2', 210: 'v2.0_ds2'}
+    cnum_col = {1: 'cnum', 2: 'cnum', 201: 'cnum',
+                '2d': 'cnum', 210: 'v210cnum'}
     # cnum or field
     if isinstance(identifier, (float, int)):
         bgps = read_bgps(exten='none', v=v)
-        c_index = _np.argwhere(bgps.cnum == identifier)[0][0]
+        c_index = _np.argwhere(bgps[cnum_col[v]] == identifier)[0][0]
         field = bgps.ix[c_index, 'field']
     elif isinstance(identifier, (str)):
         field = identifier
