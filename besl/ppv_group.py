@@ -14,8 +14,9 @@ import pandas as pd
 import cPickle as pickle
 from collections import deque
 from multiprocessing import Pool
+from scipy.special import erf
 from rtree import index
-from .catalog import read_bgps_vel, read_cat
+from .catalog import read_bgps_vel, read_cat, read_dpdf
 
 
 def build_tree(df=None, cols=('glon_peak','glat_peak','vlsr'),
@@ -338,6 +339,89 @@ class ClusterDBSCAN(object):
         return self.cluster_df
 
 
+class PpvBroadcaster(object):
+    """
+    Calculate posterior DPDF for clumps associated by PPV groups.
+    """
+    rolloff_dist = 100.
+    evo = read_cat('bgps_v210_evo').set_index('v210cnum')
+    velos = read_cat('bgps_v210_vel').set_index('v210cnum')
+    dpdf_props = read_cat('emaf_v210_dpdf_props').set_index('v210cnum')
+    omni = read_dpdf(v=21)
+    xdist = np.linspace(omni[2].data[0][2],  # start
+                        omni[2].data[0][1] * omni[2].data[0][0],  # start * nbins
+                        omni[2].data[0][0])  # nbins
+    posteriors = {}
+
+    def __init__(self, cluster):
+        self.groups = cluster.cluster_nodes
+        self.angle_lim = cluster.lims[0]
+        self.velo_lim = cluster.lims[1]
+        self.conflict_frac = cluster.conflict_frac
+
+    def process_posteriors(self):
+        for items in self.groups.iteritems():
+            group_nodes, group_kdars, kdar_flag = items
+            # Disregard groups with no KDARs
+            if len(group_kdars) == 0:
+                continue
+            for node in group_nodes:
+                posterior = self.weighted_posterior(node, group_nodes)
+                self.posteriors[node] = posterior
+
+    def weighted_posterior(self, node, group_nodes):
+        # Remove current node from cluster nodes
+        group_nodes = group_nodes[node != group_nodes]
+        # get node KDAR
+        node_kdar = self.dpdf_props.ix[node, 'dpdf_KDAR']
+        omni_index = np.argwhere(self.dpdf_props.index == node)[0][0]
+        # If node already has KDAR, then return it's DPDF
+        if node_kdar is in ['N', 'F', 'O']:
+            posterior = self.omni[7].data[omni_index]
+            return posterior
+        # else, select nodes with KDARs
+        # for nodes with KDARs, calculate weights
+        # average emaf priors by weights
+        # average node specific priors
+        # apply group-conflict prior
+        pass
+
+    def distance_weight(self, angle_sep, velo_sep):
+        """
+        Calculate distance based weights for a node to all other nodes in
+        the group. Uses a Gaussian based weighting at radii-search / 3.
+
+        Parameters
+        ----------
+        angle_sep : number
+            Angle seperation between in degrees
+        velo_sep : number
+            Velocity seperation between nodes in km/s
+
+        Returns
+        -------
+        weight : number
+        """
+        return np.exp(-(angle_sep**2 + (self.angle_lim / self.velo_lim)**2
+                      * velo_sep**2) / (2 * (self.angle_lim / 3.)**2))
+
+    def conflict_prior(self, tan_dist, kdar_flag):
+        if kdar_flag == 'N':
+            peak_select = 1.0
+        elif kdar_flag == 'F':
+            peak_select = -1.0
+        else:
+            return np.ones(self.xdist.shape)
+        return peak_select * self.conflict_frac \
+                * erf((self.xdist - tan_dist) / self.rolloff_dist) + 1.0
+
+    def combine_weights(self):
+        pass
+
+    def save(self, outname='ppv_dpdf_posteriors'):
+        pickle.dump(self.posteriors, open(outname + '.pickle', 'wb'))
+
+
 class ClusterRegion(object):
     """
     Create DS9 region files from a `ClusterDBSCAN` instance.
@@ -603,7 +687,7 @@ def kdar_flag_region(out_filen='kdar_flags'):
     # Read in data
     df = read_bgps_vel()
     df = df.set_index('v210cnum')
-    dpdf = read_cat('bgps_kdars_v210')
+    dpdf = read_cat('bgps_v210_kdars')
     dpdf = dpdf[dpdf['kdar'] != 'U']
     # Preamble
     all_lines = 'global color=green font="helvetica 10 normal" select=1 ' + \
