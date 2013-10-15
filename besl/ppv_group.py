@@ -17,6 +17,7 @@ from multiprocessing import Pool
 from scipy.special import erf
 from rtree import index
 from .catalog import read_bgps_vel, read_cat, read_dpdf
+from .coord import sep
 
 
 def build_tree(df=None, cols=('glon_peak','glat_peak','vlsr'),
@@ -346,7 +347,7 @@ class PpvBroadcaster(object):
     rolloff_dist = 100.
     evo = read_cat('bgps_v210_evo').set_index('v210cnum')
     velos = read_cat('bgps_v210_vel').set_index('v210cnum')
-    dpdf_props = read_cat('emaf_v210_dpdf_props').set_index('v210cnum')
+    dpdf_props = read_cat('bgps_v210_dpdf_props').set_index('v210cnum')
     omni = read_dpdf(v=21)
     xdist = np.linspace(omni[2].data[0][2],  # start
                         omni[2].data[0][1] * omni[2].data[0][0],  # start * nbins
@@ -359,6 +360,73 @@ class PpvBroadcaster(object):
         self.velo_lim = cluster.lims[1]
         self.conflict_frac = cluster.conflict_frac
 
+    def _get_omni_index(self, node):
+        """
+        Calculate the index in the DPDF array for a given catalog number.
+
+        Parameters
+        ----------
+        node : number
+            Catalog number
+
+        Returns
+        -------
+        omni_index : number
+            Index of the distance-omnibus fits table
+        """
+        return np.argwhere(self.dpdf_props.index == node)[0][0]
+
+    def _get_emaf_prior(self, node):
+        """
+        Get the EMAF prior from the distance-omnibus fits table for a given
+        catalog number.
+
+        Parameters
+        ----------
+        node : number
+            Catalog number
+
+        Returns
+        -------
+        emaf : array
+            EMAF prior distribution array
+        """
+        omni_index = self._get_omni_index(node)
+        return self.omni[6].data[omni_index]
+
+    def _assign_default_posterior(self, node, omni_index):
+        """
+        For a node that already has a well-constrained DPDF, assign it's own
+        posterior to the posteriors dictionary.
+
+        Parameters
+        ----------
+        node : number
+            Catalog number
+        omni_index : number
+            Index of the distance-omnibus fits table
+        """
+        posterior = self.omni[7].data[omni_index]
+        self.posteriors[node] = posterior
+
+    def _combine_weighted_emaf(self, weights):
+        """
+        Combine the EMAF priors for nodes in a cluster that have
+        well-constrained DPDFs. The EMAFs are weighted by distance from the
+        home-node, given a dictionary of nodes-to-weights.
+
+        Parameters
+        ----------
+        weights : dict
+            Weights for their associated catalog number
+        """
+        weight_sum = np.sum([w for w in weights.values()])
+        weighted_emaf = np.zeros(self.xdist.shape)
+        for node, weight in weights.items():
+            weighted_emaf += weight * self._get_emaf_prior(node)
+        weighted_emaf /= weight_sum
+        # TODO
+
     def process_posteriors(self):
         for items in self.groups.iteritems():
             group_nodes, group_kdars, kdar_flag = items
@@ -366,25 +434,41 @@ class PpvBroadcaster(object):
             if len(group_kdars) == 0:
                 continue
             for node in group_nodes:
-                posterior = self.weighted_posterior(node, group_nodes)
-                self.posteriors[node] = posterior
+                self.weighted_posterior(node, group_nodes)
 
-    def weighted_posterior(self, node, group_nodes):
+    def weighted_posterior(self, home_node, group_nodes):
         # Remove current node from cluster nodes
-        group_nodes = group_nodes[node != group_nodes]
-        # get node KDAR
-        node_kdar = self.dpdf_props.ix[node, 'dpdf_KDAR']
-        omni_index = np.argwhere(self.dpdf_props.index == node)[0][0]
+        group_nodes = group_nodes[home_node != group_nodes]
+        # Get node KDAR
+        home_node_kdar = self.dpdf_props.ix[home_node, 'dpdf_KDAR']
+        # Select nodes with KDARs
+        kdar_nodes = self.dpdf_props.ix[group_nodes, 'dpdf_KDAR']
+        kdar_nodes = kdar_nodes[kdar_nodes.isin(['N', 'F'])].index
+        # Index in distance omnibus fits object for node
+        omni_index = self._get_omni_index(home_node)
         # If node already has KDAR, then return it's DPDF
-        if node_kdar is in ['N', 'F', 'O']:
-            posterior = self.omni[7].data[omni_index]
-            return posterior
-        # else, select nodes with KDARs
-        # for nodes with KDARs, calculate weights
+        if home_node_kdar in ['N', 'F', 'O']:
+            self._assign_default_posterior(home_node, omni_index)
+        elif (home_node_kdar == 'T') & (len(kdar_nodes) == 0):
+            self._assign_default_posterior(home_node, omni_index)
+        # For nodes with KDARs, calculate weights
+        home_node_glon = self.dpdf_props.ix[home_node, 'dpdf_glon']
+        home_node_glat = self.dpdf_props.ix[home_node, 'dpdf_glat']
+        home_node_velo = self.velos.ix[home_node, 'all_vlsr']
+        weights = {}
+        for node in kdar_nodes:
+            # Current node coordinates
+            glon = self.dpdf_props.ix[node, 'dpdf_glon']
+            glat = self.dpdf_props.ix[node, 'dpdf_glat']
+            velo = self.velos.ix[node, 'all_vlsr']
+            # Calc seperation between kdar node and home node
+            coord_sep = sep(home_node_glat, home_node_glon, glat, glon)
+            velo_sep = np.abs(home_node_velo - velo)
+            # Calculate weights
+            weights[node] = self.distance_weight(coord_sep, velo_sep)
         # average emaf priors by weights
         # average node specific priors
         # apply group-conflict prior
-        pass
 
     def distance_weight(self, angle_sep, velo_sep):
         """
@@ -414,9 +498,6 @@ class PpvBroadcaster(object):
             return np.ones(self.xdist.shape)
         return peak_select * self.conflict_frac \
                 * erf((self.xdist - tan_dist) / self.rolloff_dist) + 1.0
-
-    def combine_weights(self):
-        pass
 
     def save(self, outname='ppv_dpdf_posteriors'):
         pickle.dump(self.posteriors, open(outname + '.pickle', 'wb'))
