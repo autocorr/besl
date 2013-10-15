@@ -342,7 +342,9 @@ class ClusterDBSCAN(object):
 
 class PpvBroadcaster(object):
     """
-    Calculate posterior DPDF for clumps associated by PPV groups.
+    Calculate posterior DPDF for clumps associated by PPV groups. Applies a
+    distance weighted average EMAF prior to a clumps own priors within a
+    PPV-group. The final feature is downweighted by the conflict fraction.
     """
     rolloff_dist = 100.
     evo = read_cat('bgps_v210_evo').set_index('v210cnum')
@@ -428,6 +430,22 @@ class PpvBroadcaster(object):
         return weighted_emaf / weight_sum
 
     def _apply_weighted_emaf(self, node, weighted_emaf):
+        """
+        Apply the distance-weighted EMAF prior to the nodes own priors and
+        also apply the group-conflict prior. Returns normalized output.
+
+        Parameters
+        ----------
+        node : number
+            Catalog number for current node
+        weighted_emaf : numpy.array
+            Distance-weighted EMAF
+
+        Returns
+        -------
+        posterior : numpy.array
+            Normalized posterior probability distribution
+        """
         omni_index = self._get_omni_index(node)
         posterior = np.ones(self.dpdf_shape)
         # Combine priors of node
@@ -442,6 +460,8 @@ class PpvBroadcaster(object):
         else:
             kdar_flag = 'F'
         posterior *= self._make_conflict_prior(tan_dist, kdar_flag)
+        # Re-normalize
+        posterior /= np.sum(posterior)
         return posterior
 
     def _distance_weight(self, angle_sep, velo_sep):
@@ -488,15 +508,32 @@ class PpvBroadcaster(object):
                * erf((self.xdist - tan_dist) / self.rolloff_dist) + 1.0
 
     def process_posteriors(self):
+        """
+        Calculate and apply the weighted posteriors, then add them to the
+        posteriors dictionary.
+        """
         for items in self.groups.iteritems():
             group_nodes, group_kdars, kdar_flag = items
             # Disregard groups with no KDARs
             if len(group_kdars) == 0:
                 continue
             for node in group_nodes:
-                self.weighted_posterior(node, group_nodes)
+                self.calc_weighted_posterior(node, group_nodes)
 
-    def weighted_posterior(self, home_node, group_nodes):
+    def calc_weighted_posterior(self, home_node, group_nodes):
+        """
+        For a given node ("Home Node") and the other members of it's group,
+        calculate the distance-weighted average of the EMAF priors and apply
+        them to the node. Downweight by a step-function like prior to account
+        for the group misidentification rate.
+
+        Parameters
+        ----------
+        home_node : number
+            Catalog number for current node
+        group_nodes : list-like
+            List of catalog numbers for members of the group
+        """
         # Remove current node from cluster nodes
         group_nodes = group_nodes[home_node != group_nodes]
         # Get node KDAR
@@ -526,10 +563,11 @@ class PpvBroadcaster(object):
             velo_sep = np.abs(home_node_velo - velo)
             # Calculate weights
             weights[node] = self._distance_weight(coord_sep, velo_sep)
+        # Average EMAF priors by weights
         weighted_emaf = self._combine_weighted_emaf(weights)
-        # average emaf priors by weights
-        # average node specific priors
-        # apply group-conflict prior
+        # Average node specific priors, weighted EMAF, and group conflict prior
+        posterior = self._apply_weighted_emaf(home_node, weighted_emaf)
+        self.posteriors[home_node] = posterior
 
     def save(self, outname='ppv_dpdf_posteriors'):
         """
