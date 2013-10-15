@@ -345,6 +345,16 @@ class PpvBroadcaster(object):
     Calculate posterior DPDF for clumps associated by PPV groups. Applies a
     distance weighted average EMAF prior to a clumps own priors within a
     PPV-group. The final feature is downweighted by the conflict fraction.
+
+    Parameters
+    ----------
+    cluster : ClusterDBSCAN
+        PPV-grouping algorithm `ClusterDBSCAN` instance
+
+    Attributes
+    ----------
+    posteriors : dict
+        Resultant DPDFs for a catalog number
     """
     rolloff_dist = 100.
     evo = read_cat('bgps_v210_evo').set_index('v210cnum')
