@@ -352,6 +352,7 @@ class PpvBroadcaster(object):
     xdist = np.linspace(omni[2].data[0][2],  # start
                         omni[2].data[0][1] * omni[2].data[0][0],  # start * nbins
                         omni[2].data[0][0])  # nbins
+    dpdf_shape = xdist.shape
     posteriors = {}
 
     def __init__(self, cluster):
@@ -421,11 +422,70 @@ class PpvBroadcaster(object):
             Weights for their associated catalog number
         """
         weight_sum = np.sum([w for w in weights.values()])
-        weighted_emaf = np.zeros(self.xdist.shape)
+        weighted_emaf = np.zeros(self.dpdf_shape)
         for node, weight in weights.items():
             weighted_emaf += weight * self._get_emaf_prior(node)
-        weighted_emaf /= weight_sum
-        # TODO
+        return weighted_emaf / weight_sum
+
+    def _apply_weighted_emaf(self, node, weighted_emaf):
+        omni_index = self._get_omni_index(node)
+        posterior = np.ones(self.dpdf_shape)
+        # Combine priors of node
+        for i in range(2, 7):
+            posterior *= self.omni[i].data[omni_index]
+        # Apply group distance-weighted EMAF prior
+        posterior *= weighted_emaf
+        # Apply group conflict fraction prior
+        tan_dist = self.dpdf_props.ix[node, 'dpdf_dtan']
+        if self.xdist[posterior.argmax()] < tan_dist:
+            kdar_flag = 'N'
+        else:
+            kdar_flag = 'F'
+        posterior *= self._make_conflict_prior(tan_dist, kdar_flag)
+        return posterior
+
+    def _distance_weight(self, angle_sep, velo_sep):
+        """
+        Calculate distance based weights for a node to all other nodes in
+        the group. Uses a Gaussian based weighting at radii-search / 3.
+
+        Parameters
+        ----------
+        angle_sep : number
+            Angle seperation between in degrees
+        velo_sep : number
+            Velocity seperation between nodes in km/s
+
+        Returns
+        -------
+        weight : number
+        """
+        return np.exp(-(angle_sep**2 + (self.angle_lim / self.velo_lim)**2
+                        * velo_sep**2) / (2 * (self.angle_lim / 3.)**2))
+
+    def _make_conflict_prior(self, tan_dist, kdar_flag):
+        """
+        Create an array for the group-conflict fraction. Based on an Error
+        function centered on the tangent distance that downweights the given
+        KDAR flag position.build_tree
+
+        Parameters
+        ----------
+        tan_dist : number
+            Tangent distance in pc
+        kdar_flag : str
+            Distance to downweight for conflict of group associations. Valid
+            inputs include "N" and "F".
+
+        Returns
+        -------
+        conflict_prior : numpy.array
+        """
+        if kdar_flag not in ['N', 'F']:
+            raise ValueError('Invalid KDAR flag {0}.'.format(kdar_flag))
+        peak_select = {'N': 1.0, 'F': -1.0}
+        return peak_select[kdar_flag] * self.conflict_frac \
+               * erf((self.xdist - tan_dist) / self.rolloff_dist) + 1.0
 
     def process_posteriors(self):
         for items in self.groups.iteritems():
@@ -465,41 +525,21 @@ class PpvBroadcaster(object):
             coord_sep = sep(home_node_glat, home_node_glon, glat, glon)
             velo_sep = np.abs(home_node_velo - velo)
             # Calculate weights
-            weights[node] = self.distance_weight(coord_sep, velo_sep)
+            weights[node] = self._distance_weight(coord_sep, velo_sep)
+        weighted_emaf = self._combine_weighted_emaf(weights)
         # average emaf priors by weights
         # average node specific priors
         # apply group-conflict prior
 
-    def distance_weight(self, angle_sep, velo_sep):
+    def save(self, outname='ppv_dpdf_posteriors'):
         """
-        Calculate distance based weights for a node to all other nodes in
-        the group. Uses a Gaussian based weighting at radii-search / 3.
+        Save and pickle the posteriors dictionary to a file `outname`
 
         Parameters
         ----------
-        angle_sep : number
-            Angle seperation between in degrees
-        velo_sep : number
-            Velocity seperation between nodes in km/s
-
-        Returns
-        -------
-        weight : number
+        outname : str
+            Name of output pickle file. File ends in '.pickle' extension.
         """
-        return np.exp(-(angle_sep**2 + (self.angle_lim / self.velo_lim)**2
-                      * velo_sep**2) / (2 * (self.angle_lim / 3.)**2))
-
-    def conflict_prior(self, tan_dist, kdar_flag):
-        if kdar_flag == 'N':
-            peak_select = 1.0
-        elif kdar_flag == 'F':
-            peak_select = -1.0
-        else:
-            return np.ones(self.xdist.shape)
-        return peak_select * self.conflict_frac \
-                * erf((self.xdist - tan_dist) / self.rolloff_dist) + 1.0
-
-    def save(self, outname='ppv_dpdf_posteriors'):
         pickle.dump(self.posteriors, open(outname + '.pickle', 'wb'))
 
 
