@@ -104,7 +104,7 @@ class ClusterDBSCAN(object):
     def __init__(self,
                  cols=['glon_peak', 'glat_peak', 'all_vlsr'],
                  flag_col='vlsr_f',
-                 lims=[0.1, 3.5],
+                 lims=[0.065, 4.0],
                  min_points=1,
                  **kwargs):
         # Set values
@@ -209,9 +209,9 @@ class ClusterDBSCAN(object):
         Read and process data for DPDFs, velocity catalog, and select sources
         with well-resolved KDAs.
         """
-        df = read_bgps_vel()
+        df = read_cat('bgps_' + self.ver + '_vel').set_index(self.ver + 'cnum')
         df = df[df[self.cols[2]].notnull()]
-        dpdf = read_cat('bgps_kdars_' + self.ver)
+        dpdf = read_cat('bgps_' + self.ver + '_kdars')
         cnums = dpdf[self.ver + 'cnum']
         kdars = dpdf['kdar']
         # Check well resolved KDAs
@@ -253,12 +253,11 @@ class ClusterDBSCAN(object):
         # KDAR nodes in cluster
         good_cnums = self.good_cnums
         self.kdar_skipped = 0
-        for cnum, kdar in good_cnums:
+        for ii, kdar in good_cnums:
             # Should only continue if more stringent velocity flags
-            if cnum not in df[self.ver + 'cnum'].values:
+            if ii not in df.index:
                 self.kdar_skipped += 1
                 continue
-            ii = df[df[self.ver + 'cnum'] == cnum].index[0]
             cid = self.tree[ii][1]
             cluster_nodes[cid][1].append(kdar)
         # Check unique KDARs
@@ -326,7 +325,6 @@ class ClusterDBSCAN(object):
                 'group_kdars']
         table_data = []
         for ix in self.tree.iterkeys():
-            cnum = self.df.ix[ix, self.ver + 'cnum']
             cid = self.tree[ix][1]
             group_f = self.cluster_nodes[cid][2]
             if cid == -1:
@@ -335,7 +333,7 @@ class ClusterDBSCAN(object):
             else:
                 group_size = len(self.cluster_nodes[cid][0])
                 group_kdars = len(self.cluster_nodes[cid][1])
-            table_data.append([cnum, cid, group_size, group_f, group_kdars])
+            table_data.append([ix, cid, group_size, group_f, group_kdars])
         self.cluster_df = pd.DataFrame(table_data, columns=cols).sort(cols[0])
         return self.cluster_df
 
@@ -368,10 +366,12 @@ class PpvBroadcaster(object):
     posteriors = {}
 
     def __init__(self, cluster):
+        self.cluster = cluster
         self.groups = cluster.cluster_nodes
         self.angle_lim = cluster.lims[0]
         self.velo_lim = cluster.lims[1]
         self.conflict_frac = cluster.conflict_frac
+        self.skipped_nodes = 0
 
     def _get_omni_index(self, node):
         """
@@ -459,7 +459,7 @@ class PpvBroadcaster(object):
         omni_index = self._get_omni_index(node)
         posterior = np.ones(self.dpdf_shape)
         # Combine priors of node
-        for i in range(2, 7):
+        for i in range(3, 7):
             posterior *= self.omni[i].data[omni_index]
         # Apply group distance-weighted EMAF prior
         posterior *= weighted_emaf
@@ -522,7 +522,7 @@ class PpvBroadcaster(object):
         Calculate and apply the weighted posteriors, then add them to the
         posteriors dictionary.
         """
-        for items in self.groups.iteritems():
+        for cid, items in self.groups.iteritems():
             group_nodes, group_kdars, kdar_flag = items
             # Disregard groups with no KDARs
             if len(group_kdars) == 0:
@@ -544,10 +544,17 @@ class PpvBroadcaster(object):
         group_nodes : list-like
             List of catalog numbers for members of the group
         """
+        # FIXME get all kinematic distance priors from Tim
+        if home_node not in self.dpdf_props.index:
+            self.skipped_nodes += 1
+            return
         # Remove current node from cluster nodes
-        group_nodes = group_nodes[home_node != group_nodes]
-        # Get node KDAR
+        group_nodes = [n for n in group_nodes if n != home_node]
+        # Get home node properties
         home_node_kdar = self.dpdf_props.ix[home_node, 'dpdf_KDAR']
+        home_node_glon = self.dpdf_props.ix[home_node, 'dpdf_glon']
+        home_node_glat = self.dpdf_props.ix[home_node, 'dpdf_glat']
+        home_node_velo = self.velos.ix[home_node, 'all_vlsr']
         # Select nodes with KDARs
         kdar_nodes = self.dpdf_props.ix[group_nodes, 'dpdf_KDAR']
         kdar_nodes = kdar_nodes[kdar_nodes.isin(['N', 'F'])].index
@@ -559,9 +566,6 @@ class PpvBroadcaster(object):
         elif (home_node_kdar == 'T') & (len(kdar_nodes) == 0):
             self._assign_default_posterior(home_node, omni_index)
         # For nodes with KDARs, calculate weights
-        home_node_glon = self.dpdf_props.ix[home_node, 'dpdf_glon']
-        home_node_glat = self.dpdf_props.ix[home_node, 'dpdf_glat']
-        home_node_velo = self.velos.ix[home_node, 'all_vlsr']
         weights = {}
         for node in kdar_nodes:
             # Current node coordinates
