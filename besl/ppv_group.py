@@ -355,23 +355,26 @@ class PpvBroadcaster(object):
         Resultant DPDFs for a catalog number
     """
     rolloff_dist = 100.
-    evo = read_cat('bgps_v210_evo').set_index('v210cnum')
-    velos = read_cat('bgps_v210_vel').set_index('v210cnum')
-    dpdf_props = read_cat('bgps_v210_dpdf_props').set_index('v210cnum')
-    omni = read_dpdf(v=21)
-    xdist = np.linspace(omni[2].data[0][2],  # start
-                        omni[2].data[0][1] * omni[2].data[0][0],  # start * nbins
-                        omni[2].data[0][0])  # nbins
-    dpdf_shape = xdist.shape
     posteriors = {}
 
     def __init__(self, cluster):
+        # Cluster parameters
         self.cluster = cluster
         self.groups = cluster.cluster_nodes
         self.angle_lim = cluster.lims[0]
         self.velo_lim = cluster.lims[1]
         self.conflict_frac = cluster.conflict_frac
-        self.skipped_nodes = 0
+        # Data files
+        self.evo = read_cat('bgps_v210_evo').set_index('v210cnum')
+        self.velos = read_cat('bgps_v210_vel').set_index('v210cnum')
+        self.dpdf_props = read_cat('bgps_v210_dpdf_props').set_index(
+            'v210cnum')
+        self.omni = read_dpdf(v=2)
+        # start, start * nbins, nbins
+        self.xdist = np.linspace(self.omni[2].data[0][2],
+                                 self.omni[2].data[0][1] * self.omni[2].data[0][0],
+                                 self.omni[2].data[0][0])
+        self.dpdf_shape = self.xdist.shape
 
     def _get_omni_index(self, node):
         """
@@ -404,8 +407,9 @@ class PpvBroadcaster(object):
         emaf : array
             EMAF prior distribution array
         """
+        emaf_col = 6
         omni_index = self._get_omni_index(node)
-        return self.omni[6].data[omni_index]
+        return self.omni[emaf_col].data[omni_index]
 
     def _assign_default_posterior(self, node, omni_index):
         """
@@ -419,7 +423,8 @@ class PpvBroadcaster(object):
         omni_index : number
             Index of the distance-omnibus fits table
         """
-        posterior = self.omni[7].data[omni_index]
+        post_col = 8
+        posterior = self.omni[post_col].data[omni_index]
         self.posteriors[node] = posterior
 
     def _combine_weighted_emaf(self, weights):
@@ -459,8 +464,9 @@ class PpvBroadcaster(object):
         omni_index = self._get_omni_index(node)
         posterior = np.ones(self.dpdf_shape)
         # Combine priors of node
-        for i in range(3, 7):
-            posterior *= self.omni[i].data[omni_index]
+        prior_cols = range(3, 7)
+        for ii in prior_cols:
+            posterior *= self.omni[ii].data[omni_index]
         # Apply group distance-weighted EMAF prior
         posterior *= weighted_emaf
         # Apply group conflict fraction prior
@@ -523,10 +529,10 @@ class PpvBroadcaster(object):
         posteriors dictionary.
         """
         for cid, items in self.groups.iteritems():
-            group_nodes, group_kdars, kdar_flag = items
-            # Disregard groups with no KDARs
-            if len(group_kdars) == 0:
+            # Cluster-ID of -1 for no groups
+            if cid == -1:
                 continue
+            group_nodes, group_kdars, kdar_flag = items
             for node in group_nodes:
                 self.calc_weighted_posterior(node, group_nodes)
 
@@ -544,12 +550,11 @@ class PpvBroadcaster(object):
         group_nodes : list-like
             List of catalog numbers for members of the group
         """
-        # FIXME get all kinematic distance priors from Tim
-        if home_node not in self.dpdf_props.index:
-            self.skipped_nodes += 1
-            return
+        assert home_node in self.dpdf_props.index
         # Remove current node from cluster nodes
         group_nodes = [n for n in group_nodes if n != home_node]
+        # Index in distance omnibus fits object for node
+        omni_index = self._get_omni_index(home_node)
         # Get home node properties
         home_node_kdar = self.dpdf_props.ix[home_node, 'dpdf_KDAR']
         home_node_glon = self.dpdf_props.ix[home_node, 'dpdf_glon']
@@ -558,30 +563,32 @@ class PpvBroadcaster(object):
         # Select nodes with KDARs
         kdar_nodes = self.dpdf_props.ix[group_nodes, 'dpdf_KDAR']
         kdar_nodes = kdar_nodes[kdar_nodes.isin(['N', 'F'])].index
-        # Index in distance omnibus fits object for node
-        omni_index = self._get_omni_index(home_node)
         # If node already has KDAR, then return it's DPDF
         if home_node_kdar in ['N', 'F', 'O']:
             self._assign_default_posterior(home_node, omni_index)
         elif (home_node_kdar == 'T') & (len(kdar_nodes) == 0):
             self._assign_default_posterior(home_node, omni_index)
-        # For nodes with KDARs, calculate weights
-        weights = {}
-        for node in kdar_nodes:
-            # Current node coordinates
-            glon = self.dpdf_props.ix[node, 'dpdf_glon']
-            glat = self.dpdf_props.ix[node, 'dpdf_glat']
-            velo = self.velos.ix[node, 'all_vlsr']
-            # Calc seperation between kdar node and home node
-            coord_sep = sep(home_node_glat, home_node_glon, glat, glon)
-            velo_sep = np.abs(home_node_velo - velo)
-            # Calculate weights
-            weights[node] = self._distance_weight(coord_sep, velo_sep)
-        # Average EMAF priors by weights
-        weighted_emaf = self._combine_weighted_emaf(weights)
-        # Average node specific priors, weighted EMAF, and group conflict prior
-        posterior = self._apply_weighted_emaf(home_node, weighted_emaf)
-        self.posteriors[home_node] = posterior
+        elif len(kdar_nodes) == 0:
+            pass
+        else:
+            # For neighbor nodes with KDARs, calculate weights
+            weights = {}
+            for node in kdar_nodes:
+                # Current node coordinates
+                glon = self.dpdf_props.ix[node, 'dpdf_glon']
+                glat = self.dpdf_props.ix[node, 'dpdf_glat']
+                velo = self.velos.ix[node, 'all_vlsr']
+                # Calc seperation between kdar node and home node
+                coord_sep = sep(home_node_glat, home_node_glon, glat, glon)
+                velo_sep = np.abs(home_node_velo - velo)
+                # Calculate weights
+                weights[node] = self._distance_weight(coord_sep, velo_sep)
+            # Average EMAF priors by weights
+            weighted_emaf = self._combine_weighted_emaf(weights)
+            # Average node specific priors, weighted EMAF, and group conflict
+            # prior
+            posterior = self._apply_weighted_emaf(home_node, weighted_emaf)
+            self.posteriors[home_node] = posterior
 
     def save(self, outname='ppv_dpdf_posteriors'):
         """
