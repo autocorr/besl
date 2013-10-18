@@ -16,7 +16,9 @@ Routines for handling EMAF DPDF's. Citation: Ellsworth-Bowers et al. (2013).
 import os as _os
 import numpy as _np
 import pandas as _pd
-import catalog, units
+import catalog
+import units
+from .util import convert_endian
 from scipy.interpolate import interp1d
 from scipy.stats import gaussian_kde
 
@@ -582,20 +584,31 @@ def write_emaf_table():
     Only works on v2.1.0.
     """
     # Read in data
-    dpdf = catalog.read_dpdf(v=21)
+    dpdf = catalog.read_dpdf(v=2)
     tab1 = _pd.DataFrame(dpdf[1].data)
     tab1 = tab1.rename(columns={key: 'dpdf_' + key.lower() + '_f' for key in
         tab1.columns})
     tab1 = tab1.rename(columns={'dpdf_cnum_f': 'v210cnum'})
     tab2 = []
     tab2_header = ['dpdf_' + elem for elem in ['dML', 'dMLm', 'dMLp', 'dBAR',
-    'dBAR_err', 'PML', 'FW68', 'dtan', 'KDAR']]
-    for row in dpdf[8].data:
+                   'dBAR_err', 'PML', 'FW68', 'dtan', 'KDAR']]
+    for row in dpdf[9].data:
         tab2.append([row[0][0], row[0][1], row[0][2], row[1][0], row[1][1],
             row[3], row[4], row[5], row[6]])
     tab2 = _pd.DataFrame(tab2, columns=tab2_header)
+    # Table for velocity information
+    tab3 = _pd.DataFrame(dpdf[10].data)
+    tab3 = tab3.rename(columns={key: 'dpdf_' + key.lower() for key in tab3.columns})
+    # Convert to system Endian format
+    tab1 = convert_endian(tab1)
+    tab2 = convert_endian(tab2)
+    tab3 = convert_endian(tab3)
+    # Merge tables
     emaf = tab1.join(tab2)
-    emaf.to_csv('emaf_dist_v210.csv', index=False)
+    emaf = emaf.join(tab3)
+    emaf = emaf.rename(columns={'dpdf_glon_f': 'dpdf_glon',
+                                'dpdf_glat_f': 'dpdf_glat'})
+    emaf.to_csv('bgps_v210_dpdf_props.csv', index=False)
     return emaf
 
 
