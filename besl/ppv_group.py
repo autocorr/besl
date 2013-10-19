@@ -356,6 +356,7 @@ class PpvBroadcaster(object):
     """
     rolloff_dist = 100.
     posteriors = {}
+    weighted_emafs = {}
 
     def __init__(self, cluster):
         # Cluster parameters
@@ -411,7 +412,7 @@ class PpvBroadcaster(object):
         omni_index = self._get_omni_index(node)
         return self.omni[emaf_col].data[omni_index]
 
-    def _assign_default_posterior(self, node, omni_index):
+    def _assign_default_posterior(self, node):
         """
         For a node that already has a well-constrained DPDF, assign it's own
         posterior to the posteriors dictionary.
@@ -424,6 +425,7 @@ class PpvBroadcaster(object):
             Index of the distance-omnibus fits table
         """
         post_col = 8
+        omni_index = self._get_omni_index(node)
         posterior = self.omni[post_col].data[omni_index]
         self.posteriors[node] = posterior
 
@@ -523,18 +525,30 @@ class PpvBroadcaster(object):
         return peak_select[kdar_flag] * self.conflict_frac \
                * erf((self.xdist - tan_dist) / self.rolloff_dist) + 1.0
 
+    def _process_isolated(self, isolated_nodes):
+        """
+        Assign default posteriors to nodes that are isolated but have
+        well-constrained DPDFs.
+        """
+        for node in isolated_nodes:
+            omni_index = self._get_omni_index(node)
+            node_kdar = self.dpdf_props.ix[node, 'dpdf_KDAR']
+            if node_kdar in ['N', 'T', 'F', 'O']:
+                self._assign_default_posterior(node)
+
     def process_posteriors(self):
         """
         Calculate and apply the weighted posteriors, then add them to the
         posteriors dictionary.
         """
         for cid, items in self.groups.iteritems():
+            group_nodes, group_kdars, kdar_flag = items
             # Cluster-ID of -1 for no groups
             if cid == -1:
-                continue
-            group_nodes, group_kdars, kdar_flag = items
-            for node in group_nodes:
-                self.calc_weighted_posterior(node, group_nodes)
+                self._process_isolated(group_nodes)
+            else:
+                for node in group_nodes:
+                    self.calc_weighted_posterior(node, group_nodes)
 
     def calc_weighted_posterior(self, home_node, group_nodes):
         """
@@ -565,9 +579,9 @@ class PpvBroadcaster(object):
         kdar_nodes = kdar_nodes[kdar_nodes.isin(['N', 'F'])].index
         # If node already has KDAR, then return it's DPDF
         if home_node_kdar in ['N', 'F', 'O']:
-            self._assign_default_posterior(home_node, omni_index)
+            self._assign_default_posterior(home_node)
         elif (home_node_kdar == 'T') & (len(kdar_nodes) == 0):
-            self._assign_default_posterior(home_node, omni_index)
+            self._assign_default_posterior(home_node)
         elif len(kdar_nodes) == 0:
             pass
         else:
@@ -585,6 +599,7 @@ class PpvBroadcaster(object):
                 weights[node] = self._distance_weight(coord_sep, velo_sep)
             # Average EMAF priors by weights
             weighted_emaf = self._combine_weighted_emaf(weights)
+            self.weighted_emafs[home_node] = weighted_emaf
             # Average node specific priors, weighted EMAF, and group conflict
             # prior
             posterior = self._apply_weighted_emaf(home_node, weighted_emaf)
