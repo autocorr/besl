@@ -498,8 +498,10 @@ class PpvBroadcaster(object):
         -------
         weight : number
         """
+        lim_multiple = 1.
         return np.exp(-(angle_sep**2 + (self.angle_lim / self.velo_lim)**2
-                        * velo_sep**2) / (2 * (self.angle_lim / 3.)**2))
+                        * velo_sep**2) / (2 * (self.angle_lim /
+                                               lim_multiple)**2))
 
     def _make_conflict_prior(self, tan_dist, kdar_flag):
         """
