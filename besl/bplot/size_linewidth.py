@@ -200,17 +200,17 @@ def write_stages_plot(bgps):
         kwargs = {'shape': shape, 'stages_labels': stage_label, 'colors': colors,
                   'ax_labels': ax_labels}
         # HCO+ size linewidth
-        hco_stages = dpdf_calc.gen_stages(bgps=bgps[bgps.hco_f.isin([1,3])],
+        hco_stages = dpdf_calc.evo_stages(bgps=bgps[bgps.hco_f.isin([1,3])],
             stages_group=i)
         fig, ax = general_size_linewidth(stages=hco_stages, xcol='avg_diam',
                 ycol='hco_fwhm', **kwargs)
         # N2H+ size linewidth
-        nnh_stages = dpdf_calc.gen_stages(bgps=bgps[bgps.nnh_f.isin([1,3])],
+        nnh_stages = dpdf_calc.evo_stages(bgps=bgps[bgps.nnh_f.isin([1,3])],
             stages_group=i)
         fig, ax = general_size_linewidth(stages=nnh_stages, xcol='avg_diam',
                 ycol='nnh_fwhm', **kwargs)
         # H2O spread linewidth
-        h2o_stages = dpdf_calc.gen_stages(bgps=bgps[bgps.h2o_gbt_f == 1],
+        h2o_stages = dpdf_calc.evo_stages(bgps=bgps[bgps.h2o_gbt_f == 1],
             stages_group=i)
         fig, ax = general_size_linewidth(stages=h2o_stages, xcol='avg_diam',
                 ycol='h2o_vsp', **kwargs)

@@ -12,7 +12,7 @@ import pandas as _pd
 from matplotlib import colors, cm
 import matplotlib.pyplot as _plt
 from besl import catalog, units
-from besl.dpdf_calc import mc_sampler_1d, gen_stages, \
+from besl.dpdf_calc import mc_sampler_1d, evo_stages, \
                            gen_stage_mass_samples, gen_stage_area_samples
 
 
@@ -54,7 +54,7 @@ def stages_hist(label, xlabel, bgps=[]):
     ax : matplotlib.Axes
     """
     # evo stages
-    stages, anno_labels = gen_stages(bgps=bgps, stages_group=2, label=label)
+    stages, anno_labels = evo_stages(bgps=bgps, stages_group=2, label=label)
     # colors
     #colors = ['green', 'SlateBlue', 'red', 'DodgerBlue', 'Orange', 'magenta']
     cNorm = colors.Normalize(vmin=0, vmax=1)
@@ -125,7 +125,7 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
     ax : matplotlib.Axes
     """
     # evo stages
-    stages, anno_labels = gen_stages(bgps=bgps, stages_group=2)
+    stages, anno_labels = evo_stages(bgps=bgps, stages_group=2)
     if label == 'dust_mass':
         xlabel = r'$M_{\rm dust} \ \ [{\rm M_{\odot}}]$'
     elif label == 'rind_surf_area':
@@ -258,7 +258,7 @@ def print_properties(bgps, out_filen='bgps_props.txt'):
         Name of outfile
     """
     out_file = open(out_filen, 'w')
-    df_list, anno_labels = gen_stages(bgps=bgps)
+    df_list, anno_labels = evo_stages(bgps=bgps)
     df_names = [i.value()[0] for i in anno_labels]
     for i, df in enumerate(df_list):
         df['nnh/hco'] = df[((df.hco_f == 1) | (df.hco_f == 3)) &

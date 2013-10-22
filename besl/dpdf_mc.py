@@ -9,6 +9,7 @@ composite, posterior DPDFs for nodes in PPV-groups.
 """
 
 import cPickle as pickle
+import numpy as np
 from .catalog import read_cat, read_dpdf
 from .coord import sep
 
@@ -26,7 +27,13 @@ class Dpdf(object):
 
 class Sampler(object):
     # x-dist values
-    def __init__(self):
+    def __init__(self, nsamples):
+        self.nsamples = nsamples
+
+    def normal_deviates(self, mean, sdev):
+        np.random.normal(mean, sdev, self.nsamples)
+
+    def distance_samples(self):
         pass
 
 
@@ -35,16 +42,15 @@ class DpdfCollection(object):
     Collection of all DPDFs and their properties. The class also contains
     methods for calculating Monte Carlo sampled properties.
     """
-    bgps = None
-    dpdf_cat = None
-    ppv_group = None
-    dpdfs = {}
+    ver = 'v210'
 
-    def __init__(self):
-        pass
+    def __init__(self, posteriors):
+        self.bgps = read_cat('bgps_v210_evo').set_index(self.ver + 'cnum')
+        self.dpdf_props = read_cat('bgps_v210_dpdf_props').set_index(self.ver +
+                                                                     'cnum')
+        self.posteriors = posteriors
 
     def construct_dpdfs(self):
         pass
-
 
 

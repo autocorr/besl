@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
-from ..dpdf_calc import gen_stages
+from ..dpdf_calc import evo_stages
 from ..catalog import read_bgps
 
 
@@ -24,7 +24,7 @@ def bgps_stages(bin_int=2, verbose=False):
         used with equal length in the xy plane.
     """
     bgps = read_bgps(exten='all')
-    stages, anno_labels = gen_stages(bgps=bgps)
+    stages, anno_labels = evo_stages(bgps=bgps)
     xlims = [10, 60]
     ylims = [-1, 1]
     xbins = np.linspace(xlims[0], xlims[1], 60 * bin_int + 1)

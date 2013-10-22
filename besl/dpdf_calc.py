@@ -18,6 +18,7 @@ import numpy as _np
 import pandas as _pd
 import catalog
 import units
+from .catalog import read_cat
 from .util import convert_endian
 from scipy.interpolate import interp1d
 from scipy.stats import gaussian_kde
@@ -365,7 +366,7 @@ def clump_diameter(dist, area, use_kpc=False):
     return diam_dist
 
 
-def calc_ml_physical_conditions(bgps=[], neighbor=False):
+def calc_ml_physical_conditions(bgps=None, neighbor=False):
     """
     Calculate the physical conditions for all clumps using the maximum
     likelihood distance. Includes: dust mass, diameter, and surface area.
@@ -381,7 +382,7 @@ def calc_ml_physical_conditions(bgps=[], neighbor=False):
     -------
     bgps : pd.DataFrame
     """
-    if len(bgps) == 0:
+    if bgps is None:
         bgps = catalog.read_bgps(exten='all')
     if 'dpdf_dML' not in bgps.columns:
         raise ValueError('Incorrect columns')
@@ -452,7 +453,7 @@ def calc_physical_conditions(bgps=[], v=2, verbose=True):
     return bgps
 
 
-def gen_stages(bgps=[], stages_group=2, label=None):
+def evo_stages(bgps=None, stages_group=2, label=None):
     """
     Generate a list of stages from the BGPS catalog.
 
@@ -461,13 +462,15 @@ def gen_stages(bgps=[], stages_group=2, label=None):
     bgps : pd.DataFrame
         BGPS catalog in a pandas dataframe, requires evolutionary flags from an
         all-matched catalog.
-    stages_group : number, default 3
+    stages_group : number, default 2
         Divisions for grouped stages in return list. Options include:
-            * 0 (2) : starless, protostellar
-            * 1 (3) : starless, IR Y / H2O N, IR Y / H2O Y
-            * 2 (6) : starless, H2O N, IR Y, H2O Y, EGO Y, UCHII Y
+            * 0 (2) : Starless, Protostellar
+            * 1 (3) : Starless, IR Y / H2O N, IR Y / H2O Y
+            * 2 (7) : Starless, H2O N, IR Y, H2O Y, CH3OH Y, UCHII Y
+            * 3 (X) : All survey flags and group flags
     label : string
-        Replace column with NaN's for log plots
+        Replace negative column values associated to a label string with NaN's
+        for log plots.
 
     Returns
     -------
@@ -477,23 +480,22 @@ def gen_stages(bgps=[], stages_group=2, label=None):
         Dictionary of label names
     """
     # Nan values for log-plots
+    if bgps is None:
+        bgps = read_cat('bgps_v210_evo')
     if label is not None:
         bgps[label][bgps[label] <= 0] = _np.nan
-    # evo stages
+    # Evolutionary stage sets
     if stages_group == 0:
-        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f ==
-            0) & (bgps.ch3oh_f != 1)]
-        protostellar = bgps[(bgps.h2o_f == 1) | (bgps.corn_n > 0) | (bgps.ir_f
-            == 1) | (bgps.ch3oh_f == 1)]
+        starless = bgps[bgps.sf_f == 0]
+        protostellar = bgps[bgps.sf_f == 1]
         stages = [starless, protostellar]
         anno_labels = [
             {'label': 'Starless'},
             {'label': 'Protostellar'}]
         return stages, anno_labels
     elif stages_group == 1:
-        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) & (bgps.ir_f ==
-            0) & (bgps.ch3oh_f != 1)]
-        h2o_no = bgps[(bgps.h2o_f == 0 ) & (bgps.ir_f == 1)]
+        starless = bgps[bgps.sf_f == 0]
+        h2o_no = bgps[(bgps.h2o_f == 0) & (bgps.ir_f == 1)]
         h2o_yes = bgps[(bgps.h2o_f > 0) & (bgps.ir_f == 1)]
         stages = [starless, h2o_no, h2o_yes]
         anno_labels = [
@@ -502,23 +504,56 @@ def gen_stages(bgps=[], stages_group=2, label=None):
             {'label': r'${\rm H_2O \ \ Y}$'}]
         return stages, anno_labels
     elif stages_group == 2:
-        starless = bgps[(bgps.h2o_f == 0) & (bgps.corn_n == 0) &
-                        (bgps.ir_f == 0) & (bgps.ch3oh_f != 1)]
+        starless = bgps[bgps.sf_f == 0]
         h2o_no = bgps[bgps.h2o_f == 0]
         ir_yes = bgps[bgps.ir_f == 1]
         h2o_yes = bgps[bgps.h2o_f == 1]
-        ego_yes = bgps[bgps.ego_n > 0]
         ch3oh_yes = bgps[bgps.ch3oh_f == 1]
         hii_yes = bgps[bgps.corn_n > 0]
-        stages = [starless, h2o_no, ir_yes, h2o_yes, ego_yes, ch3oh_yes, hii_yes]
+        stages = [starless, h2o_no, ir_yes, h2o_yes, ch3oh_yes, hii_yes]
         anno_labels = [
             {'label': r'${\rm Starless}$'},
             {'label': r'${\rm H_2O \ \  N}$'},
             {'label': r'${\rm IR \ \ Y}$'},
             {'label': r'${\rm H_2O \ \ Y}$'},
-            {'label': r'${\rm EGO \ \ Y}$'},
             {'label': r'${\rm CH_3OH \ \ Y}$'},
-            {'label': r'${\rm H\sc{II} \ \ Y}$'}]
+            {'label': r'${\rm UCH\sc{II} \ \ Y}$'}]
+        return stages, anno_labels
+    elif stages_group == 3:
+        starless = bgps[bgps.sf_f == 0]
+        h2o_no = bgps[bgps.h2o_f == 0]
+        ir_yes = bgps[bgps.ir_f == 1]
+        robit_yes = bgps[(bgps.robit_n > 0) & (bgps.robit_f > 0)]
+        ego_yes = bgps[bgps.ego_n > 0]
+        rms_yes = bgps[(bgps.red_msx_n > 0) & (bgps.red_msx_f > 0)]
+        h2o_yes = bgps[bgps.h2o_f == 1]
+        gbt_yes = bgps[(bgps.h2o_gbt_n > 0) & (bgps.h2o_gbt_f > 0)]
+        arc_yes = bgps[(bgps.h2o_arc_n > 0) & (bgps.h2o_arc_f > 0)]
+        hops_yes = bgps[(bgps.h2o_hops_n > 0)]
+        ch3oh_yes = bgps[bgps.ch3oh_f == 1]
+        pandi_yes = bgps[(bgps.ch3oh_pandi_n > 0)]
+        mmb_yes = bgps[(bgps.ch3oh_mmb_n > 0)]
+        pesta_yes = bgps[(bgps.ch3oh_pesta_n > 0)]
+        hii_yes = bgps[bgps.corn_n > 0]
+        stages = [starless, h2o_no, ir_yes, robit_yes, ego_yes, rms_yes,
+                  h2o_yes, gbt_yes, arc_yes, hops_yes, ch3oh_yes, pandi_yes,
+                  mmb_yes, pesta_yes, hii_yes]
+        anno_labels = [
+            {'label': r'${\rm Starless}$'},
+            {'label': r'${\rm H_2O \ \  N}$'},
+            {'label': r'${\rm IR \ \ Y}$'},
+            {'label': r'${\rm Robitaille \ \ Y}$'},
+            {'label': r'${\rm EGO \ \ Y}$'},
+            {'label': r'${\rm RMS \ \ Y}$'},
+            {'label': r'${\rm H_2O \ \ Y}$'},
+            {'label': r'${\rm GBT \ \ Y}$'},
+            {'label': r'${\rm Arcetri \ \ Y}$'},
+            {'label': r'${\rm HOPS \ \ Y}$'},
+            {'label': r'${\rm CH_3OH \ \ Y}$'},
+            {'label': r'${\rm MMB \ \ Y}$'},
+            {'label': r'${\rm Pandian \ \ Y}$'},
+            {'label': r'${\rm Pestalozzi \ \ Y}$'},
+            {'label': r'${\rm UCH\sc{II} \ \ Y}$'}]
         return stages, anno_labels
     else:
         raise ValueError('Invalid stages_group: {0}.'.format(stages_group))
