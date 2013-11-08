@@ -12,6 +12,7 @@ import numpy as np
 from .catalog import read_cat, read_dpdf
 from .mathf import pd_weighted_mean
 from scipy.stats import gaussian_kde
+from scipy.interpolate import interp1d
 
 
 class ClumpProp(object):
@@ -27,6 +28,7 @@ class ClumpProp(object):
                         omni[2].data[0][0])
 
     def __init__(self):
+        # check whether has dpdf
         # pdf
         # kinetic temperature
         # initiate sampler
@@ -34,15 +36,56 @@ class ClumpProp(object):
 
 
 class Sampler(object):
-    # x-dist values
-    def __init__(self, nsamples):
-        self.nsamples = nsamples
+    """
+    Simple Monte Carlo sampler.
+    """
+    def __init__(self, data, normal=False):
+        """
+        Initialize the sampler.
 
-    def normal_deviates(self, mean, sdev):
-        np.random.normal(mean, sdev, self.nsamples)
+        Parameters
+        ----------
+        data : tuple
+            Data can be a length 2 tuple containing either:
+                (mu, sigma) : (number, number)
+                    To draw random normal deviates.
+                (x, y) : (array, array)
+                    x & y values of a distribution to interpolate
+        normal : bool
+            Whether to use normal distribution
+        """
+        assert len(data) == 2
+        self.data = data
+        self.normal = normal
 
-    def distance_samples(self):
-        pass
+    def draw(self, nsamples=1e3):
+        """
+        Take a random draw from the distribution.
+
+        Parameters
+        ----------
+        nsamples : number
+            Number of samples to draw
+
+        Returns
+        -------
+        samples : np.array
+        """
+        # Normal deviates
+        if self.normal:
+            return np.random.normal(self.data[0], self.data[1], nsamples)
+        # Random draw from general distribution
+        else:
+            x, y = self.data
+            dx = x[1] - x[0]
+            y_cum = np.cumsum(y) / np.sum(y)
+            # Max of `y_cum` is 1, so only out of bounds values should be less
+            # than the mininum
+            y_int = interp1d(y_cum, x, bounds_error=False,
+                             fill_value=y_cum.min())
+            samples = y_int(np.random.uniform(size=nsamples))
+            samples += dx / 2.
+            return samples
 
 
 class PropCollection(object):
@@ -80,6 +123,8 @@ class TempDistribs(object):
         self.stages = stages
         self.good_tkins = []
         self.tk_fn = []
+        self.get_good_tkins()
+        self.to_distrib()
 
     def get_good_tkins(self, weight=True):
         for stage in self.stages:
