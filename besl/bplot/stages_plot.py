@@ -13,36 +13,52 @@ import pyfits
 import numpy as _np
 import matplotlib.pyplot as _plt
 import matplotlib.patheffects as PathEffects
-from besl import catalog
-import ipdb as pdb
+from ..catalog import read_cat
+from ..image import get_bgps_img
 
-def overplot_markers(gc):
+
+def overplot_markers(gc, add_legend=False):
     """
     Overplot markers for different catalogs over an APLpy axis object.
     """
     # ir cats
-    ego = catalog.read_ego()
-    msx = catalog.read_msx()
-    robit = catalog.read_robitaille()
+    ego = read_cat('ego_all')
+    msx = read_cat('lumsden13_red_msx')
+    msx = msx[msx['Type'].isin(['HII region','YSO','Young/old star',
+                                'HII/YSO'])]
+    robit = read_cat('robitaille08_red_spitzer')
+    robit_yso = robit[robit['Class'].isin(['cYSO'])]
+    robit_agb = robit[robit['Class'].isin(['xAGB', 'sAGB'])]
+    hgps = read_cat('higal_70_clean')
+    gc.show_markers(hgps['GLON'].values, hgps['GLAT'].values, marker='+',
+        color='red', zorder=3, label=r'${\rm HG:70}$')
+    gc.show_markers(robit_yso['_Glon'].values, robit_yso['_Glat'].values,
+        marker='x', edgecolor='red', facecolor='red', zorder=3,
+        label=r'${\rm R08:YSO}$')
+    gc.show_markers(robit_agb['_Glon'].values, robit_agb['_Glat'].values,
+        marker='x', edgecolor='0.35', facecolor='0.35', zorder=3,
+        label=r'${\rm R08:AGB}$')
+    gc.show_markers(msx['glon'].values, msx['glat'].values, marker='p',
+        edgecolor='red', facecolor='none', zorder=3,
+        label=r'${\rm RMS:YSO}$')
     gc.show_markers(ego['_Glon'].values, ego['_Glat'].values, marker='s',
-        edgecolor='orange', facecolor='none', zorder=3)
-    gc.show_markers(msx['glon'].values, msx['glat'].values, marker='x',
-        color='red', zorder=3)
-    gc.show_markers(robit['_Glon'].values, robit['_Glat'].values, marker='+',
-        color='red', zorder=3)
+        edgecolor='orange', facecolor='none', zorder=3, label=r'${\rm EGO}$')
     # h2o cats
     h2o_gbt = catalog.read_gbt_h2o()
     h2o_arc = catalog.read_arcetri_valdettaro()
     h2o_rms = catalog.read_rms_h2o()
     h2o_hops = catalog.read_hops()
     gc.show_markers(h2o_gbt['h2o_glon'].values, h2o_gbt['h2o_glat'].values,
-        marker='o', edgecolor='green', facecolor='none', zorder=3)
+        marker='o', edgecolor='green', facecolor='none', zorder=3,
+        label=r'${\rm GBT \ H_2O:N}$')
     gc.show_markers(h2o_gbt[h2o_gbt.h2o_f == 1]['h2o_glon'].values,
         h2o_gbt[h2o_gbt.h2o_f == 1]['h2o_glat'].values, marker='o',
-        edgecolor='green', facecolor='green', zorder=3)
+        edgecolor='green', facecolor='green', zorder=3,
+        label=r'${\rm GBT \ H_2O:Y}$')
     gc.show_markers(h2o_arc[h2o_arc.h2o_f == 1]['_Glon'].values,
         h2o_arc[h2o_arc.h2o_f == 1]['_Glat'].values, marker='^',
-        edgecolor='green', facecolor='green', zorder=3)
+        edgecolor='green', facecolor='green', zorder=3,
+        label=r'${\rm Lit. \ H_2O}$')
     gc.show_markers(h2o_rms[h2o_rms.h2o_f == 1]['_Glon_x'].values,
         h2o_rms[h2o_rms.h2o_f == 1]['_Glat_x'].values, marker='^',
         edgecolor='green', facecolor='green', zorder=3)
@@ -50,13 +66,25 @@ def overplot_markers(gc):
         h2o_hops['bWeight_deg'].values, marker='^', edgecolor='green',
         facecolor='green', zorder=3)
     # ch3oh cats
-    mmb = catalog.read_mmb()
+    mmb = read_cat('mmb_all')
+    pesta = read_cat('pestalozzi05')
+    pandi = read_cat('pandian11')
     gc.show_markers(mmb['glon'].values, mmb['glat'].values, marker='v',
-        edgecolor='green', facecolor='green', zorder=3)
+        edgecolor='orange', facecolor='orange', zorder=3,
+        label=r'${\rm Lit. CH_3OH}$')
+    gc.show_markers(pesta['_Glon'].values, pesta['_Glat'].values, marker='v',
+        edgecolor='orange', facecolor='orange', zorder=3)
+    gc.show_markers(pandi['glon'].values, pandi['glat'].values, marker='v',
+        edgecolor='orange', facecolor='orange', zorder=3)
     # uchii cats
     corn = catalog.read_cornish(exten='hii')
     gc.show_markers(corn['glon'].values, corn['glat'].values, marker='D',
-         edgecolor='blue', facecolor='none', zorder=3)
+         edgecolor='blue', facecolor='none', zorder=3,
+         label=r'${\rm UCHII}$')
+    if add_legend:
+        _plt.legend(loc='upper center', bbox_to_anchor=(0.125, 0, 0.75, 0.975),
+                    bbox_transform=_plt.gcf().transFigure, ncol=5, fontsize=11,
+                    scatterpoints=1, markerscale=1.3, frameon=False, mode='expand')
     return gc
 
 def overplot_ellipses(gc):
@@ -93,18 +121,41 @@ def overplot_rind(gc, field):
     field_cnums = bgps.ix[bgps.field == field, 'field_cnum'].values
     for cnum in field_cnums:
         Z = _np.zeros((yp, xp))
-        #rind_args = _np.argwhere(
-        #     (rind[0].data[1:-1,1:-1] == cnum) &
-        #    ((rind[0].data[0:-2,1:-1] != cnum) |
-        #     (rind[0].data[2:  ,1:-1] != cnum) |
-        #     (rind[0].data[1:-1,0:-2] != cnum) |
-        #     (rind[0].data[1:-1,2:  ] != cnum)))
         rind_args = _np.argwhere(rind[0].data == cnum)
         Z[rind_args[:,0] + 1, rind_args[:,1] + 1] = 1
         _plt.contour(X, Y, Z, levels=[epsilon], colors='0.25', linewidths=0.5,
             zorder=1)
     rind.close()
     # TODO overplot green contours for starless clumps
+    return gc
+
+def overplot_starless(gc, field):
+    """
+    Overplot label mask contour on an APLpy axis object.
+
+    Parameters
+    ----------
+    gc : APLpy.FITSFigure
+    field : string
+
+    Returns
+    -------
+    gc APLpy.FITSFigure
+    """
+    epsilon = 9e-1 # fudge factor for contouring
+    bgps = read_cat('bgps_v210_evo')
+    bgps = bgps[bgps.sf_f == 0]
+    rind = get_bgps_img(field, exten='labelmask', v=210)
+    yp, xp = rind[0].data.shape
+    X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
+    sl_cnums = bgps.ix[bgps.field == field, 'v210cnum'].values
+    for cnum in sl_cnums:
+        Z = _np.zeros((yp, xp))
+        rind_args = _np.argwhere(rind[0].data == cnum)
+        Z[rind_args[:,0] + 1, rind_args[:,1] + 1] = 1
+        _plt.contour(X, Y, Z, levels=[epsilon], colors='#66FF33', linewidths=2,
+            zorder=1)
+    rind.close()
     return gc
 
 def overplot_cnums(gc, field):
@@ -120,10 +171,10 @@ def overplot_cnums(gc, field):
     -------
     gc APLpy.FITSFigure
     """
-    bgps = catalog.read_bgps()
+    bgps = read_cat('bgps_v210')
     bgps['glon_pix'], bgps['glat_pix'] = gc.world2pixel(bgps['glon_cen'].values,
         bgps['glat_cen'].values)
-    bgps['cnum_str'] = bgps['cnum'].apply(int).apply(str)
+    bgps['cnum_str'] = bgps['v210cnum'].apply(int).apply(str)
     # get BGPS field cnum's
     bgps_select = bgps.ix[bgps.field == field].reset_index()
     cnums = bgps.ix[bgps.field == field, 'cnum'].values
@@ -168,32 +219,31 @@ def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
     field = catalog.select_bgps_field(lon, lat, coord_type='gal')
     fig = _plt.figure(figsize=(10, 5))
     ### Label mask
-    gc1 = aplpy.FITSFigure(
-        '/mnt/eld_data/BGPS/Images/v2.0.0/v2.0_ds2_{}_13pca_labelmask.fits'.format(field),
+    src_img = get_bgps_img(field, exten='labelmask')
+    gc1 = aplpy.FITSFigure(src_img,
         figure=fig, subplot=(1,2,1), convention='calabretta')
     gc1.show_colorscale(cmap='gist_gray', vmin=-0.15, vmax=0.05,
         stretch='linear')
     gc1.recenter(lon, lat, width=dlon, height=dlat)
+    gc1 = overplot_markers(gc1, add_legend=True)
     gc1 = overplot_rind(gc1, field)
-    gc1 = overplot_cnums(gc1, field)
+    gc1 = overplot_starless(gc1, field)
+    #gc1 = overplot_cnums(gc1, field)
     ### BGPS Image
-    gc2 = aplpy.FITSFigure(
-        '/mnt/eld_data/BGPS/Images/v2.0.0/v2.0_ds2_{}_13pca_map20.fits'.format(field),
+    flx_img = get_bgps_img(field, exten='map20')
+    gc2 = aplpy.FITSFigure(flx_img,
         figure=fig, subplot=(1,2,2), convention='calabretta')
     gc2.show_colorscale(cmap='gist_gray_r', vmin=-0.20, vmax=1.0,
         stretch='linear')
     gc2.recenter(lon, lat, width=dlon, height=dlat)
     gc2.hide_ytick_labels()
     gc2.hide_yaxis_label()
+    gc2 = overplot_markers(gc2)
     ### Colorbar
     #gc2.add_colorbar(location='right')
     gc_list = [gc1, gc2]
     for gc in gc_list:
         ### Overplot
-        gc = overplot_markers(gc)
-        #gc = overplot_ellipses(gc)
-        #gc = overplot_cnums(gc, field)
-        #gc = overplot_rind(gc, field)
         ### Grid and ticks
         gc.ticks.set_color('black')
         gc.set_tick_xspacing(0.1)
@@ -209,6 +259,8 @@ def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
     return gc
 
 def test_plot():
-    create_stages_plot(23.377173, -0.23825809, 0.5, 0.5)
+    #create_stages_plot(23.377173, -0.23825809, 0.5, 0.5)
+    #create_stages_plot(32.0, 0, 0.5, 0.5)
+    create_stages_plot(12.80, -0.2, 0.5, 0.5)
 
 
