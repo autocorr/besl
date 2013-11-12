@@ -9,8 +9,9 @@ Plotting routines for DPDFs and sampling.
 
 import numpy as _np
 import pandas as _pd
-from matplotlib import colors, cm
 import matplotlib.pyplot as _plt
+from matplotlib import colors, cm
+from matplotlib.ticker import MaxNLocator
 from besl import catalog, units
 from besl.dpdf_calc import mc_sampler_1d, evo_stages, \
                            gen_stage_mass_samples, gen_stage_area_samples
@@ -36,7 +37,7 @@ def plot_dpdf_sampling(n=200):
     _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
 
-def stages_hist(label, xlabel, bgps=[]):
+def stages_hist(label, xlabel, bgps=None):
     """
     Create a histogram with the evolutionary stages overplotted.
 
@@ -53,6 +54,7 @@ def stages_hist(label, xlabel, bgps=[]):
     fig : matplotlib.Figure
     ax : matplotlib.Axes
     """
+    _plt.rc('font', **{'size':14})
     # evo stages
     stages, anno_labels = evo_stages(bgps=bgps, stages_group=2, label=label)
     # colors
@@ -89,13 +91,14 @@ def stages_hist(label, xlabel, bgps=[]):
         # plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
         ax.set_ylim([0, 1.1 * ymax])
-        ax.locator_params(axis='y', tight=True, nbins=5)
+        ax.yaxis.set_major_locator(MaxNLocator(prune='lower'))
+        ax.locator_params(axis='y', tight=True, nbins=4)
         ax.set_xscale('log')
         #ax.legend(loc=1, frameon=False, numpoints=None, prop={'size':12})
-        ax.annotate(stages_labels[i], xy=(0.875, 0.75), xycoords='axes fraction',
-            fontsize=10)
-        ax.annotate(df.shape[0], xy=(0.05, 0.75), xycoords='axes fraction',
-            fontsize=10)
+        ax.annotate(stages_labels[i], xy=(0.775, 0.65), xycoords='axes fraction',
+            fontsize=13)
+        ax.annotate(df.shape[0], xy=(0.05, 0.65), xycoords='axes fraction',
+            fontsize=13)
     axes[-1].set_xlabel(xlabel)
     # save
     _plt.subplots_adjust(hspace=0.05)
