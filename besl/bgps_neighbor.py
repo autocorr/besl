@@ -21,8 +21,9 @@ def find_clump_neighbors(cnum, v=201):
         BGPS source catalog number
     v : number, default 201
         BGPS version number. Available options:
-            2   -> BGPS v2.0.0
+            200 -> BGPS v2.0.0
             201 -> BGPS v2.0.1
+            210 -> BGPS v2.1.0
 
     Returns
     -------
@@ -30,7 +31,7 @@ def find_clump_neighbors(cnum, v=201):
         Array of unique neighbor's catalog numbers. If no neighbors, returns an
         empty array.
     """
-    if v not in [2, 201]:
+    if v not in [200, 201, 210]:
         raise ValueError
     rind = image.get_bgps_img(cnum, exten='labelmask', v=v)
     # find perimeter pixels

@@ -24,7 +24,7 @@ class Dirs(object):
 d = Dirs()
 
 
-def get_bgps_img(identifier, exten, v=201):
+def get_bgps_img(identifier, exten, v=210):
     """
     Retrieve BGPS image file in astropy.io.fits instance. Only works for v2.
 
@@ -48,18 +48,18 @@ def get_bgps_img(identifier, exten, v=201):
     -------
     img : astropy.io.fits.HDUList
     """
-    if v not in [1, 2, 201, '2d', 210]:
+    if v not in [101, 200, 201, '2d', 210]:
         raise ValueError('Invalid version: {0}'.format(v))
     if exten not in ['labelmask', 'labelmap50', 'map20', 'map50', 'medmap20',
                      'noisemap20']:
         raise ValueError('Incorrect exten: {}.'.format(exten))
     if v == '2d':
         exten = 'labelmask_deeper'
-    ver_path = {1: 'v1.0.2', 2: 'v2.0.0', 201: 'v2.0.1', '2d': 'v2.0.1d',
+    ver_path = {101: 'v1.0.2', 200: 'v2.0.0', 201: 'v2.0.1', '2d': 'v2.0.1d',
                 210: 'v2.1.0'}
-    ver_init = {1: 'v1.0.2', 2: 'v2.0_ds2', 201: 'v2.0_ds2',
+    ver_init = {101: 'v1.0.2', 200: 'v2.0_ds2', 201: 'v2.0_ds2',
                 '2d': 'v2.0_ds2', 210: 'v2.0_ds2'}
-    cnum_col = {1: 'cnum', 2: 'cnum', 201: 'cnum',
+    cnum_col = {101: 'cnum', 200: 'cnum', 201: 'cnum',
                 '2d': 'cnum', 210: 'v210cnum'}
     # cnum or field
     if isinstance(identifier, (float, int)):

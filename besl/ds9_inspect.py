@@ -20,10 +20,7 @@ class Inspector(object):
 
     def __init__(self, cnum):
         self.cnum = cnum
-        self.glonp = self.bgps.ix[cnum, 'glon_peak']
-        self.glatp = self.bgps.ix[cnum, 'glat_peak']
-        self.glonc = self.bgps.ix[cnum, 'glon_cen']
-        self.glatc = self.bgps.ix[cnum, 'glat_cen']
+        self.set_coord()
         self.d = ds9.ds9()
         self._set_init_prefs()
 
@@ -54,8 +51,14 @@ class Inspector(object):
         return rind
 
     def _get_flux(self):
-        flux = get_bgps_img(self.cnum, exten='map20', v=self.v)
+        flux = get_bgps_img(self.cnum, exten='map20', v=200)
         return flux
+
+    def set_coord(self):
+        self.glonp = self.bgps.ix[self.cnum, 'glon_peak']
+        self.glatp = self.bgps.ix[self.cnum, 'glat_peak']
+        self.glonc = self.bgps.ix[self.cnum, 'glon_cen']
+        self.glatc = self.bgps.ix[self.cnum, 'glat_cen']
 
     def show_source_contour(self):
         rind = self._get_rind()
@@ -72,18 +75,19 @@ class Inspector(object):
         self.d.set('contour paste {0}'.format(self.rind_contour_color))
         self.d.set('frame delete {0}'.format(fid))
 
-    def show_flux_contour(self, clevels):
+    def show_flux_contour(self, clevels, color='cyan'):
         fid = self._get_next_frame_id()
         self.d.set('frame {0}'.format(fid))
         flux_img = self._get_flux()
         self.d.set_pyfits(flux_img)
         self.d.set('contour nvelels {0}'.format(len(clevels)))
-        self.d.set('contour levels {' + ' '.join([str(i) for i in clevels]) + '}')
+        self.d.set('contour levels {' + ' '.join([str(i) for i in
+                                                  clevels]) + '}')
         self.d.set('contour smooth 2')
         self.d.set('contour')
         self.d.set('contour copy')
         self.d.set('frame 1')
-        self.d.set('contour paste cyan')
+        self.d.set('contour paste {0}'.format(color))
         self.d.set('frame delete {0}'.format(fid))
 
     def show_peak_cross(self):
@@ -124,6 +128,8 @@ class HiGalInspector(Inspector):
                  'mask_1': 'mask_1._source'}
     zlevel = 8
     max_scale = 1e4
+    low_clevels = [0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
+    high_clevels = [2.0, 3.0, 4.0, 5.0]
 
     def __init__(self, cnum, img_type='source'):
         super(HiGalInspector, self).__init__(cnum)
@@ -137,7 +143,7 @@ class HiGalInspector(Inspector):
         return self.img_file.format(cnum=self.cnum, img_type=self.img_type,
                                     img_str=self.img_types[self.img_type])
 
-    def _get_img(self):
+    def _get_hg_img(self):
         self.img = fits.open(self.filen)
         self.img_max = self.img[0].data.max()
         self.img_max = self.img[0].data.min()
@@ -150,19 +156,19 @@ class HiGalInspector(Inspector):
         else:
             self.d.set('scale mode zscale')
 
-    def source_update(self, cnum, img_type='source'):
+    def update_view(self, cnum, img_type='source'):
         self.cnum = cnum
+        self.set_coord()
         self.img_type = img_type
         self.filen = self._format_img_infile()
-        # FIXME
-        # delete all frames
-        # call __init__ base class
-        # call self.view
-        pass
+        self.d.set('frame delete all')
+        self.view()
 
     def view(self):
-        self._get_img()
+        self._get_hg_img()
         self.show_source_contour()
+        self.show_flux_contour(clevels=self.low_clevels)
+        self.show_flux_contour(clevels=self.high_clevels, color='blue')
         self.zoom(self.zlevel)
         self.set_scale()
 
