@@ -51,7 +51,7 @@ class Inspector(object):
         return rind
 
     def _get_flux(self):
-        flux = get_bgps_img(self.cnum, exten='map20', v=200)
+        flux = get_bgps_img(self.cnum, exten='map20', v=210)
         return flux
 
     def set_coord(self):
@@ -65,6 +65,7 @@ class Inspector(object):
         fid = self._get_next_frame_id()
         self.d.set('frame {0}'.format(fid))
         self.d.set_pyfits(rind)
+        self.d.set('contour width 2')
         self.d.set('contour limits 0 1')
         self.d.set('contour nlevels 1')
         self.d.set('contour smooth 1')
@@ -75,15 +76,17 @@ class Inspector(object):
         self.d.set('contour paste {0}'.format(self.rind_contour_color))
         self.d.set('frame delete {0}'.format(fid))
 
-    def show_flux_contour(self, clevels, color='cyan'):
+    def show_flux_contour(self, clevels, color='cyan', crop_coords=None):
         fid = self._get_next_frame_id()
         self.d.set('frame {0}'.format(fid))
         flux_img = self._get_flux()
         self.d.set_pyfits(flux_img)
+        if crop_coords is not None:
+            self.d.set('crop {0} wcs galactic degrees'.format(crop_coords))
+        self.d.set('contour smooth 2')
         self.d.set('contour nvelels {0}'.format(len(clevels)))
         self.d.set('contour levels {' + ' '.join([str(i) for i in
                                                   clevels]) + '}')
-        self.d.set('contour smooth 2')
         self.d.set('contour')
         self.d.set('contour copy')
         self.d.set('frame 1')
@@ -128,8 +131,8 @@ class HiGalInspector(Inspector):
                  'mask_1': 'mask_1._source'}
     zlevel = 8
     max_scale = 1e4
-    low_clevels = [0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
-    high_clevels = [2.0, 3.0, 4.0, 5.0]
+    low_clevels = [0.1, 0.2, 0.4, 0.6, 0.8]
+    high_clevels = [1.0, 2.0, 3.0, 4.0, 5.0]
 
     def __init__(self, cnum, img_type='source'):
         super(HiGalInspector, self).__init__(cnum)
@@ -147,7 +150,11 @@ class HiGalInspector(Inspector):
         self.img = fits.open(self.filen)
         self.img_max = self.img[0].data.max()
         self.img_max = self.img[0].data.min()
+        self.xpix_max = self.img[0].data.shape[0]
+        self.ypix_max = self.img[0].data.shape[1]
         self.d.set_pyfits(self.img[0])
+        self.d.set('lock frame wcs')
+        self.d.set('wcs sky galactic skyformat degrees')
 
     def set_scale(self):
         self.d.set('scale linear')
@@ -162,14 +169,19 @@ class HiGalInspector(Inspector):
         self.img_type = img_type
         self.filen = self._format_img_infile()
         self.d.set('frame delete all')
+        self.d.set('frame 1')
         self.view()
 
     def view(self):
         self._get_hg_img()
-        self.show_source_contour()
-        self.show_flux_contour(clevels=self.low_clevels)
-        self.show_flux_contour(clevels=self.high_clevels, color='blue')
         self.zoom(self.zlevel)
         self.set_scale()
+        crop_coords = '{0} {1} {2} {3}'.format(
+            self.glonc, self.glatc, 0.2, 0.2)
+        self.show_source_contour()
+        self.show_flux_contour(clevels=self.low_clevels,
+                               crop_coords=crop_coords)
+        self.show_flux_contour(clevels=self.high_clevels, color='blue',
+                               crop_coords=crop_coords)
 
 
