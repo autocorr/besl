@@ -61,7 +61,7 @@ def stages_hist(label, xlabel, bgps=None):
     #colors = ['green', 'SlateBlue', 'red', 'DodgerBlue', 'Orange', 'magenta']
     cNorm = colors.Normalize(vmin=0, vmax=1)
     scalarmap = cm.ScalarMappable(norm=cNorm, cmap=cm.cubehelix)
-    rgb = [scalarmap.to_rgba(i) for i in _np.linspace(0, 1, 7)]
+    rgb = [scalarmap.to_rgba(i) for i in _np.linspace(0, 1, len(stages))]
     # calculate lims and bins
     xmin = _np.nanmin([df[label].min() for df in stages])
     xmax = _np.nanmax([df[label].max() for df in stages])

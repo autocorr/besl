@@ -506,6 +506,9 @@ def evo_stages(bgps=None, stages_group=2, label=None):
     elif stages_group == 2:
         starless = bgps[(bgps.sf_f == 0) & (bgps.higal70_n.isnull() |
                         (bgps.higal70_n == 0))]
+        sl_higal = bgps[(bgps.glon_peak > 10) & (bgps.glon_peak < 60) &
+                        (bgps.sf_f != 1) & (bgps.higal70_n.isnull() |
+                        (bgps.higal70_n == 0))]
         hg_only = bgps[(bgps.higal70_n > 0) & (bgps.h2o_f != 1) &
                        (bgps.ir_f != 1) & (bgps.ch3oh_f != 1) &
                        (bgps.uchii_f != 1)]
@@ -514,10 +517,12 @@ def evo_stages(bgps=None, stages_group=2, label=None):
         h2o_yes = bgps[bgps.h2o_f == 1]
         ch3oh_yes = bgps[bgps.ch3oh_f == 1]
         hii_yes = bgps[bgps.uchii_f == 1]
-        stages = [starless, h2o_no, hg_only, ir_yes, h2o_yes, ch3oh_yes, hii_yes]
+        stages = [starless, sl_higal, h2o_no, hg_only, ir_yes, h2o_yes,
+                  ch3oh_yes, hii_yes]
         anno_labels = [
             {'label': r'${\rm Starless}$'},
-            {'label': r'${\rm H_2O \ \  N, \ IR \ \ Y}$'},
+            {'label': r'${\rm Starless - HiGal}$'},
+            {'label': r'${\rm H_2O \ \ N, \ IR \ \ Y}$'},
             {'label': r'${\rm HiGal \ 70 \ \ Only}$'},
             {'label': r'${\rm IR \ \ Y}$'},
             {'label': r'${\rm H_2O \ \ Y}$'},
