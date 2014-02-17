@@ -33,6 +33,9 @@ def dec2sexstr(deci, sfigs=1, hd='h', lead_psign=False):
     s = m_frac * 60
     if (lead_psign is True) & (h >= 0):
         lead_psymb = '+'
+    elif (lead_psign is True) & (h < 0):
+        lead_psymb = '-'
+        h = abs(h)
     coord_string = "{0}{1:0>2d}:{2:0>2d}:{3:0>2d}.{4:0>{sfigs}d}".format(
         lead_psymb, int(h), _np.abs(int(m)), _np.abs(int(s)),
         _np.abs(int(_np.mod(s,1) * 10**sfigs)), sfigs=sfigs)

@@ -13,6 +13,7 @@ import pyfits
 import numpy as _np
 import matplotlib.pyplot as _plt
 import matplotlib.patheffects as PathEffects
+from besl import catalog
 from ..catalog import read_cat
 from ..image import get_bgps_img
 

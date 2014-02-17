@@ -636,13 +636,14 @@ def write_emaf_table():
     tab1 = tab1.rename(columns={'dpdf_cnum_f': 'v210cnum'})
     tab2 = []
     tab2_header = ['dpdf_' + elem for elem in ['dML', 'dMLm', 'dMLp', 'dBAR',
-                   'dBAR_err', 'PML', 'FW68', 'dtan', 'KDAR']]
-    for row in dpdf[9].data:
+                   'dBAR_err', 'dUse', 'dUsem', 'dUsep', 'PML', 'FW68',
+                   'dtan', 'KDAR']]
+    for row in dpdf[11].data:
         tab2.append([row[0][0], row[0][1], row[0][2], row[1][0], row[1][1],
-            row[3], row[4], row[5], row[6]])
+            row[2][0], row[2][1], row[2][2], row[3], row[4], row[5], row[6]])
     tab2 = _pd.DataFrame(tab2, columns=tab2_header)
     # Table for velocity information
-    tab3 = _pd.DataFrame(dpdf[10].data)
+    tab3 = _pd.DataFrame(dpdf[12].data)
     tab3 = tab3.rename(columns={key: 'dpdf_' + key.lower() for key in tab3.columns})
     # Convert to system Endian format
     tab1 = convert_endian(tab1)
