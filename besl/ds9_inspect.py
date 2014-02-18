@@ -3,6 +3,7 @@
 
 import os
 import ds9
+import pandas as pd
 from astropy import wcs
 from astropy.io import fits
 from .catalog import read_cat
@@ -13,10 +14,15 @@ class Ds9FrameError(Exception):
     pass
 
 
+class CoverageError(Exception):
+    pass
+
+
 class Inspector(object):
     rind_contour_color = 'yellow'
     bgps = read_cat('bgps_v210').set_index('v210cnum')
     v = 210
+    inspect_cat = None
 
     def __init__(self, cnum):
         self.cnum = cnum
@@ -106,6 +112,14 @@ class Inspector(object):
     def zoom(self, zlevel):
         self.d.set('zoom to {0}'.format(zlevel))
 
+    def cat_write(self, filen='inspect', flag=None):
+        with open(filen + '.cat', 'a') as out_cat:
+            if flag is None:
+                flag = raw_input('flag {0:0>4d} : '.format(self.cnum))
+            if flag == 'q':
+                return
+            out_cat.write('{0},{1}\n'.format(self.cnum, flag))
+
 
 class HiGalInspector(Inspector):
     """
@@ -125,7 +139,7 @@ class HiGalInspector(Inspector):
                  'der1y': 'der1y_source',
                  'der2x': 'der2x_source',
                  'der2x45': 'der2x45_source',
-                 'der2y' : 'der2y_source',
+                 'der2y': 'der2y_source',
                  'der2y45': 'der2y45_source',
                  'source': 'source',
                  'mask_1': 'mask_1._source'}
@@ -183,5 +197,63 @@ class HiGalInspector(Inspector):
                                crop_coords=crop_coords)
         self.show_flux_contour(clevels=self.high_clevels, color='blue',
                                crop_coords=crop_coords)
+
+
+class MipsgalInspector(Inspector):
+    """
+    Visually inspect HiGal cutouts in DS9.
+    """
+    # Directories and file names
+    root_dir = '/mnt/eld_data/MIPSGAL/'
+    img_dir = os.path.join(root_dir, 'mosaics24')
+    img_file = os.path.join(img_dir,
+                            'MG{coord_str}_{img_type}.fits')
+    # Properties
+    img_types = {'covg': 'covg_024',
+                 'mask': 'maskcube_024',
+                 'err': 'std_024',
+                 'source': '024'}
+    zlevel = 8
+    max_scale = 1e4
+    low_clevels = [0.1, 0.2, 0.4, 0.6, 0.8]
+    high_clevels = [1.0, 2.0, 3.0, 4.0, 5.0]
+
+    def __init__(self, cnum, img_type='source'):
+        super(MipsgalInspector, self).__init__(cnum)
+        self.cnum = cnum
+        if img_type not in self.img_types.keys():
+            raise ValueError('Invalid img_type: {0}.'.format(img_type))
+        self.img_type = img_type
+        self.filen = self._format_img_infile()
+
+    def _format_img_infile(self):
+        glon = self.bgps.loc[self.cnum, 'glon_peak']
+        glat = self.bgps.loc[self.cnum, 'glat_peak']
+        psign = 'p'
+        if glat < 0:
+            psign = 'n'
+        r_glon = int(round(glon))
+        r_glat = int(round(glat))
+        coord_str = '{glon:0>4d}{psign}{glat:0>3d}'.format(glon=r_glon,
+                                                           psign=psign,
+                                                           glat=r_glat)
+        return self.img_file.format(coord_str,
+                                    img_str=self.img_types[self.img_type])
+
+
+def higal_group_inspect(filen='higal_inspect'):
+    bgps = read_cat('bgps_v210').set_index('v210cnum')
+    bgps = bgps[(bgps.glon_peak > 7.5) & (bgps.glon_peak < 65)]
+    try:
+        insp = pd.read_csv(filen + '.cat')
+        cstart = insp.iloc[-1][0]
+        bgps = bgps.loc[bgps.index > cstart]
+    except IOError:
+        pass
+    # random cnum since has to start with one
+    hgi = HiGalInspector(cnum=5000)
+    for cnum in bgps.index:
+        hgi.update_view(cnum=cnum)
+        hgi.cat_write(filen=filen)
 
 
