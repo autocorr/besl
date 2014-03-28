@@ -685,7 +685,8 @@ class DataSet(object):
                     Higal70,
                     RedSpitzer,
                     RedMsx,
-                    Molcat]
+                    Molcat,
+                    WienenNh3]
         for obj in all_objs:
             data = obj()
             data.match()
@@ -964,5 +965,20 @@ class Molcat(Data):
         self.det_flags = [1, 2, 3]
         self.choose_col = 'hco_tpk'
         self.noise_col = 'hco_tpk_err'
+
+
+class WienenNh3(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'wien'
+        cat = read_cat('wienen12_nh3')
+        cat = cat[cat['tkin'].notnull()]
+        self.cat = cat
+        self.lon_col = '_Glon'
+        self.lat_col = '_Glat'
+        self.det_col = 'tkin'
+        self.det_flags = [1, 2, 3]
+        self.choose_col = 'tkin'
+        self.noise_col = 'tkin_err'
 
 
