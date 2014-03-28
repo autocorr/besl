@@ -14,16 +14,14 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
 from ..dpdf_calc import evo_stages
-from ..catalog import read_bgps
 
 
-def bgps_stages(bin_int=2, verbose=False):
+def bgps_stages(bin_int=2, bgps=None, verbose=False):
     """
     bin_int : number
         Bin-size interval, number of sub-divisions per degree. Square bins are
         used with equal length in the xy plane.
     """
-    bgps = read_bgps(exten='all')
     stages, anno_labels = evo_stages(bgps=bgps)
     xlims = [10, 60]
     ylims = [-1, 1]
@@ -52,11 +50,16 @@ def bgps_stages(bin_int=2, verbose=False):
                        vmax=Hist.max(), interpolation='nearest', zorder=2)
         ax.invert_xaxis()
         # annotate
-        # TODO path effects
-        txt = ax.annotate(stages_labels[i], xy=(0.025, 0.65),
-                           xycoords='axes fraction', fontsize=12,
-                           weight='bold', zorder=3)
-        txt.set_path_effects([PathEffects.withStroke(linewidth=2,
+        name_txt = ax.annotate(stages_labels[i], xy=(0.025, 0.65),
+                               xycoords='axes fraction', fontsize=12,
+                               weight='bold', zorder=3)
+        name_txt.set_path_effects([PathEffects.withStroke(linewidth=2,
+            foreground='w')])
+        stage_counts = df.shape[0]
+        count_txt = ax.annotate(stage_counts, xy=(0.025, 0.15),
+                                xycoords='axes fraction', fontsize=12,
+                                weight='bold', zorder=3)
+        count_txt.set_path_effects([PathEffects.withStroke(linewidth=2,
             foreground='w')])
         # ticks
         ax.set_yticks([-0.5, 0, 0.5])

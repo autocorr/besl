@@ -7,6 +7,7 @@ Provides methods for Monte Carlo sampling DPDF collections.  Also calculate
 composite, posterior DPDFs for nodes in PPV-groups.
 
 """
+# TODO add in PPV grouping properties
 
 import numpy as np
 from .catalog import read_cat, read_dpdf
@@ -15,9 +16,9 @@ from scipy.stats import gaussian_kde
 from scipy.interpolate import interp1d
 
 
-class ClumpProp(object):
+class Prop(object):
     """
-    Container object for a BGPS source properties.
+    Container object for a BGPS source property.
     """
     ver = 'v210'
     bgps = read_cat('bgps_v210_evo').set_index(ver + 'cnum')
@@ -27,11 +28,17 @@ class ClumpProp(object):
                         omni[2].data[0][1] * omni[2].data[0][0],
                         omni[2].data[0][0])
 
-    def __init__(self):
+    def __init__(self, data, normal=None):
+        self.data = data
+        self.normal = normal
         # check whether has dpdf
         # pdf
         # kinetic temperature
         # initiate sampler
+        self.sampler = Sampler(self.data, normal=self.normal)
+        pass
+
+    def draw(self):
         pass
 
 
@@ -90,7 +97,7 @@ class Sampler(object):
 
 class PropCollection(object):
     """
-    Collection of all DPDFs and their properties. The class also contains
+    Collection of all like properties. The class also contains
     methods for calculating Monte Carlo sampled properties.
     """
     ver = 'v210'
@@ -103,6 +110,9 @@ class PropCollection(object):
         self.posteriors = posteriors
         self.ktemps = ktemps
         # get stage
+
+    def sample(self):
+        pass
 
     def construct_dpdfs(self):
         for cnum, post in self.posteriors.iteritems():
@@ -129,7 +139,7 @@ class TempDistribs(object):
     def get_good_tkins(self, weight=True):
         for stage in self.stages:
             # NH3 Obs from Rosolowsky
-            gbt_mask = (stage['nh3_gbt_snr11'] > 5) & \
+            gbt_mask = (stage['nh3_gbt_snr11'] > 3) & \
                        (stage['nh3_gbt_snr22'] > 3)
             gbt = stage[gbt_mask][['v210cnum', 'nh3_gbt_tkin',
                                    'nh3_gbt_tkin_err']]
@@ -157,5 +167,31 @@ class TempDistribs(object):
             kernel = gaussian_kde(temps[temps['tk'].notnull()]['tk'])
             kernel.set_bandwidth(temps['tk_err'].median())
             self.tk_fn.append(kernel)
+
+
+###
+# Specific Observed Quantites
+###
+
+# kinetic temperature
+# molecular velocity width
+# molecular integrated intensity
+# flux
+# angular diameter
+# angular size
+# water maser properties
+
+###
+# Specific Derived Quantities
+###
+
+# distance
+# surface mass density
+# dust mass
+# physical equivalent radius
+# physical area
+# mass density
+# virial parameter
+# water maser isotropic luminosity
 
 

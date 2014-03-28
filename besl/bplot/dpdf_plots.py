@@ -218,7 +218,8 @@ def write_all_stages_plots(bgps=[]):
         bgps[bgps.h2o_gbt_f > 0],
         bgps[bgps.h2o_gbt_f > 0],
         bgps[(bgps.h2o_gbt_f > 0) & (bgps.hco_f.isin([1,3]))],
-        bgps[(bgps.nh3_pk11 / bgps.nh3_noise11 > 4) & (bgps.nh3_tkin < 3e2)],
+        bgps[(bgps.nh3_gbt_snr11 > 3) & (bgps.nh3_gbt_snr22) &
+             (bgps.nh3_tkin < 3e2)],
         bgps,
         bgps[bgps.all_dML.notnull()],
         bgps[bgps.all_dML.notnull()],

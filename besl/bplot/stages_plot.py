@@ -127,7 +127,6 @@ def overplot_rind(gc, field):
         _plt.contour(X, Y, Z, levels=[epsilon], colors='0.25', linewidths=0.5,
             zorder=1)
     rind.close()
-    # TODO overplot green contours for starless clumps
     return gc
 
 def overplot_starless(gc, field):
@@ -145,17 +144,18 @@ def overplot_starless(gc, field):
     """
     epsilon = 9e-1 # fudge factor for contouring
     bgps = read_cat('bgps_v210_evo')
-    bgps = bgps[bgps.sf_f == 0]
+    sl_color='#66FF33'
+    dets = bgps.query('sf_f != 1 & hg70_eye_f in [0,3] & mol_hco_f in [1,3]')
     rind = get_bgps_img(field, exten='labelmask', v=210)
     yp, xp = rind[0].data.shape
     X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
-    sl_cnums = bgps.ix[bgps.field == field, 'v210cnum'].values
-    for cnum in sl_cnums:
+    dt_cnums = dets.ix[dets.field == field, 'v210cnum'].values
+    for cnum in dt_cnums:
         Z = _np.zeros((yp, xp))
         rind_args = _np.argwhere(rind[0].data == cnum)
         Z[rind_args[:,0] + 1, rind_args[:,1] + 1] = 1
-        _plt.contour(X, Y, Z, levels=[epsilon], colors='#66FF33', linewidths=2,
-            zorder=1)
+        _plt.contour(X, Y, Z, levels=[epsilon], colors=sl_color,
+                     linewidths=2, zorder=1)
     rind.close()
     return gc
 
