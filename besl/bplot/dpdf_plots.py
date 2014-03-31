@@ -186,7 +186,7 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
     print '-- marg_stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
 
-def write_all_stages_plots(bgps=[]):
+def write_all_stages_plots(bgps):
     columns = [
         'flux',
         'flux_40',
@@ -198,34 +198,35 @@ def write_all_stages_plots(bgps=[]):
         'h2o_int',
         'h2o_vsp',
         'h2o_num_lines',
-        'voffset_h2o_hco',
         'nh3_tkin',
-        'rind_area',
-        'all_dML',
+        'ell_sangle',
+        'ell_angle',
+        'dust_mass_surf',
+        'dML',
         'dust_mass',
-        'avg_diam',
-        'rind_surf_area',
-        'mass_surf_dens']
+        'ell_radius',
+        'ell_area',
+        'vir_param']
     dfs = [
         bgps,
         bgps,
-        bgps[bgps.hco_f.isin([1,3])],
-        bgps[bgps.hco_f.isin([1,3])],
-        bgps[bgps.nnh_f.isin([1,3])],
-        bgps[bgps.nnh_f.isin([1,3])],
+        bgps[bgps.mol_hco_f.isin([1,3])],
+        bgps[bgps.mol_hco_f.isin([1,3])],
+        bgps[bgps.mol_nnh_f.isin([1,3])],
+        bgps[bgps.mol_nnh_f.isin([1,3])],
         bgps[bgps.h2o_gbt_f > 0],
         bgps[bgps.h2o_gbt_f > 0],
         bgps[bgps.h2o_gbt_f > 0],
         bgps[bgps.h2o_gbt_f > 0],
-        bgps[(bgps.h2o_gbt_f > 0) & (bgps.hco_f.isin([1,3]))],
-        bgps[(bgps.nh3_gbt_snr11 > 3) & (bgps.nh3_gbt_snr22) &
-             (bgps.nh3_tkin < 3e2)],
+        bgps[bgps.nh3_tkin.notnull()],
         bgps,
-        bgps[bgps.all_dML.notnull()],
-        bgps[bgps.all_dML.notnull()],
-        bgps[bgps.all_dML.notnull()],
-        bgps[bgps.all_dML.notnull()],
-        bgps]
+        bgps,
+        bgps,
+        bgps[bgps.dML.notnull()],
+        bgps[bgps.dML.notnull()],
+        bgps[bgps.dML.notnull()],
+        bgps[bgps.dML.notnull()],
+        bgps[bgps.dML.notnull()]]
     labels = [
         r'$S_{1.1} \ \ [{\rm Jy}]$',
         r'$S_{1.1}(40^{\prime\prime}) \ \ [{\rm Jy}]$',
@@ -237,14 +238,16 @@ def write_all_stages_plots(bgps=[]):
         r'${\rm I(H_2O) \ \ [K \ km \ s^{-1}}]$',
         r'${\rm H_2O} \ v_{\rm spread} \ \ [{\rm K \ km \ s^{-1}}]$',
         r'$N{\rm H_2O}$',
-        r'$|v_{\rm HCO^+} - v_{\rm H_2O}| \ \ [{\rm km \ s^{-1}}]$',
+        #r'$|v_{\rm HCO^+} - v_{\rm H_2O}| \ \ [{\rm km \ s^{-1}}]$',
         r'$T_{\rm K} \ \ [{\rm K}]$',
-        r'${\rm Area} \ \ [{\rm arcsec^2}]$',
+        r'$\Omega \ \ [{\rm arcsec^2}]$',
+        r'$\theta_{\rm eq} \ \ [{\rm arcsec}]$',
+        r'$\Sigma_{\rm H_2} \ \ [{\rm g \ cm^{-2}}]$',
         r'${\rm dML} \ \ [{\rm kpc}]$',
         r'$M_{\rm dust} \ \ [M_{\odot}]$',
-        r'${\rm Diameter} \ \ [{\rm pc}]$',
-        r'${\rm Surface \ Area} \ \ [{\rm pc}]$',
-        r'$\Sigma_{\rm H_2} \ \ [{\rm g \ cm^{-2}}]$']
+        r'${\rm Radius} \ \ [{\rm pc}]$',
+        r'${\rm Area} \ \ [{\rm pc}]$',
+        r'$\alpha_{\rm vir}$']
     for col, label, df in zip(columns, labels, dfs):
         stages_hist(label=col, xlabel=label, bgps=df)
     return
