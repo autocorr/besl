@@ -190,14 +190,14 @@ def write_all_stages_plots(bgps):
     columns = [
         'flux',
         'flux_40',
-        'hco_int',
-        'hco_fwhm',
-        'nnh_int',
-        'nnh_fwhm',
-        'h2o_tpk',
-        'h2o_int',
-        'h2o_vsp',
-        'h2o_num_lines',
+        'mol_hco_int',
+        'mol_hco_fwhm',
+        'mol_nnh_int',
+        'mol_nnh_fwhm',
+        'h2o_gbt_tpk',
+        'h2o_gbt_int',
+        'h2o_gbt_vsp',
+        'h2o_gbt_num_lines',
         'nh3_tkin',
         'ell_sangle',
         'ell_angle',
@@ -249,7 +249,10 @@ def write_all_stages_plots(bgps):
         r'${\rm Area} \ \ [{\rm pc}]$',
         r'$\alpha_{\rm vir}$']
     for col, label, df in zip(columns, labels, dfs):
-        stages_hist(label=col, xlabel=label, bgps=df)
+        try:
+            stages_hist(label=col, xlabel=label, bgps=df)
+        except KeyError:
+            pass
     return
 
 def print_properties(bgps, out_filen='bgps_props.txt'):
