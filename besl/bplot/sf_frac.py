@@ -72,6 +72,7 @@ def plot_hco():
     sff2.ax.set_xlabel(r'$T_{\rm pk}({\rm HCO^+})$')
     return sff1, sff2
 
+
 def plot_nnh():
     SfFrac.nbins = 30.
     # Cumulative
@@ -83,6 +84,7 @@ def plot_nnh():
     sff2.plot()
     sff2.ax.set_xlabel(r'$T_{\rm pk}({\rm N_2H^+})$')
     return sff1, sff2
+
 
 def plot_flux():
     SfFrac.nbins = 30.
