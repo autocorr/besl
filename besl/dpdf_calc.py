@@ -305,7 +305,7 @@ def clump_simple_dust_mass(dist, snu11, tkin=20., use_kpc=False):
     if use_kpc:
         dist_factor = 1
     else:
-        dist_factor = 1e-3
+        dist_factor = 1.0e-3
     mdust = 14.26 * (_np.exp(13.01 / tkin) - 1) * snu11 * (dist *
         dist_factor)**2
     return mdust
@@ -331,9 +331,9 @@ def clump_surface_area(dist, area, use_kpc=False):
         Surface area at distance in square pc
     """
     if use_kpc:
-        dist_factor = 1
-    else:
         dist_factor = 1e3
+    else:
+        dist_factor = 1
     area_dist = (units.cgs.au / units.cgs.pc)**2 * (dist * dist_factor)**2 * \
         area
     return area_dist
@@ -358,9 +358,9 @@ def clump_diameter(dist, area, use_kpc=False):
         diameter at distance in pc
     """
     if use_kpc:
-        dist_factor = 1
-    else:
         dist_factor = 1e3
+    else:
+        dist_factor = 1
     diam_dist = (units.cgs.au / units.cgs.pc) * (dist * dist_factor) * \
         2 * _np.sqrt(area / _np.pi)
     return diam_dist
