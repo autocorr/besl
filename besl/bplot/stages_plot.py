@@ -9,10 +9,10 @@ sign-posts of star-formation and evolutionary stage.
 
 """
 import aplpy
-import pyfits
 import numpy as _np
 import matplotlib.pyplot as _plt
 import matplotlib.patheffects as PathEffects
+from astropy.io import fits
 from besl import catalog
 from ..catalog import read_cat
 from ..image import get_bgps_img
@@ -88,6 +88,7 @@ def overplot_markers(gc, add_legend=False):
                     scatterpoints=1, markerscale=1.3, frameon=False, mode='expand')
     return gc
 
+
 def overplot_ellipses(gc):
     """
     Overplot elipses for BGPS sources
@@ -100,6 +101,7 @@ def overplot_ellipses(gc):
     gc.show_markers(bgps['glon_cen'].values, bgps['glat_cen'].values,
         marker='+', edgecolor='grey', facecolor='grey', alpha=0.5, zorder=2)
     return gc
+
 
 def overplot_rind(gc, field):
     """
@@ -116,7 +118,7 @@ def overplot_rind(gc, field):
     """
     epsilon = 9e-1 # fudge factor for contouring
     bgps = catalog.read_bgps(exten='all')
-    rind = pyfits.open('/mnt/eld_data/BGPS/Images/v2.0.0/v2.0_ds2_{}_13pca_labelmask.fits'.format(field))
+    rind = fits.open('/mnt/eld_data/BGPS/Images/v2.0.0/v2.0_ds2_{}_13pca_labelmask.fits'.format(field))
     yp, xp = rind[0].data.shape
     X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
     field_cnums = bgps.ix[bgps.field == field, 'field_cnum'].values
@@ -128,6 +130,41 @@ def overplot_rind(gc, field):
             zorder=1)
     rind.close()
     return gc
+
+
+def overplot_single_rind(gc, cnum):
+    """
+    Overplot the label mask contour for a single clump on an APLpy axis object.
+    Does not cache between loading fits files, so don't place in loop.
+
+    Parameters
+    ----------
+    gc : APLpy.FITSFigure
+    cnum : number
+        BGPS v2.1.0 catalog number
+
+    Returns
+    -------
+    gc APLpy.FITSFigure
+    """
+    epsilon = 9e-1  # fudge factor for contouring
+    bgps = catalog.read_cat('bgps_v210').set_index('v210cnum')
+    field = bgps.loc[cnum, 'field']
+    rind = fits.open('/mnt/eld_data/BGPS/Images/v2.1.0/v2.0_ds2_'
+                     '{}_13pca_labelmask.fits'.format(field))
+    yp, xp = rind[0].data.shape
+    X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
+    Z = _np.zeros((yp, xp))
+    rind_args = _np.argwhere(rind[0].data == cnum)
+    Z[rind_args[:,0] + 1, rind_args[:,1] + 1] = 1
+    ax = _plt.gca()
+    ax.contour(X, Y, Z, levels=[epsilon], colors='k', linewidths=1.0,
+               linestyles='solid', zorder=1)
+    ax.contour(X, Y, Z, levels=[epsilon], colors='w', linewidths=1.0,
+               linestyles='dashed', zorder=2)
+    rind.close()
+    return gc
+
 
 def overplot_starless(gc, field):
     """
@@ -158,6 +195,7 @@ def overplot_starless(gc, field):
                      linewidths=2, zorder=1)
     rind.close()
     return gc
+
 
 def overplot_cnums(gc, field):
     """
@@ -190,6 +228,7 @@ def overplot_cnums(gc, field):
             foreground='w', alpha=0.75)])
     # TODO overplot green cnum labels for starless clumps
     return gc
+
 
 def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
     """
@@ -258,6 +297,7 @@ def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
     gc2.save(out_filen + '.png', dpi=300)
     print '-- Printed to file {}'.format(out_filen)
     return gc
+
 
 def test_plot():
     #create_stages_plot(23.377173, -0.23825809, 0.5, 0.5)

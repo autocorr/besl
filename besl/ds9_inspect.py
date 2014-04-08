@@ -162,8 +162,8 @@ class HiGalInspector(Inspector):
 
     def _get_hg_img(self):
         self.img = fits.open(self.filen)
+        self.img_min = self.img[0].data.min()
         self.img_max = self.img[0].data.max()
-        self.img_max = self.img[0].data.min()
         self.xpix_max = self.img[0].data.shape[0]
         self.ypix_max = self.img[0].data.shape[1]
         self.d.set_pyfits(self.img[0])
