@@ -25,7 +25,7 @@ def overplot_markers(gc, add_legend=False):
     # ir cats
     ego = read_cat('ego_all')
     msx = read_cat('lumsden13_red_msx')
-    msx = msx[msx['Type'].isin(['HII region','YSO','Young/old star',
+    msx = msx[msx['Type'].isin(['HII region', 'YSO', 'Young/old star',
                                 'HII/YSO'])]
     robit = read_cat('robitaille08_red_spitzer')
     robit_yso = robit[robit['Class'].isin(['cYSO'])]
@@ -85,7 +85,8 @@ def overplot_markers(gc, add_legend=False):
     if add_legend:
         _plt.legend(loc='upper center', bbox_to_anchor=(0.125, 0, 0.75, 0.975),
                     bbox_transform=_plt.gcf().transFigure, ncol=5, fontsize=11,
-                    scatterpoints=1, markerscale=1.3, frameon=False, mode='expand')
+                    scatterpoints=1, markerscale=1.3, frameon=False,
+                    mode='expand')
     return gc
 
 
@@ -118,7 +119,8 @@ def overplot_rind(gc, field):
     """
     epsilon = 9e-1 # fudge factor for contouring
     bgps = catalog.read_bgps(exten='all')
-    rind = fits.open('/mnt/eld_data/BGPS/Images/v2.0.0/v2.0_ds2_{}_13pca_labelmask.fits'.format(field))
+    rind = fits.open('/mnt/eld_data/BGPS/Images/v2.0.0/'
+                     'v2.0_ds2_{}_13pca_labelmask.fits'.format(field))
     yp, xp = rind[0].data.shape
     X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
     field_cnums = bgps.ix[bgps.field == field, 'field_cnum'].values
@@ -276,8 +278,8 @@ def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
     gc2.show_colorscale(cmap='gist_gray_r', vmin=-0.20, vmax=1.0,
         stretch='linear')
     gc2.recenter(lon, lat, width=dlon, height=dlat)
-    gc2.hide_ytick_labels()
-    gc2.hide_yaxis_label()
+    gc2.tick_labels.hide_y()
+    gc2.axis_labels.hide_y()
     gc2 = overplot_markers(gc2)
     ### Colorbar
     #gc2.add_colorbar(location='right')
@@ -291,12 +293,12 @@ def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
         gc.set_tick_labels_xformat('dd.d')
         gc.set_tick_labels_yformat('dd.d')
         gc.add_beam(facecolor='yellow', linewidth=2, hatch='//', major=0.00917,
-            minor=0.00917, angle=0)
+                    minor=0.00917, angle=0)
     ### Save
     gc2.save(out_filen + '.eps', dpi=300)
     gc2.save(out_filen + '.png', dpi=300)
     print '-- Printed to file {}'.format(out_filen)
-    return gc
+    return gc2
 
 
 def test_plot():
