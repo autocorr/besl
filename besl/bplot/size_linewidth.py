@@ -8,11 +8,10 @@ Plotting routines for size linewidth relationships in the BGPS.
 """
 
 import numpy as _np
-import pandas as _pd
 import matplotlib.pyplot as _plt
 import matplotlib.patheffects as PathEffects
 from scipy.stats import spearmanr
-from besl import catalog, dpdf_calc, util
+from besl import dpdf_calc
 
 
 def general_size_linewidth(stages, xcol, ycol, stages_labels, shape, colors,
