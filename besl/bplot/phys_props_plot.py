@@ -7,6 +7,7 @@ from itertools import combinations
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr
+from scipy.optimize import leastsq
 from matplotlib import colors, cm
 from matplotlib import patheffects as PathEffects
 from besl.dpdf_calc import evo_stages
@@ -30,6 +31,33 @@ class ScatterPanel(object):
         self.ax_labels = ax_labels
         self.stage_label = stage_label
         self.label_ypos = 0.85
+        self.p0 = [1, 1]
+
+    @staticmethod
+    def _err_fun(p, y, x):
+        return (y - (p[0] + x * p[1])) * (1 / y * 0.1)
+
+    @staticmethod
+    def _fit_fun(p, x):
+        return p[0] + (x * p[1])
+
+    @staticmethod
+    def _power_law(p, x):
+        return 10**p[0] * x**p[1]
+
+    def get_fit(self):
+        ndf = self.df[self.df[self.cols[0]].notnull() &
+                      (self.df[self.cols[0]] > 0) &
+                      self.df[self.cols[1]].notnull() &
+                      (self.df[self.cols[1]] > 0)]
+        x = ndf[self.cols[0]]
+        y = ndf[self.cols[1]]
+        self.p0[0] = y.median() / x.median()
+        x = np.log10(x)
+        y = np.log10(y)
+        self.fit, self.fit_pars = leastsq(self._err_fun,
+                                          self.p0[:], args=(y, x),
+                                          maxfev=3000)
 
     def _draw_label(self, text, position=None):
         if position is None:
@@ -55,6 +83,10 @@ class ScatterPanel(object):
         text = r'$N = {0}$'.format(count)
         self._draw_label(text)
 
+    def set_pindex_label(self):
+        text = r'$\beta = ' + '{0:1.2f}$'.format(self.fit[1])
+        self._draw_label(text)
+
     def set_labels(self):
         if self.ax_labels is not None:
             self.ax.set_xlabel(self.ax_labels[0])
@@ -70,6 +102,17 @@ class ScatterPanel(object):
         if self.set_log:
             self.ax.set_xscale('log')
             self.ax.set_yscale('log')
+
+    def plot_fit(self):
+        try:
+            self.get_fit()
+            xmin = self.df[self.cols[0]].min()
+            xmax = self.df[self.cols[0]].max()
+            x = np.linspace(xmin, xmax, 1e3)
+            self.ax.plot(x, self._power_law(self.fit, x), 'r-')
+            self.set_pindex_label()
+        except Exception:
+            pass
 
 
 class ScatterGrid(object):
@@ -96,7 +139,8 @@ class ScatterGrid(object):
 
     def _get_axes(self):
         self.nrows = (len(self.ldf) // self.ncols) + 1
-        figsize = (self.ncols * self.fig_dims[0], self.nrows * self.fig_dims[1])
+        figsize = (self.ncols * self.fig_dims[0],
+                   self.nrows * self.fig_dims[1] + 0.2)
         self.fig, self.axes = plt.subplots(figsize=figsize, nrows=self.nrows,
                 ncols=self.ncols, sharex=True, sharey=True)
 
@@ -128,6 +172,7 @@ class ScatterGrid(object):
             panel.set_stage_label()
             panel.set_count_label()
             panel.set_spear_label()
+            #panel.plot_fit()
             if ax.is_first_col() & ax.is_last_row():
                 panel.set_labels()
             self.panels.append(panel)
