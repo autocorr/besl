@@ -126,3 +126,56 @@ def sample_bgps_img(lon, lat, exten='labelmask', v=210):
     return sample_img(img=img, coord=(lon, lat))
 
 
+class BgpsLib(object):
+    """
+    Container for BGPS images.
+
+    Parameters
+    ----------
+    exten : string, default 'map20'
+        Image file extension name. Valid types:
+        labelmask  -> source contours, label masks
+        labelmap50 -> source contours, label masks for v1
+        map20      -> default map
+        map50      -> default map for v1
+        medmap20   -> median map 20
+        noisemap20 -> rms map
+    v : number, default 201
+        BGPS version number
+    """
+    def __init__(self, exten='map20', v=201):
+        """
+        Parameters
+        ----------
+        exten : string, default 'map20'
+            Image file extension name. Valid types:
+            labelmask  -> source contours, label masks
+            labelmap50 -> source contours, label masks for v1
+            map20      -> default map
+            map50      -> default map for v1
+            medmap20   -> median map 20
+            noisemap20 -> rms map
+        v : number, default 201
+            BGPS version number
+        """
+        self.exten = exten
+        self.v = v
+        self.bgps = read_bgps(v=v)
+        self.fields = self.bgps.field.unique()
+        self._images = {}
+
+    def read_images(self):
+        for field in self.fields:
+            img = get_bgps_img(field, exten=self.exten, v=self.v)
+            self._images[field] = img
+
+    def get_hdu(self, field):
+        return self._images[field]
+
+    def get_img(self, field):
+        return self._images[field][0].data
+
+    def get_hdr(self, field):
+        return self._images[field][0].header
+
+
