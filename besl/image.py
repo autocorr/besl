@@ -129,19 +129,6 @@ def sample_bgps_img(lon, lat, exten='labelmask', v=210):
 class BgpsLib(object):
     """
     Container for BGPS images.
-
-    Parameters
-    ----------
-    exten : string, default 'map20'
-        Image file extension name. Valid types:
-        labelmask  -> source contours, label masks
-        labelmap50 -> source contours, label masks for v1
-        map20      -> default map
-        map50      -> default map for v1
-        medmap20   -> median map 20
-        noisemap20 -> rms map
-    v : number, default 201
-        BGPS version number
     """
     def __init__(self, exten='map20', v=201):
         """
