@@ -130,7 +130,7 @@ class BgpsLib(object):
     """
     Container for BGPS images.
     """
-    def __init__(self, exten='map20', v=201):
+    def __init__(self, exten='map20', v=210):
         """
         Parameters
         ----------
@@ -142,12 +142,12 @@ class BgpsLib(object):
             map50      -> default map for v1
             medmap20   -> median map 20
             noisemap20 -> rms map
-        v : number, default 201
+        v : number, default 210
             BGPS version number
         """
         self.exten = exten
         self.v = v
-        self.bgps = read_bgps(v=v)
+        self.bgps = read_bgps()
         self.fields = self.bgps.field.unique()
         self._images = {}
 
