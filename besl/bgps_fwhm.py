@@ -7,7 +7,7 @@ Compute BGPS FWHM sizes and fluxes.
 
 """
 import numpy as np
-from scipy import ndimage
+from scipy.ndimage import binary_closing
 from besl.catalog import read_bgps
 from besl.image import BgpsLib
 
@@ -39,8 +39,9 @@ class FwhmSet(object):
         self.rindlib = BgpsLib(exten='labelmask', v=v)
         self.solvers = {}
         # DataFrame
-        self.bgps['fwhm_sangle'] = np.nan
         self.bgps['fwhm_flux'] = np.nan
+        self.bgps['fwhm_angle'] = np.nan
+        self.bgps['fwhm_sangle'] = np.nan
 
     def solve_all(self):
         for cnum in self.bgps.index:
@@ -49,8 +50,9 @@ class FwhmSet(object):
             rind = self.rindlib.get_lib(field)
             solver = FwhmSolver(cnum, flux, rind)
             solver.solve()
-            self.bgps.loc[cnum, 'fwhm_sangle'] = solver.fwhm_sangle
             self.bgps.loc[cnum, 'fwhm_flux'] = solver.fwhm_flux
+            self.bgps.loc[cnum, 'fwhm_angle'] = solver.fwhm_angle
+            self.bgps.loc[cnum, 'fwhm_sangle'] = solver.fwhm_sangle
             self.solvers[cnum] = solver
             if verbose:
                 print cnum
@@ -91,46 +93,41 @@ class FwhmSolver(object):
         self.mflux = np.copy(self.flux)
         self.mflux[self.rind != self.cnum] = 0
 
-    def _bool_rind(self):
-        self.brind = np.copy(self.rind)
-        self.brind[self.rind != self.cnum] = 0
-        self.brind[self.rind == self.cnum] = 1
-        self.brind = self.brind.astype(np.int)
-
     def _sample_peak(self):
         """
-        Sample the peak flux value from the map in a 5-point average. Uses
-        uniform weight between the points.
-
-        Parameters
-        ----------
-        weight : number, default 0.125
-            Weight to give to the outer four points in the '+' pattern, the
-            inner point receivers -> 1 - 4 * weight
+        Sample the peak flux value from the map in a 5-point average to
+        calculated the half-max value. Uses uniform weight between the points.
 
         Returns
         -------
-        peak : number
+        fwhm : number
         """
         max1, max0 = np.argwhere(self.mflux == self.mflux.max())[0]
         pix0 = np.array([0, -1, 1, 0, 0]) + max0
         pix1 = np.array([0, 0, 0, -1, 1]) + max1
-        peak = np.self.mflux[pix1, pix0].mean()
+        self.peak = np.self.mflux[pix1, pix0].mean()
+        self.fwhm = self.peak / 2.
+        return self.fwhm
 
     def _mask_on_fwhm(self):
-        pass
+        self.brind = np.copy(self.rind)
+        self.brind[self.rind != self.cnum] = 0
+        self.brind[self.rind == self.cnum] = 1
+        self.brind[self.mflux < self.fwhm] = 0
+        self.fwhm_mask = binary_closing(self.brind)
 
-    def _close_mask(self):
-        pass
+    def _get_props(self):
+        fwhm_vals = self.mflux[self.fwhm_mask]
+        self.fwhm_flux = fwhm_vals.sum()
+        self.fwhm_npix = fwhm_vals.size
+        self.fwhm_sangle = self.fwhm_npix * 7.2**2  # in arcsec^2
+        self.fwhm_angle = np.sqrt(self.sangle / np.pi)
 
     def solve(self):
         self._clip_maps()
         self._mask_on_rind()
-        self._bool_rind()
-        self.peak = self.sample_peak()
-        self.fwhm = self.peak / 2.
+        self._sample_peak()
         self._mask_on_fwhm()
-        self._close_mask()
-        self._sample_closed_mask()
+        self._get_props
 
 
