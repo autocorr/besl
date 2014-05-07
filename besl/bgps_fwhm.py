@@ -49,11 +49,13 @@ class FwhmSet(object):
         Solve for each clump and assign to the BGPS DataFrame.
         """
         for cnum in self.bgps.index:
+            # Run solver
             field = self.bgps.loc[cnum, 'field']
-            flux = self.fluxlib.get_img(field)
-            rind = self.rindlib.get_img(field)
-            solver = FwhmSolver(cnum, flux, rind)
+            flux_hdu = self.fluxlib.get_hdu(field)
+            rind_hdu = self.rindlib.get_hdu(field)
+            solver = FwhmSolver(cnum, flux_hdu, rind_hdu)
             solver.solve()
+            # Assign parameters
             self.bgps.loc[cnum, 'fwhm_flux'] = solver.fwhm_flux
             self.bgps.loc[cnum, 'fwhm_angle'] = solver.fwhm_angle
             self.bgps.loc[cnum, 'fwhm_sangle'] = solver.fwhm_sangle
@@ -63,7 +65,7 @@ class FwhmSet(object):
             if self.verbose & (cnum % 100):
                 print 'v210 -- ', cnum
 
-    def write(self, outname='bgps_fwhm'):
+    def write(self, outname='bgps_v210_fwhm'):
         """
         Parameters
         ----------
@@ -78,14 +80,12 @@ class FwhmSolver(object):
 
     Examples
     --------
-    >>> fs = FwhmSolver(5000, flux, rind)
+    >>> fs = FwhmSolver(5000, flux_hdu, rind_hdu)
     >>> fs = fs.solve()
     >>> fs.fwhm_flux
     0.904
     """
-    eta = 0.0422
-
-    def __init__(self, cnum, flux, rind):
+    def __init__(self, cnum, flux_hdu, rind_hdu):
         """
         Parameters
         ----------
@@ -93,10 +93,13 @@ class FwhmSolver(object):
         flux : astropy.io.fits.Hdu
         rind : astropy.io.fits.Hdu
         """
-        assert flux.shape == rind.shape
         self.cnum = cnum
-        self.flux = flux
-        self.rind = rind
+        self.flux_hdu = flux_hdu
+        self.rind_hdu = rind_hdu
+        self.ppbeam = flux_hdu[0].header['PPBEAM']
+        self.flux = flux_hdu[0].data
+        self.rind = rind_hdu[0].data
+        assert flux.shape == rind.shape
 
     def _clip_maps(self):
         """
@@ -159,7 +162,7 @@ class FwhmSolver(object):
         self.fwhm_npix = fwhm_vals.size
         self.fwhm_sangle = self.fwhm_npix * 7.2**2  # in arcsec^2
         self.fwhm_angle = np.sqrt(self.fwhm_sangle / np.pi)  # in arcsec
-        self.fwhm_flux = fwhm_vals.sum() * self.eta  # in Jy
+        self.fwhm_flux = fwhm_vals.sum() / self.ppbeam  # in Jy
 
     def solve(self):
         self._clip_maps()
