@@ -62,8 +62,8 @@ class FwhmSet(object):
             self.bgps.loc[cnum, 'fwhm_npix'] = solver.fwhm_npix
             self.bgps.loc[cnum, 'npix'] = solver.npix
             self.solvers[cnum] = solver
-            if self.verbose & (cnum % 100):
-                print 'v210 -- ', cnum
+            if self.verbose & (cnum % 100 == 0):
+                print '-- ', cnum
 
     def write(self, outname='bgps_v210_fwhm'):
         """
