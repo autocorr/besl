@@ -58,7 +58,7 @@ def get_bgps_img(identifier, exten, v=210):
     ver_path = {101: 'v1.0.2', 200: 'v2.0.0', 201: 'v2.0.1', '2d': 'v2.0.1d',
                 210: 'v2.1.0'}
     ver_init = {101: 'v1.0.2', 200: 'v2.0_ds2', 201: 'v2.0_ds2',
-                '2d': 'v2.0_ds2', 210: 'v2.0_ds2'}
+                '2d': 'v2.0_ds2', 210: 'v2.1_ds2'}
     cnum_col = {101: 'cnum', 200: 'cnum', 201: 'cnum',
                 '2d': 'cnum', 210: 'v210cnum'}
     # cnum or field
