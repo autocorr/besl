@@ -19,6 +19,12 @@ from besl.image import BgpsLib
 class FwhmSet(object):
     """
     Set of FWHM Solvers.
+
+    Examples
+    --------
+    >>> fs = FwhmSet()
+    >>> fs.solve_all()
+    >>> fs.write()
     """
     bgps = read_cat('bgps_v210').set_index('v210cnum')
 
@@ -39,10 +45,12 @@ class FwhmSet(object):
         self.solvers = {}
         # DataFrame
         self.bgps['npix'] = np.nan
-        self.bgps['fwhm_flux'] = np.nan
-        self.bgps['fwhm_angle'] = np.nan
-        self.bgps['fwhm_sangle'] = np.nan
+        self.bgps['sangle'] = np.nan
+        self.bgps['eqangle'] = np.nan
         self.bgps['fwhm_npix'] = np.nan
+        self.bgps['fwhm_sangle'] = np.nan
+        self.bgps['fwhm_eqangle'] = np.nan
+        self.bgps['fwhm_flux'] = np.nan
 
     def solve_all(self):
         """
@@ -56,11 +64,13 @@ class FwhmSet(object):
             solver = FwhmSolver(cnum, flux_hdu, rind_hdu)
             solver.solve()
             # Assign parameters
-            self.bgps.loc[cnum, 'fwhm_flux'] = solver.fwhm_flux
-            self.bgps.loc[cnum, 'fwhm_angle'] = solver.fwhm_angle
-            self.bgps.loc[cnum, 'fwhm_sangle'] = solver.fwhm_sangle
-            self.bgps.loc[cnum, 'fwhm_npix'] = solver.fwhm_npix
             self.bgps.loc[cnum, 'npix'] = solver.npix
+            self.bgps.loc[cnum, 'sangle'] = solver.sangle
+            self.bgps.loc[cnum, 'eqangle'] = solver.eqangle
+            self.bgps.loc[cnum, 'fwhm_npix'] = solver.fwhm_npix
+            self.bgps.loc[cnum, 'fwhm_sangle'] = solver.fwhm_sangle
+            self.bgps.loc[cnum, 'fwhm_angle'] = solver.fwhm_eqangle
+            self.bgps.loc[cnum, 'fwhm_flux'] = solver.fwhm_flux
             self.solvers[cnum] = solver
             if self.verbose & (cnum % 100 == 0):
                 print '-- ', cnum
@@ -85,6 +95,8 @@ class FwhmSolver(object):
     >>> fs.fwhm_flux
     0.904
     """
+    pixel_size = 7.2
+
     def __init__(self, cnum, flux_hdu, rind_hdu):
         """
         Parameters
@@ -99,7 +111,7 @@ class FwhmSolver(object):
         self.ppbeam = flux_hdu[0].header['PPBEAM']
         self.flux = flux_hdu[0].data
         self.rind = rind_hdu[0].data
-        assert flux.shape == rind.shape
+        assert self.flux.shape == self.rind.shape
 
     def _clip_maps(self):
         """
@@ -158,10 +170,14 @@ class FwhmSolver(object):
 
     def _get_props(self):
         fwhm_vals = self.mflux[self.fwhm_mask == 1]
-        self.npix = self.rind[self.rind == self.cnum].size
+        # Full
+        self.npix = self.rind[self.rind == self.cnum].size  # pixels
+        self.sangle = self.npix * self.pixel_size**2  # in arcsec^2
+        self.eqangle = np.sqrt(self.sangle / np.pi)  # in arcsec
+        # FWHM
         self.fwhm_npix = fwhm_vals.size
-        self.fwhm_sangle = self.fwhm_npix * 7.2**2  # in arcsec^2
-        self.fwhm_angle = np.sqrt(self.fwhm_sangle / np.pi)  # in arcsec
+        self.fwhm_sangle = self.fwhm_npix * self.pixel_size**2  # in arcsec^2
+        self.fwhm_eqangle = np.sqrt(self.fwhm_sangle / np.pi)  # in arcsec
         self.fwhm_flux = fwhm_vals.sum() / self.ppbeam  # in Jy
 
     def solve(self):
