@@ -93,7 +93,7 @@ class FwhmSolver(object):
     >>> fs = FwhmSolver(5000, flux_hdu, rind_hdu)
     >>> fs = fs.solve()
     >>> fs.fwhm_flux
-    0.904
+    0.9475
     """
     pixel_size = 7.2
 
