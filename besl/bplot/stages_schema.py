@@ -63,7 +63,7 @@ def plot_schema(x=6, x_off=-1, y_off=-0.7, outname='stages_schema'):
 
     # Column Density
     cd_y = 2 / 5 * y
-    hc_label = r'{\LARGE $N({\rm H}_2) > 10^{23} \ [{\rm cm}^{-2}]$}'
+    hc_label = r'{\LARGE $N({\rm H}_2) > 10^{\alpha} \ [{\rm cm}^{-2}]$}'
     pgm.add_plate(daft.Plate([0, cd_y, box_dx, box_dy], label=hc_label,
         label_offset=[41, 12]))
     pgm.add_node(daft.Node('cold_b', '', x / 3, cd_y - 0.1, scale=0))
@@ -73,7 +73,7 @@ def plot_schema(x=6, x_off=-1, y_off=-0.7, outname='stages_schema'):
     pgm.add_plate(daft.Plate([0.77 * x_off, 0.4 * y + y_off, 0.9 * x,
         0.575 * y], label=dn_label))
     fg_label = r'{\LARGE ${\rm Evolutionary \ Flags ' \
-               r'\ \ 10^{\circ} < \ell < 60^{\circ}}$}'
+               r'\ \ 10^{\circ} < \ell < 65^{\circ}}$}'
     pgm.add_plate(daft.Plate([0.77 * x_off, 0.75 * y_off, 0.9 * x,
         0.375 * y], label=fg_label))
 
