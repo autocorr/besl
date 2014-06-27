@@ -2,9 +2,8 @@
 # encoding: utf-8
 
 import os
-import ds9
 import pandas as pd
-from astropy import wcs
+import pysao as ds9
 from astropy.io import fits
 from .catalog import read_cat
 from .image import get_bgps_img
@@ -70,7 +69,7 @@ class Inspector(object):
         rind = self._get_rind()
         fid = self._get_next_frame_id()
         self.d.set('frame {0}'.format(fid))
-        self.d.set_pyfits(rind)
+        self.d.view_fits(rind[0])
         self.d.set('contour width 2')
         self.d.set('contour limits 0 1')
         self.d.set('contour nlevels 1')
@@ -86,7 +85,7 @@ class Inspector(object):
         fid = self._get_next_frame_id()
         self.d.set('frame {0}'.format(fid))
         flux_img = self._get_flux()
-        self.d.set_pyfits(flux_img)
+        self.d.view_fits(flux_img[0])
         if crop_coords is not None:
             self.d.set('crop {0} wcs galactic degrees'.format(crop_coords))
         self.d.set('contour smooth 2')
@@ -166,7 +165,7 @@ class HiGalInspector(Inspector):
         self.img_max = self.img[0].data.max()
         self.xpix_max = self.img[0].data.shape[0]
         self.ypix_max = self.img[0].data.shape[1]
-        self.d.set_pyfits(self.img[0])
+        self.d.view_fits(self.img[0])
         self.d.set('lock frame wcs')
         self.d.set('wcs sky galactic skyformat degrees')
 
