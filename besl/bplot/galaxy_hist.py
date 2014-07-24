@@ -12,7 +12,7 @@ import copy
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import matplotlib.patheffects as PathEffects
+from matplotlib import patheffects
 from ..dpdf_calc import evo_stages
 
 
@@ -53,13 +53,13 @@ def bgps_stages(bin_int=2, bgps=None, verbose=False):
         name_txt = ax.annotate(stages_labels[i], xy=(0.025, 0.65),
                                xycoords='axes fraction', fontsize=12,
                                weight='bold', zorder=3)
-        name_txt.set_path_effects([PathEffects.withStroke(linewidth=2,
+        name_txt.set_path_effects([patheffects.withStroke(linewidth=2,
             foreground='w')])
         stage_counts = df.shape[0]
         count_txt = ax.annotate(stage_counts, xy=(0.025, 0.15),
                                 xycoords='axes fraction', fontsize=12,
                                 weight='bold', zorder=3)
-        count_txt.set_path_effects([PathEffects.withStroke(linewidth=2,
+        count_txt.set_path_effects([patheffects.withStroke(linewidth=2,
             foreground='w')])
         # ticks
         ax.set_yticks([-0.5, 0, 0.5])
