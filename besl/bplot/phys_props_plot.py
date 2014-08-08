@@ -118,6 +118,9 @@ class ScatterPanel(object):
 class ScatterGrid(object):
     """
     """
+    set_stage_label = True
+    set_count_label = True
+    set_spear = True
     cNorm = colors.Normalize(vmin=0, vmax=1)
     scalarmap = cm.ScalarMappable(norm=cNorm, cmap=cm.cubehelix)
     fig_dims = (2, 2)
@@ -169,9 +172,12 @@ class ScatterGrid(object):
             panel = ScatterPanel(ax, df, self.cols, self.ax_labels,
                     stage_label=label)
             panel.scatter(color=color)
-            panel.set_stage_label()
-            panel.set_count_label()
-            panel.set_spear_label()
+            if self.set_stage_label:
+                panel.set_stage_label()
+            if self.set_count_label:
+                panel.set_count_label()
+            if self.set_spear:
+                panel.set_spear_label()
             #panel.plot_fit()
             if ax.is_first_col() & ax.is_last_row():
                 panel.set_labels()
