@@ -73,7 +73,8 @@ class ScatterPanel(object):
             self._draw_label(self.stage_label)
 
     def set_spear_label(self):
-        rho_spear, p_value = spearmanr(self.df[self.cols])
+        dff = self.df[self.df[self.cols[0]].notnull() & self.df[self.cols[1]].notnull()]
+        rho_spear, p_value = spearmanr(dff[self.cols])
         text = r'$\rho_{\rm sp} = ' + '{0:1.2f}$'.format(rho_spear)
         self._draw_label(text)
 

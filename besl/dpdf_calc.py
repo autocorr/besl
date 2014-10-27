@@ -504,7 +504,7 @@ def evo_stages(bgps=None, stages_group=2, label=None):
             {'label': r'${\rm H_2O \ \ Y}$'}]
         return stages, anno_labels
     elif stages_group == 2:
-        starless = bgps[(bgps.glon_peak > 10) & (bgps.glon_peak < 60) &
+        starless = bgps[(bgps.glon_peak > 10) & (bgps.glon_peak < 65) &
                         (bgps.sf_f != 1) & (bgps.hg70_eye_f == 0)]
         hg_only = bgps[(bgps.hg70_eye_f.isin([1, 2])) & (bgps.h2o_f != 1) &
                        (bgps.ir_f != 1) & (bgps.ch3oh_f != 1) &

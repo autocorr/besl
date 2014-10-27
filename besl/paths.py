@@ -7,7 +7,8 @@ Module for relative and absolute paths for files and scripts.
 
 """
 
-import os as _os
+import os
+from besl import cfg
 
 
 ### Directories, paths, and environment variables
@@ -16,11 +17,11 @@ class Dirs(object):
     Object to hold directories for interactive editing of paths.
     """
     def __init__(self):
-        self.root_dir = '/mnt/eld_data/'
+        self.root_dir = cfg.get('paths', 'root_dir')
         self.cat_dir = self.root_dir + 'Catalogs/'
         self.collected = '_collected/'
         self.bgps_dir = self.root_dir + 'BGPS/Images/v2.0.0/'
-        self.working_dir = _os.getcwd() + '/'
+        self.working_dir = os.getcwd() + '/'
         self.out_dir = self.working_dir + 'matched_cats/'
         self.bgps_filen = 'bgps/bgps_v{}.csv'
         self.bgps_ext_filen = 'bgps/bgps_v{}_{}.{}'

@@ -37,6 +37,7 @@ def plot_dpdf_sampling(n=200):
     _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
 
+
 def stages_hist(label, xlabel, bgps=None):
     """
     Create a histogram with the evolutionary stages overplotted.
@@ -105,6 +106,7 @@ def stages_hist(label, xlabel, bgps=None):
     _plt.savefig('stages_hist_{}.pdf'.format(label))
     print '-- stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
+
 
 def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
     """
@@ -186,6 +188,7 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
     print '-- marg_stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
 
+
 def write_all_stages_plots(bgps):
     columns = [
         'flux',
@@ -254,6 +257,7 @@ def write_all_stages_plots(bgps):
         except KeyError:
             pass
     return
+
 
 def print_properties(bgps, out_filen='bgps_props.txt'):
     """
