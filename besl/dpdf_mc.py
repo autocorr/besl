@@ -10,8 +10,8 @@ composite, posterior DPDFs for nodes in PPV-groups.
 # TODO add in PPV grouping properties
 
 import numpy as np
-from .catalog import read_cat, read_dpdf
-from .mathf import pd_weighted_mean
+from besl.catalog import (read_cat, read_dpdf)
+from besl.mathf import (pd_weighted_mean)
 from scipy.stats import gaussian_kde
 from scipy.interpolate import interp1d
 
