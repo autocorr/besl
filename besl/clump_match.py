@@ -762,16 +762,16 @@ def append_evo_flags(bgps):
     # IR flags
     bgps['ir_f'][(bgps['robit_f'] > 0) |
                  (bgps['red_msx_f'] > 0) |
-                 (bgps['ego_n'] > 0)] = 1
+                 (bgps['ego_n'] > 0)] = 1  # IR YSO
     bgps['ir_f'][(bgps['ir_f'] != 1) &
-                 (((bgps['robit_n'] > 0) & (bgps['robit_f'] == 0)) |
-                  ((bgps['red_msx_n'] > 0) & (bgps['red_msx_f'] == 0)))] = 2
+                 (bgps['robit_n'] > 0) &
+                 (bgps['robit_f'] == 0)] = 2  # robitaille AGB
     # UCHII flags
     bgps['uchii_f'][(bgps['corn_n'] > 0)] = 1
     # Starless
     bgps['sf_f'][(bgps['h2o_f'] == 0) &
                  (bgps['ch3oh_f'] != 1) &
-                 _np.logical_not(bgps['ir_f'].isin([1, 2])) &
+                 (bgps['ir_f'] != 1) &
                  (bgps['uchii_f'] != 1)] = 0
     bgps['sf_f'][(bgps['h2o_f'] == 1) |
                  (bgps['ch3oh_f'] == 1) |
