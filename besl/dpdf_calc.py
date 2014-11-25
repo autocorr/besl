@@ -504,16 +504,14 @@ def evo_stages(bgps=None, stages_group=2, label=None):
             {'label': r'${\rm H_2O \ \ Y}$'}]
         return stages, anno_labels
     elif stages_group == 2:
-        starless = bgps[(bgps.glon_peak > 10) & (bgps.glon_peak < 65) &
-                        (bgps.sf_f != 1) & (bgps.hg70_eye_f == 0)]
-        hg_only = bgps[(bgps.hg70_eye_f.isin([1, 2])) & (bgps.h2o_f != 1) &
-                       (bgps.ir_f != 1) & (bgps.ch3oh_f != 1) &
-                       (bgps.uchii_f != 1)]
-        hg_yes = bgps[(bgps.hg70_eye_f.isin([1, 2]))]
-        ir_yes = bgps[bgps.ir_f == 1]
-        h2o_yes = bgps[bgps.h2o_f == 1]
-        ch3oh_yes = bgps[bgps.ch3oh_f == 1]
-        hii_yes = bgps[bgps.uchii_f == 1]
+        bgps = bgps.query('10 < glon_peak < 65')
+        starless = bgps.query('sf_f != 1 & hg70_eye_f not in [1,2]')
+        hg_only = bgps.query('hg70_eye_f in [1,2] & h2o_f != 1 & ir_f != 1 & ch3oh_f != 1 & uchii_f != 1')
+        hg_yes = bgps.query('hg70_eye_f in [1,2]')
+        ir_yes = bgps.query('ir_f == 1')
+        h2o_yes = bgps.query('h2o_f == 1')
+        ch3oh_yes = bgps.query('ch3oh_f == 1')
+        hii_yes = bgps.query('uchii_f == 1')
         stages = [starless, hg_only, hg_yes, ir_yes, h2o_yes,
                   ch3oh_yes, hii_yes]
         anno_labels = [
