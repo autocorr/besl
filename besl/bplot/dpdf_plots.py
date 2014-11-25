@@ -241,7 +241,6 @@ def write_all_stages_plots(bgps):
         r'${\rm I(H_2O) \ \ [K \ km \ s^{-1}}]$',
         r'${\rm H_2O} \ v_{\rm spread} \ \ [{\rm K \ km \ s^{-1}}]$',
         r'$N{\rm H_2O}$',
-        #r'$|v_{\rm HCO^+} - v_{\rm H_2O}| \ \ [{\rm km \ s^{-1}}]$',
         r'$T_{\rm K} \ \ [{\rm K}]$',
         r'$\Omega \ \ [{\rm arcsec^2}]$',
         r'$\theta_{\rm eq} \ \ [{\rm arcsec}]$',
