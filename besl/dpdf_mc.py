@@ -95,6 +95,91 @@ class Sampler(object):
             return samples
 
 
+class Resampler(object):
+    def __init__(self, ix1, ix2, cfrac1=0.5, cfrac2=0.5):
+        """
+        Resample two lists of indices with what fractions to move to the other
+        group.
+
+        Parameters
+        ----------
+        ix1 : pandas.core.index
+        ix2 : pandas.core.index
+        cfrac1 : number, default 0.5
+            Fraction of ix1 to move into ix2
+        cfrac2 : number, default 0.5
+            Fraction of ix2 to move into ix1
+        """
+        self.ix1 = ix1
+        self.ix2 = ix2
+        self.cfrac1 = cfrac1
+        self.cfrac2 = cfrac2
+
+    def resample(self):
+        contam1 = self._draw(self.ix1, self.cfrac1)
+        contam2 = self._draw(self.ix2, self.cfrac2)
+        rix1 = self.ix1.drop(contam1).append(contam2)
+        rix2 = self.ix2.drop(contam2).append(contam1)
+        return rix1, rix2
+
+    @staticmethod
+    def _draw(ix, cfrac):
+        contam = np.random.choice(ix, size=round(len(ix) * cfrac), replace=False)
+        return pd.Index(contam)
+
+
+class MedianStats(object):
+    cols = ['med1', 'med2', 'ks_mu', 'ks_p']
+    normal = True
+
+    def __init__(self, cat, prop, eprop, Sampler, nsamples):
+        """
+        Calculate median statistics from a catalog for a property and it's
+        uncertainty.
+
+        Parameters
+        ----------
+        cat : pd.DataFrame
+        prop : string or array-like
+            Property to MC
+        eprop : string or array-like
+            Uncertainty of property. Passed to `Sampler`.
+        Sampler : Sampler
+            Sampler class to draw random samples from `prop` `eprop`.
+        nsamples : number
+            Number of samples to draw.
+        """
+        self.cat = cat
+        self.prop = prop
+        self.eprop = eprop
+        self.Sampler = Sampler
+        self.nsamples = nsamples
+
+    def draw(self):
+        samples = pd.DataFrame(index=self.cat.index,
+                               columns=np.arange(self.nsamples))
+        for ii in self.cat.index:
+            prop = self.cat.loc[ii, self.prop]
+            eprop = self.cat.loc[ii, self.eprop]
+            sampler = self.Sampler((prop, eprop), normal=self.normal)
+            draw = sampler.draw(nsamples=self.nsamples)
+            samples.loc[ii] = draw
+        return samples
+
+    def diff_stats(ix1, ix2, samples):
+        stats = pd.DataFrame(index=np.arange(samples.shape[1]),
+                             columns=self.cols)
+        for col in samples.columns:
+            s1 = samples.loc[ix1, col]
+            s2 = samples.loc[ix2, col]
+            med1 = s1.median()
+            med2 = s2.median()
+            ks_mu, ks_p = ks_2samp(s1, s2)
+            stats.loc[col] = [med1, med2, ks_mu, ks_p]
+        stats['meddiff'] = stats.med2 - stats.med1
+        return stats
+
+
 class PropCollection(object):
     """
     Collection of all like properties. The class also contains

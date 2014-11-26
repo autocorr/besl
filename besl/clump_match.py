@@ -507,7 +507,7 @@ def clump_match_all():
     -------
     bgps : pd.DataFrame
     """
-    bgps = catalog.read_bgps()
+    bgps = catalog.read_cat('bgps_v210')
     bgps_all = bgps.copy()
     df_list = []
     fn_list = [clump_match_molcat,
@@ -696,7 +696,7 @@ class DataSet(object):
 
     def _merge(self):
         print '-- Merging data'
-        merged_data = read_bgps(v=210).set_index('v210cnum')
+        merged_data = read_cat('bgps_v210').set_index('v210cnum')
         for data in self.all_data:
             merge_cat = data.matcher.bgps_culled
             merged_data = merged_data.merge(merge_cat,
