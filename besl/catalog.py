@@ -8,6 +8,7 @@ Library to match catalogs.
 """
 
 import os as _os
+import cPickle as pickle
 import numpy as _np
 import pandas as _pd
 import ephem as _ephem
@@ -40,7 +41,8 @@ def read_cat(filen=None):
     """
     line_item = '   {0}'
     base_path = d.cat_dir + d.collected
-    paths = [_os.path.splitext(f)[0] for f in _os.listdir(base_path)]
+    paths = [_os.path.splitext(f) for f in _os.listdir(base_path)]
+    paths = [base for base, ext in paths if ext == '.csv']
     paths.sort()
     if filen is None:
         print '-- Available catalogs:'
@@ -55,6 +57,19 @@ def read_cat(filen=None):
                 print line_item.format(f)
         return
     return _pd.read_csv(base_path + filen + '.csv')
+
+
+def read_pickle(filen=None):
+    """
+    Read a pickled data structure from the `_collected` directory.
+
+    Parameters
+    ----------
+    filen : string, default None
+        Name of pickle without extension
+    """
+    base_path = d.cat_dir + d.collected
+    return pickle.load(open(base_path + filen + '.pickle', 'rb'))
 
 
 def read_bgps(exten='none', v=201):
