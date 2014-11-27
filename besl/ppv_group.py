@@ -393,7 +393,7 @@ class PpvBroadcaster(object):
         omni_index : number
             Index of the distance-omnibus fits table
         """
-        post_col = 8
+        post_col = 10
         omni_index = self._get_omni_index(node)
         posterior = self.omni[post_col].data[omni_index]
         self.posteriors[node] = posterior
@@ -435,7 +435,7 @@ class PpvBroadcaster(object):
         omni_index = self._get_omni_index(node)
         posterior = np.ones(self.dpdf_shape)
         # Combine priors of node
-        prior_cols = range(3, 7)
+        prior_cols = range(3, 9)
         for ii in prior_cols:
             posterior *= self.omni[ii].data[omni_index]
         # Apply group distance-weighted EMAF prior

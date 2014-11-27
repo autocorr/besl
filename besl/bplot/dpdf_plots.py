@@ -13,8 +13,8 @@ import matplotlib.pyplot as _plt
 from matplotlib import colors, cm
 from matplotlib.ticker import MaxNLocator
 from besl import catalog, units
-from besl.dpdf_calc import mc_sampler_1d, evo_stages, \
-                           gen_stage_mass_samples, gen_stage_area_samples
+from besl.dpdf_calc import (mc_sampler_1d, evo_stages,
+                            gen_stage_mass_samples, gen_stage_area_samples)
 
 
 def plot_dpdf_sampling(n=200):
@@ -36,6 +36,35 @@ def plot_dpdf_sampling(n=200):
     ax.set_ylim([0, y.max() * 1.1 / 20.])
     _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
+
+
+def plot_dpdf_sum()
+    """
+    Create a histogram with the sum of the DPDFs per evolutionary stage.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+    ax : matplotlib.Axes
+    """
+    _plt.rc('font', **{'size':14})
+    xdist = _np.arange(1000) * 20. + 20.
+    # read data
+    posts = catalog.read_pickle('ppv_dpdf_posteriors')
+    evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum').loc[posts.keys()]
+    stages, anno_labels = evo_stages(bgps=evo, stages_group=2, label=label)
+    # plot
+    fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
+    for df, ax, alabel in zip(stages, axes, anno_labels):
+        # take posterior sum and normalize
+        ydist = np.sum([posts[ii] for ii in df.index], axis=0)
+        ydist /= ydist.sum() * 20
+        ax.plot(xdist * 1e-3, ydist, 'k-', linewidth=2)
+        ax.fill_between(xdist * 1e-3, ydist, color='0.5')
+        ax.set_yscale([0, 1])
+    ax.set_ylabel(r'${\rm Relative \ Probability}$')
+    ax.set_xlabel(r'${\rm Heliocentric \ Distance \ \ [kpc]}$')
+    return fig, axes
 
 
 def stages_hist(label, xlabel, bgps=None):
