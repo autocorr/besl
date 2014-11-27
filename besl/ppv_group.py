@@ -55,6 +55,12 @@ class ClusterDBSCAN(object):
     n_clusters : number
     n_core_nodes : number
     self.cluster_nodes : dict
+
+    Usage
+    -----
+    >>> c = ClusterDBSCAN()
+    >>> c.dbscan()
+    >>> c.analysis()
     """
     ver = 'v210'
     good_kdars = ['N', 'F', 'T', 'O']
@@ -311,6 +317,11 @@ class PpvBroadcaster(object):
     ----------
     posteriors : dict
         Resultant DPDFs for a catalog number
+
+    Usage
+    -----
+    >>> pb = PpvBroadcaster(c)
+    >>> pb.process_posteriors()
     """
     rolloff_dist = 100.
     posteriors = {}
@@ -509,6 +520,12 @@ class PpvBroadcaster(object):
             else:
                 for node in group_nodes:
                     self.calc_weighted_posterior(node, group_nodes)
+        # Merge the single/isolated clumps that aren't found in the cluster
+        # groups.
+        singles = [ii for ii,jj in self.cluster.good_cnums if ii not in
+                   self.posteriors.keys()]
+        for node in singles:
+            self._assign_default_posterior(node)
 
     def calc_weighted_posterior(self, home_node, group_nodes):
         """
