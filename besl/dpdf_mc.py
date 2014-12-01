@@ -11,8 +11,7 @@ composite, posterior DPDFs for nodes in PPV-groups.
 
 import numpy as np
 import pandas as pd
-from besl.catalog import (read_cat, read_dpdf)
-from besl.mathf import (pd_weighted_mean)
+from besl import (catalog, mathf, dpdf_calc)
 from scipy.stats import gaussian_kde
 from scipy.interpolate import interp1d
 
@@ -22,9 +21,9 @@ class Prop(object):
     Container object for a BGPS source property.
     """
     ver = 'v210'
-    bgps = read_cat('bgps_v210_evo').set_index(ver + 'cnum')
-    dpdf_props = read_cat('bgps_v210_dpdf_props').set_index(ver + 'cnum')
-    omni = read_dpdf(v=2)
+    bgps = catalog.read_cat('bgps_v210_evo').set_index(ver + 'cnum')
+    dpdf_props = catalog.read_cat('bgps_v210_dpdf_props').set_index(ver + 'cnum')
+    omni = catalog.read_dpdf(v=2)
     xdist = np.linspace(omni[2].data[0][2],
                         omni[2].data[0][1] * omni[2].data[0][0],
                         omni[2].data[0][0])
@@ -155,42 +154,36 @@ class IrResampler(object):
             cat = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
         else:
             assert cat.index.name == 'v210cnum'
-        cat['robit_yso'] = cat.robit_f.copy()
-        cat['robit_agb'] = cat.eval('robit_n - robit_f')
+        cat['robit_yso'] = cat.robit_f.copy().replace(np.nan, 0).astype(int)
+        cat['robit_agb'] = cat.eval('robit_n - robit_f').replace(np.nan, 0).astype(int)
         cat['robit_yso_r'] = 0
-        cat['robit_agb_r'] = 0
         cat['robit_agb_r'] = 0
         self.cat = cat
 
-    def resample(self):
-        self.cat.robit_yso_r = 0
-        self.cat.robit_agb_r = 0
-        new_yso = self.cat.robit_yso.apply(np.random.binomial,
-                                              p=self.cfrac_yso)
-        new_agb = self.cat.robit_yso - yso_to_agb
-        y2y = self.cat.robit_yso.apply(np.random.binomial, p=self.cfrac_yso)
-        y2a = self.cat.robit_yso - y2y  # compliment are the resampled agb's
-        a2a = self.cat.robit_agb.apply(np.random.binomial, p=self.cfrac_agb)
-        a2y = self.cat.robit_agb - a2a
-        self.cat.robit_yso_r = y2y + a2y
-        self.cat.robit_agb_r = a2a + y2a
-
     def draw_stages(self):
-        self.resample()
-        self.cat.ir_f = 0
+        cat = self.cat  # still the same dataframe in memory
+        cat.robit_yso_r = 0
+        cat.robit_agb_r = 0
+        #y2y = cat.robit_yso.apply(np.random.binomial, p=self.cfrac_yso)
+        y2y = np.random.binomial(cat.robit_yso, p=self.cfrac_yso)
+        #a2a = cat.robit_agb.apply(np.random.binomial, p=self.cfrac_agb)
+        a2a = np.random.binomial(cat.robit_agb, p=self.cfrac_agb)
+        # compliments are the resampled to the other category
+        cat.robit_yso_r = cat.eval('@y2y + robit_agb - @a2a')
+        cat.robit_agb_r = cat.eval('@a2a + robit_yso - @y2y')
+        cat.ir_f = 0
         # Evo stages will select based on `ir_f` and `sf_f`.
         # Because agb's are not a positive indicator, only the resampled YSO's
         # count towards the flags.
-        self.cat.loc[(rcat.robit_yso_r > 0) |
-                     (rcat.red_msx_f > 0) |
-                     (rcat.ego_n > 0), 'ir_f'] = 1
-        self.cat.loc[(rcat.ir_f == 1) |
-                     (rcat.h2o_f == 1) |
-                     (rcat.ch3oh_f == 1) |
-                     (rcat.uchii_f == 1), 'sf_f'] = 1
-        stages, labels = dpdf_calc.evo_stages(bgps=self.cat)
+        cat.loc[(cat.robit_yso_r > 0) |
+                (cat.red_msx_f > 0) |
+                (cat.ego_n > 0), 'ir_f'] = 1
+        cat.loc[(cat.ir_f == 1) |
+                (cat.h2o_f == 1) |
+                (cat.ch3oh_f == 1) |
+                (cat.uchii_f == 1), 'sf_f'] = 1
+        stages, labels = dpdf_calc.evo_stages(bgps=cat)
         return stages, labels
-
 
 class MedianStats(object):
     cols = ['med1', 'med2', 'ks_mu', 'ks_p']
@@ -245,9 +238,9 @@ class PropCollection(object):
     methods for calculating Monte Carlo sampled properties.
     """
     ver = 'v210'
-    bgps = read_cat('bgps_v210_evo').set_index(ver + 'cnum')
-    dpdf_props = read_cat('bgps_v210_dpdf_props').set_index(ver + 'cnum')
-    omni = read_dpdf(v=2)
+    bgps = catalog.read_cat('bgps_v210_evo').set_index(ver + 'cnum')
+    dpdf_props = catalog.read_cat('bgps_v210_dpdf_props').set_index(ver + 'cnum')
+    omni = catalog.read_dpdf(v=2)
     all_props = []
 
     def __init__(self, posteriors, ktemps):
@@ -294,8 +287,9 @@ class TempDistribs(object):
             temps = gbt.merge(mol, how='outer', on=self.v + 'cnum')
             # Weighted mean temperatures
             if weight:
-                temps = pd_weighted_mean(temps, self.temp_cols, self.err_cols,
-                                         out_cols=self.out_cols)
+                temps = mathf.pd_weighted_mean(temps, self.temp_cols,
+                                               self.err_cols,
+                                               out_cols=self.out_cols)
             # Use GBT over collected
             else:
                 temps['tk'] = temps[self.temp_cols[1]]
