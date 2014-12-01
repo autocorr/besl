@@ -10,6 +10,7 @@ composite, posterior DPDFs for nodes in PPV-groups.
 # TODO add in PPV grouping properties
 
 import numpy as np
+import pandas as pd
 from besl.catalog import (read_cat, read_dpdf)
 from besl.mathf import (pd_weighted_mean)
 from scipy.stats import gaussian_kde
@@ -42,60 +43,61 @@ class Prop(object):
         pass
 
 
-class Sampler(object):
+class SamplerBase(object):
     """
-    Simple Monte Carlo sampler.
+    Simple Monte Carlo sampler base class.
     """
-    def __init__(self, data, normal=False):
+    def __init__(self, data, nsamples):
         """
         Initialize the sampler.
 
         Parameters
         ----------
-        data : tuple
-            Data can be a length 2 tuple containing either:
-                (mu, sigma) : (number, number)
-                    To draw random normal deviates.
-                (x, y) : (array, array)
-                    x & y values of a distribution to interpolate
-        normal : bool
-            Whether to use normal distribution
-        """
-        assert len(data) == 2
-        self.data = data
-        self.normal = normal
-
-    def draw(self, nsamples=1e3):
-        """
-        Take a random draw from the distribution.
-
-        Parameters
-        ----------
+        data : tuple, (array-like, array-like)
         nsamples : number
             Number of samples to draw
+        """
+        assert len(data) == 2
+        self.x = data[0]
+        self.y = data[1]
+        self.nsamples = nsamples
+        self.shape = (len(self.x), nsamples)
+
+
+class NormalSampler(SamplerBase):
+    def draw(self):
+        """
+        Take a random draw from a Gaussian distribution.
 
         Returns
         -------
         samples : np.array
         """
-        # Normal deviates
-        if self.normal:
-            return np.random.normal(self.data[0], self.data[1], nsamples)
-        # Random draw from general distribution
-        else:
-            x, y = self.data
-            dx = x[1] - x[0]
-            y_cum = np.cumsum(y) / np.sum(y)
-            # Max of `y_cum` is 1, so only out of bounds values should be less
-            # than the mininum
-            y_int = interp1d(y_cum, x, bounds_error=False,
-                             fill_value=y_cum.min())
-            samples = y_int(np.random.uniform(size=nsamples))
-            samples += dx / 2.
-            return samples
+        return np.array([
+            np.random.normal(ii, jj, self.nsamples)
+                for ii, jj in
+            np.array([self.x, self.y]).T])
 
 
-class Resampler(object):
+class DistSampler(SamplerBase):
+    def draw(self):
+        """
+        Take a random draw from the interpolated distribution.
+
+        Returns
+        -------
+        samples : np.array
+        """
+        dx = self.x[1] - self.x[0]
+        y_cum = np.cumsum(self.y) / np.sum(self.y)
+        # Max of `y_cum` is 1, so only out of bounds values should be less
+        # than the mininum
+        y_int = interp1d(y_cum, self.x, bounds_error=False,
+            fill_value=y_cum.min())
+        return y_int(np.random.uniform(size=self.nsamples)) + dx / 2.
+
+
+class BoolResampler(object):
     def __init__(self, ix1, ix2, cfrac1=0.5, cfrac2=0.5):
         """
         Resample two lists of indices with what fractions to move to the other
@@ -128,6 +130,68 @@ class Resampler(object):
         return pd.Index(contam)
 
 
+class IrResampler(object):
+    cfrac_yso = 0.5
+    cfrac_agb = 0.6
+
+    def __init__(self, cat=None):
+        """
+        Calculate a resampling of the evo stages for the IR Robitaille
+        indicator.  Uses the binomial distribution over the number of YSO or AGB
+        counts within a clump given a "contamination fraction".
+
+        Parameters
+        ----------
+        cat : pandas.DataFrame
+
+        Attributes
+        ----------
+        cfrac_yso : float, default 0.5
+            Probability of a YSO being a YSO
+        cfrac_agb : float, default 0.6
+            Probability of a AGB being an AGB
+        """
+        if cat is None:
+            cat = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
+        else:
+            assert cat.index.name == 'v210cnum'
+        cat['robit_yso'] = cat.robit_f.copy()
+        cat['robit_agb'] = cat.eval('robit_n - robit_f')
+        cat['robit_yso_r'] = 0
+        cat['robit_agb_r'] = 0
+        cat['robit_agb_r'] = 0
+        self.cat = cat
+
+    def resample(self):
+        self.cat.robit_yso_r = 0
+        self.cat.robit_agb_r = 0
+        new_yso = self.cat.robit_yso.apply(np.random.binomial,
+                                              p=self.cfrac_yso)
+        new_agb = self.cat.robit_yso - yso_to_agb
+        y2y = self.cat.robit_yso.apply(np.random.binomial, p=self.cfrac_yso)
+        y2a = self.cat.robit_yso - y2y  # compliment are the resampled agb's
+        a2a = self.cat.robit_agb.apply(np.random.binomial, p=self.cfrac_agb)
+        a2y = self.cat.robit_agb - a2a
+        self.cat.robit_yso_r = y2y + a2y
+        self.cat.robit_agb_r = a2a + y2a
+
+    def draw_stages(self):
+        self.resample()
+        self.cat.ir_f = 0
+        # Evo stages will select based on `ir_f` and `sf_f`.
+        # Because agb's are not a positive indicator, only the resampled YSO's
+        # count towards the flags.
+        self.cat.loc[(rcat.robit_yso_r > 0) |
+                     (rcat.red_msx_f > 0) |
+                     (rcat.ego_n > 0), 'ir_f'] = 1
+        self.cat.loc[(rcat.ir_f == 1) |
+                     (rcat.h2o_f == 1) |
+                     (rcat.ch3oh_f == 1) |
+                     (rcat.uchii_f == 1), 'sf_f'] = 1
+        stages, labels = dpdf_calc.evo_stages(bgps=self.cat)
+        return stages, labels
+
+
 class MedianStats(object):
     cols = ['med1', 'med2', 'ks_mu', 'ks_p']
     normal = True
@@ -156,15 +220,10 @@ class MedianStats(object):
         self.nsamples = nsamples
 
     def draw(self):
-        samples = pd.DataFrame(index=self.cat.index,
+        x, y = self.cat.loc[ii, [self.prop, self.eprop]]
+        sampler = self.Sampler((prop, eprop), self.nsamples)
+        return pd.DataFrame(data=sampler.draw(), index=self.cat.index,
                                columns=np.arange(self.nsamples))
-        for ii in self.cat.index:
-            prop = self.cat.loc[ii, self.prop]
-            eprop = self.cat.loc[ii, self.eprop]
-            sampler = self.Sampler((prop, eprop), normal=self.normal)
-            draw = sampler.draw(nsamples=self.nsamples)
-            samples.loc[ii] = draw
-        return samples
 
     def diff_stats(ix1, ix2, samples):
         stats = pd.DataFrame(index=np.arange(samples.shape[1]),

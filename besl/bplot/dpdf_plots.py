@@ -38,7 +38,7 @@ def plot_dpdf_sampling(n=200):
     return ax
 
 
-def plot_dpdf_sum()
+def plot_dpdf_sum(outname='evo_dpdfs'):
     """
     Create a histogram with the sum of the DPDFs per evolutionary stage.
 
@@ -50,24 +50,141 @@ def plot_dpdf_sum()
     _plt.rc('font', **{'size':14})
     xdist = _np.arange(1000) * 20. + 20.
     # read data
-    posts = catalog.read_pickle('ppv_dpdf_posteriors')
-    evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum').loc[posts.keys()]
-    stages, anno_labels = evo_stages(bgps=evo, stages_group=2, label=label)
+    pposts = catalog.read_pickle('ppv_dpdf_posteriors')
+    dposts = catalog.read_pickle('dpdf_posteriors')
+    evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
+    pevo = evo.loc[pposts.keys()]
+    devo = evo.loc[dposts.keys()]
+    pstages, anno_labels = evo_stages(bgps=pevo)
+    dstages, anno_labels = evo_stages(bgps=devo)
     # plot
-    fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
-    for df, ax, alabel in zip(stages, axes, anno_labels):
+    fig, axes = _plt.subplots(nrows=len(pstages), ncols=1, sharex=True)
+    for pdf, ddf, ax, alabel in zip(pstages, dstages, axes, anno_labels):
         # take posterior sum and normalize
-        ydist = np.sum([posts[ii] for ii in df.index], axis=0)
-        ydist /= ydist.sum() * 20
-        ax.plot(xdist * 1e-3, ydist, 'k-', linewidth=2)
-        ax.fill_between(xdist * 1e-3, ydist, color='0.5')
-        ax.set_yscale([0, 1])
+        pydist = _np.sum([pposts[ii] for ii in pdf.index], axis=0)
+        pydist /= pydist.sum() * 20
+        dydist = _np.sum([dposts[ii] for ii in ddf.index], axis=0)
+        dydist /= dydist.sum() * 20
+        print pydist.sum() * 20, pydist.max()
+        ax.plot(xdist * 1e-3, pydist * 1e3, 'k-', linewidth=2)
+        ax.plot(xdist * 1e-3, dydist * 1e3, linestyle='dashed', linewidth=2,
+            color='0.75')
+        ax.fill_between(xdist * 1e-3, pydist * 1e3, color='0.5')
+        ax.set_ylim([0, 0.35])
+        ax.set_yticks([0, 0.1, 0.2, 0.3])
+        # vertical line for median
+        pmed = _np.cumsum(pydist) * 20
+        pmed = xdist[len(pmed[pmed < 0.5])] / 1e3
+        ax.plot(pmed * _np.ones(2), [0, 0.35], 'w-')
+        ax.plot(pmed * _np.ones(2), [0, 0.35], 'k--')
+        # labels
+        ax.annotate(alabel['label'], xy=(0.775, 0.65), xycoords='axes fraction',
+            fontsize=13)
+        ax.annotate('$N = ' + str(pdf.shape[0]) + '$',
+            xy=(0.53, 0.65), xycoords='axes fraction',
+            fontsize=13)
+        ax.annotate('$(' + str(ddf.shape[0]) + ')$',
+            xy=(0.65, 0.65), xycoords='axes fraction',
+            fontsize=13, color='0.5')
     ax.set_ylabel(r'${\rm Relative \ Probability}$')
     ax.set_xlabel(r'${\rm Heliocentric \ Distance \ \ [kpc]}$')
+    _plt.subplots_adjust(hspace=0.1)
+    _plt.savefig(outname + '.pdf')
+    _plt.savefig(outname + '.png', dpi=300)
+    print '-- {0}.pdf written'.format(outname)
     return fig, axes
 
 
-def stages_hist(label, xlabel, bgps=None):
+class StagesHist(object):
+    totl_color = '0.50'
+    dpdf_color = '0.25'
+    histtype='stepfilled'
+
+    def __init__(self, col, xlabel, bgps=None):
+        """
+        Create a histogram with the evolutionary stages overplotted.
+
+        Parameters
+        ----------
+        label : string
+            column name in bgps to plot
+        xlabel : string
+            string to write on X axis
+        bgps : pd.DataFrame
+        """
+        if bgps is None:
+            bgps = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
+        else:
+            assert bgps.index.name == 'v210cnum'
+        self.col = col
+        self.xlabel = xlabel
+        self.bgps = bgps
+        # other data
+        self.post = catalog.read_pickle('ppv_dpdf_posteriors')
+        self.dix = post.keys()
+        self.stages, self.stage_labels = evo_stages(bgps=bgps, stages_group=2, label=label)
+        self.nstages = len(self.stages)
+
+    def create_figure(self):
+        _plt.rc('font', **{'size':14})
+        self.fig, self.axes = _plt.subplots(nrows=len(self.stages), ncols=1,
+                                            sharex=True)
+
+    def add_stage_labels(self):
+        for ii, ax in enumerate(self.axes):
+            ax.annotate(self.stages_labels[ii], xy=(0.775, 0.65),
+                xycoords='axes fraction', fontsize=13)
+
+    def set_stage_numbers(self):
+        for ii, ax in enumerate(self.axes):
+            num_str = r'$' + self.stages.shape[0] r'$'
+            ax.annotate(num_str, xy=(0.05, 0.65),
+                xycoords='axes fraction', fontsize=13)
+
+    def set_xlabel(self):
+        ax = self.axes[-1]
+        ax.set_xlabel(self.xlabel)
+
+    def save(self, outname=None):
+        """
+        Parameters
+        ----------
+        outname : string, default None
+            If left None, then it will be written as `stages_hist_{col}`
+            where `col` is the column name taken from the DataFrame.
+        """
+        if outname is None:
+            outname = 'stages_hist_{0}'.format(self.col)
+        _plt.savefig(outname + '.pdf')
+        _plt.savefig(outname + '.eps')
+        _plt.savefig(outname + '.png', dpi=300)
+        print '-- {0} written'.format(outname)
+
+
+class MargStagesHist(StagesHist):
+    def __init__(self, fvals, dvals, col, xlabel):
+        super(MargStagesHist, object).__init__(col, xlabel)
+        self.fvals = fvals
+        self.dvals = dvals
+
+    def set_stage_numbers(self):
+        for ii, ax in enumerate(self.axes):
+            num_str = r'$' + self.stages.shape[0] r'$'
+            ax.annotate(num_str, xy=(0.05, 0.65),
+                xycoords='axes fraction', fontsize=13)
+
+    def create_figure(self):
+        _plt.rc('font', **{'size':14})
+        self.fig, self.axes = _plt.subplots(nrows=len(self.stages), ncols=1,
+                                            sharex=True, sharey=True)
+
+    def make_figure(self):
+        self.create_figure()
+        self.set_xlabel()
+        self.save()
+
+
+def stages_hist(label, xlabel, bgps=None, color=True):
     """
     Create a histogram with the evolutionary stages overplotted.
 
@@ -84,14 +201,22 @@ def stages_hist(label, xlabel, bgps=None):
     fig : matplotlib.Figure
     ax : matplotlib.Axes
     """
+    if bgps is None:
+        bgps = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
+    else:
+        assert bgps.index.name == 'v210cnum'
     _plt.rc('font', **{'size':14})
     # evo stages
+    post = catalog.read_pickle('ppv_dpdf_posteriors')
+    dix = post.keys()
     stages, anno_labels = evo_stages(bgps=bgps, stages_group=2, label=label)
     # colors
-    #colors = ['green', 'SlateBlue', 'red', 'DodgerBlue', 'Orange', 'magenta']
-    cNorm = colors.Normalize(vmin=0, vmax=1)
-    scalarmap = cm.ScalarMappable(norm=cNorm, cmap=cm.cubehelix)
-    rgb = [scalarmap.to_rgba(i) for i in _np.linspace(0, 1, len(stages))]
+    if color:
+        cNorm = colors.Normalize(vmin=0, vmax=1)
+        scalarmap = cm.ScalarMappable(norm=cNorm, cmap=cm.cubehelix)
+        rgb = [scalarmap.to_rgba(i) for i in _np.linspace(0, 1, len(stages))]
+    else:
+        rgb = ['0.5' for _ in range(len(stages))]
     # calculate lims and bins
     xmin = _np.nanmin([df[label].min() for df in stages])
     xmax = _np.nanmax([df[label].max() for df in stages])
@@ -112,6 +237,8 @@ def stages_hist(label, xlabel, bgps=None):
             # histogram
             ax.hist(df[_np.isfinite(df)].values, facecolor=rgb[i],
                 **kwargs_hist)
+            ax.hist(df[_np.isfinite(df) & df.index.isin(dix)].values,
+                bins=lbins, histtype='stepfilled', facecolor='0.25')
             # vertical line for median
             ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'w-')
             ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
@@ -131,7 +258,7 @@ def stages_hist(label, xlabel, bgps=None):
             fontsize=13)
     axes[-1].set_xlabel(xlabel)
     # save
-    _plt.subplots_adjust(hspace=0.05)
+    _plt.subplots_adjust(hspace=0.1)
     _plt.savefig('stages_hist_{}.pdf'.format(label))
     print '-- stages_hist_{}.pdf written'.format(label)
     return [fig, axes]

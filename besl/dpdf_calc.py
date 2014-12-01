@@ -513,12 +513,12 @@ def evo_stages(bgps=None, stages_group=2, label=None):
         hii_yes = bgps.query('uchii_f == 1')
         stages = [starless, hg_uniq, ir_yes, h2o_yes, ch3oh_yes, hii_yes]
         anno_labels = [
-            {'label': r'${\rm Starless Cand.}$'},
+            {'label': r'${\rm Starless \ Cand.}$'},
             {'label': r'${\rm HiGAL \ 70 \ \ Uniq.}$'},
             {'label': r'${\rm IR \ \ Y}$'},
             {'label': r'${\rm H_2O \ \ Y}$'},
             {'label': r'${\rm CH_3OH \ \ Y}$'},
-            {'label': r'${\rm UCH\sc{II} \ \ Y}$'}]
+            {'label': r'${\rm UCH{\sc II} \ \ Y}$'}]
         return stages, anno_labels
     elif stages_group == 3:
         starless = bgps[bgps.sf_f == 0]
