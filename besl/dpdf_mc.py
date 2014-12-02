@@ -60,7 +60,6 @@ class SamplerBase(object):
         self.x = data[0]
         self.y = data[1]
         self.nsamples = nsamples
-        self.shape = (len(self.x), nsamples)
 
 
 class NormalSampler(SamplerBase):
@@ -78,7 +77,21 @@ class NormalSampler(SamplerBase):
             np.array([self.x, self.y]).T])
 
 
+class SingleNormalSampler(SamplerBase):
+    def draw(self):
+        return np.random.normal(self.x, self.y, self.nsamples)
+
+
 class DistSampler(SamplerBase):
+    def __init__(self, data, nsamples):
+        super(DistSampler, self).__init__(data, nsamples)
+        self.dx = self.x[1] - self.x[0]
+        y_cum = np.cumsum(self.y) / np.sum(self.y)
+        # Max of `y_cum` is 1, so only out of bounds values should be less
+        # than the mininum
+        self.y_int = interp1d(y_cum, self.x, bounds_error=False,
+            fill_value=y_cum.min())
+
     def draw(self):
         """
         Take a random draw from the interpolated distribution.
@@ -87,13 +100,74 @@ class DistSampler(SamplerBase):
         -------
         samples : np.array
         """
-        dx = self.x[1] - self.x[0]
-        y_cum = np.cumsum(self.y) / np.sum(self.y)
-        # Max of `y_cum` is 1, so only out of bounds values should be less
-        # than the mininum
-        y_int = interp1d(y_cum, self.x, bounds_error=False,
-            fill_value=y_cum.min())
-        return y_int(np.random.uniform(size=self.nsamples)) + dx / 2.
+        return self.y_int(np.random.uniform(size=self.nsamples)) + self.dx / 2.
+
+
+class TempSampler(object):
+    def __init__(self, cat, nsamples):
+        self.cat = cat[cat.nh3_tkin.notnull()]
+        self.stages, _ = dpdf_calc.evo_stages(self.cat)
+        self.ns = len(self.stages)
+        self.nsamples = nsamples
+        self.samplers = [NormalSampler((df['nh3_tkin'].values,
+                                        df['nh3_tkin_err'].values), nsamples)
+                         for df in self.stages]
+        self.samples = [s.draw().flatten() for s in self.samplers]
+        self.samples = [s[(s > 0) & (s < 200)] for s in self.samples]
+
+    def draw(self, ii):
+        return np.random.choice(self.samples[ii], size=self.nsamples)
+
+
+class MassSampler(object):
+    fluxc = 'flux'
+    efluxc = 'err_flux'
+    distx = np.arange(1000, dtype=float) * 20. + 20.
+
+    def __init__(self, cat, nsamples):
+        assert cat.index.name == 'v210cnum'
+        print ':: Read in data'
+        self.cat = cat.copy()
+        self.posts = catalog.read_pickle('ppv_dpdf_posteriors')
+        self.dix = {k: v for k, v in self.posts.items()
+                    if k in cat.query('10 < glon_peak < 65').index}
+        self.stages, _ = dpdf_calc.evo_stages(cat)
+        self.ns = len(self.stages)
+        self.stage_ix = [df.index for df in self.stages]
+        self.nsamples = nsamples
+        # flux samples, index offset of -1
+        print ':: Sampling fluxes'
+        self.fluxes = NormalSampler((cat[self.fluxc].values, cat[self.efluxc].values), nsamples).draw()
+        print ':: Sampling temperatures (normal)'
+        self.tkins = NormalSampler((cat.nh3_tkin.values, cat.nh3_tkin_err.values), nsamples).draw()
+        self.good_tk = cat[cat.nh3_tkin.notnull()].index
+        print ':: Sampling temperatures (stages)'
+        self.tkin_sampler = TempSampler(cat, nsamples)
+
+    def draw(self):
+        dix = self.dix
+        masses = np.empty((self.cat.shape[0], self.nsamples), dtype=float)
+        masses[:,:] = np.nan
+        for ii, cix in enumerate(dix):
+            print '-- ', ii + 1, ' / ', len(dix)
+            cdist = DistSampler((self.distx, self.posts[cix]), self.nsamples).draw()
+            cflux = self.fluxes[cix - 1]
+            if cix in self.good_tk:
+                ctkin = self.tkins[cix - 1]
+            else:
+                for jj, stix in enumerate(reversed(self.stage_ix)):
+                    if cix in stix:
+                        break
+                else:
+                    raise ValueError('Not in stage, cnum: {0}'.format(cix))
+                ctkin = self.tkin_sampler.draw(self.ns - 1 - jj)
+            masses[cix - 1] = self.mass(ctkin, cflux, cdist)
+        return masses
+
+    @staticmethod
+    def mass(tkin, flux, dist):
+        # dist must be in pc
+        return 14.067 * (np.exp(13.08 / tkin) - 1) * flux * (dist * 1e-3)**2
 
 
 class BoolResampler(object):
