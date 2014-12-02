@@ -506,7 +506,7 @@ def evo_stages(bgps=None, stages_group=2, label=None):
     elif stages_group == 2:
         bgps = bgps.query('10 < glon_peak < 65')
         starless = bgps.query('sf_f != 1 & hg70_eye_f not in [1,2,4]')
-        hg_uniq = bgps.query('hg70_eye_f in [1,2,4] & h2o_f != 1 & ir_f != 1 & ch3oh_f != 1 & uchii_f != 1')
+        hg_uniq = bgps.query('hg70_eye_f in [1,2,4] & h2o_f != 1 & ir_f != 1 & ch3oh_f != 1 & uchii_f != 1 & ~(robit_n > 0)')
         ir_yes = bgps.query('hg70_eye_f in [1,2,4] | ir_f == 1')
         h2o_yes = bgps.query('h2o_f == 1')
         ch3oh_yes = bgps.query('ch3oh_f == 1')

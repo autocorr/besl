@@ -158,20 +158,19 @@ class IrResampler(object):
         cat['robit_agb'] = cat.eval('robit_n - robit_f').replace(np.nan, 0).astype(int)
         cat['robit_yso_r'] = 0
         cat['robit_agb_r'] = 0
+        cat['ir_f'] = 0
         self.cat = cat
 
     def draw_stages(self):
         cat = self.cat  # still the same dataframe in memory
         cat.robit_yso_r = 0
         cat.robit_agb_r = 0
-        #y2y = cat.robit_yso.apply(np.random.binomial, p=self.cfrac_yso)
+        cat.ir_f = 0
         y2y = np.random.binomial(cat.robit_yso, p=self.cfrac_yso)
-        #a2a = cat.robit_agb.apply(np.random.binomial, p=self.cfrac_agb)
         a2a = np.random.binomial(cat.robit_agb, p=self.cfrac_agb)
         # compliments are the resampled to the other category
-        cat.robit_yso_r = cat.eval('@y2y + robit_agb - @a2a')
-        cat.robit_agb_r = cat.eval('@a2a + robit_yso - @y2y')
-        cat.ir_f = 0
+        cat.robit_yso_r = cat.eval('@y2y + robit_agb - @a2a')  # y2y + a2y
+        cat.robit_agb_r = cat.eval('@a2a + robit_yso - @y2y')  # a2a + y2a
         # Evo stages will select based on `ir_f` and `sf_f`.
         # Because agb's are not a positive indicator, only the resampled YSO's
         # count towards the flags.
@@ -184,6 +183,7 @@ class IrResampler(object):
                 (cat.uchii_f == 1), 'sf_f'] = 1
         stages, labels = dpdf_calc.evo_stages(bgps=cat)
         return stages, labels
+
 
 class MedianStats(object):
     cols = ['med1', 'med2', 'ks_mu', 'ks_p']

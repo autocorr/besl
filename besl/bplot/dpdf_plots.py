@@ -137,7 +137,7 @@ class StagesHist(object):
 
     def set_stage_numbers(self):
         for ii, ax in enumerate(self.axes):
-            num_str = r'$' + self.stages.shape[0] r'$'
+            num_str = r'$' + self.stages.shape[0] + r'$'
             ax.annotate(num_str, xy=(0.05, 0.65),
                 xycoords='axes fraction', fontsize=13)
 
@@ -169,7 +169,7 @@ class MargStagesHist(StagesHist):
 
     def set_stage_numbers(self):
         for ii, ax in enumerate(self.axes):
-            num_str = r'$' + self.stages.shape[0] r'$'
+            num_str = r'$' + self.stages.shape[0] + r'$'
             ax.annotate(num_str, xy=(0.05, 0.65),
                 xycoords='axes fraction', fontsize=13)
 
@@ -184,7 +184,7 @@ class MargStagesHist(StagesHist):
         self.save()
 
 
-def stages_hist(label, xlabel, bgps=None, color=True):
+def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
     """
     Create a histogram with the evolutionary stages overplotted.
 
@@ -242,9 +242,13 @@ def stages_hist(label, xlabel, bgps=None, color=True):
             # vertical line for median
             ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'w-')
             ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
+            ax.plot(df[df.index.isin(dix)].median() * _np.ones(2),
+                [0, 1.2 * ymax], 'w-')
+            ax.plot(df[df.index.isin(dix)].median() * _np.ones(2),
+                [0, 1.2 * ymax], 'k:')
             # horizontal line for confidence interval
-            ax.plot([_np.percentile(df.values, 10),
-                     _np.percentile(df.values, 90)], _np.ones(2) * ymax, 'k:')
+            #ax.plot([_np.percentile(df.values, 10),
+            #         _np.percentile(df.values, 90)], _np.ones(2) * ymax, 'k:')
         # plot attributes
         ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
         ax.set_ylim([0, 1.1 * ymax])
@@ -252,7 +256,11 @@ def stages_hist(label, xlabel, bgps=None, color=True):
         ax.locator_params(axis='y', tight=True, nbins=4)
         ax.set_xscale('log')
         #ax.legend(loc=1, frameon=False, numpoints=None, prop={'size':12})
-        ax.annotate(stages_labels[i], xy=(0.775, 0.65), xycoords='axes fraction',
+        if not left_label:
+            slabel_xoffset = 0.775
+        else:
+            slabel_xoffset = 0.15
+        ax.annotate(stages_labels[i], xy=(slabel_xoffset, 0.65), xycoords='axes fraction',
             fontsize=13)
         ax.annotate(df.shape[0], xy=(0.05, 0.65), xycoords='axes fraction',
             fontsize=13)
@@ -260,6 +268,8 @@ def stages_hist(label, xlabel, bgps=None, color=True):
     # save
     _plt.subplots_adjust(hspace=0.1)
     _plt.savefig('stages_hist_{}.pdf'.format(label))
+    _plt.savefig('stages_hist_{}.eps'.format(label))
+    _plt.savefig('stages_hist_{}.png'.format(label), dpi=300)
     print '-- stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
 
