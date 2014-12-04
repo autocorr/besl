@@ -515,10 +515,10 @@ def evo_stages(bgps=None, stages_group=2, label=None):
         anno_labels = [
             {'label': r'${\rm Starless \ Cand.}$'},
             {'label': r'${\rm HiGAL \ 70 \ \ Uniq.}$'},
-            {'label': r'${\rm IR \ \ Y}$'},
-            {'label': r'${\rm H_2O \ \ Y}$'},
-            {'label': r'${\rm CH_3OH \ \ Y}$'},
-            {'label': r'${\rm UCH{\sc II} \ \ Y}$'}]
+            {'label': r'${\rm IR}$'},
+            {'label': r'${\rm H_2O}$'},
+            {'label': r'${\rm CH_3OH}$'},
+            {'label': r'${\rm UCH{\sc II}}$'}]
         return stages, anno_labels
     elif stages_group == 3:
         starless = bgps[bgps.sf_f == 0]
