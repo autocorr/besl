@@ -120,29 +120,46 @@ class TempSampler(object):
 
 
 class MassSampler(object):
-    fluxc = 'flux'
-    efluxc = 'err_flux'
     distx = np.arange(1000, dtype=float) * 20. + 20.
 
-    def __init__(self, cat, nsamples):
+    def __init__(self, cat, nsamples, use_fwhm=False):
         assert cat.index.name == 'v210cnum'
+        self.cat = cat
+        self.nsamples = nsamples
+        self.use_fwhm = use_fwhm
         print ':: Read in data'
-        self.cat = cat.copy()
+        cat = cat.copy()
         self.posts = catalog.read_pickle('ppv_dpdf_posteriors')
         self.dix = {k: v for k, v in self.posts.items()
                     if k in cat.query('10 < glon_peak < 65').index}
         self.stages, _ = dpdf_calc.evo_stages(cat)
         self.ns = len(self.stages)
         self.stage_ix = [df.index for df in self.stages]
-        self.nsamples = nsamples
         # flux samples, index offset of -1
         print ':: Sampling fluxes'
-        self.fluxes = NormalSampler((cat[self.fluxc].values, cat[self.efluxc].values), nsamples).draw()
+        self.fluxes = self.get_fluxes()
         print ':: Sampling temperatures (normal)'
-        self.tkins = NormalSampler((cat.nh3_tkin.values, cat.nh3_tkin_err.values), nsamples).draw()
+        self.tkins = NormalSampler((cat.nh3_tkin.values,
+                                    cat.nh3_tkin_err.values), nsamples).draw()
         self.good_tk = cat[cat.nh3_tkin.notnull()].index
         print ':: Sampling temperatures (stages)'
         self.tkin_sampler = TempSampler(cat, nsamples)
+
+    def get_fluxes(self):
+        if self.use_fwhm:
+            fwhm = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
+            bad_fluxes = fwhm.fwhm_flux <= 0
+            fwhm.loc[bad_fluxes, 'fwhm_flux'] = fwhm.loc[bad_fluxes, 'flux']
+            fwhm = fwhm.loc[:, ['fwhm_flux', 'fwhm_eqangle']]
+            fwhm['err_fwhm_flux'] = 0.2 * fwhm['fwhm_flux']
+            self.cat = self.cat.merge(fwhm, how='outer', left_index=True, right_index=True)
+            return NormalSampler((self.cat['fwhm_flux'].values,
+                                  self.cat['err_fwhm_flux'].values),
+                                 self.nsamples).draw()
+        else:
+            return NormalSampler((self.cat['flux'].values,
+                                  self.cat['err_flux'].values),
+                                 self.nsamples).draw()
 
     def draw(self):
         dix = self.dix
@@ -161,13 +178,59 @@ class MassSampler(object):
                 else:
                     raise ValueError('Not in stage, cnum: {0}'.format(cix))
                 ctkin = self.tkin_sampler.draw(self.ns - 1 - jj)
-            masses[cix - 1] = self.mass(ctkin, cflux, cdist)
+            masses[cix - 1] = self.calc_mass(ctkin, cflux, cdist)
         return masses
 
     @staticmethod
-    def mass(tkin, flux, dist):
+    def calc_mass(tkin, flux, dist):
         # dist must be in pc
         return 14.067 * (np.exp(13.08 / tkin) - 1) * flux * (dist * 1e-3)**2
+
+
+class FreeFallSampler(object):
+    distx = np.arange(1000, dtype=float) * 20. + 20.
+
+    def __init__(self, cat, nsamples):
+        assert cat.index.name == 'v210cnum'
+        print ':: Read in data'
+        self.cat = cat.copy()
+        self.posts = catalog.read_pickle('ppv_dpdf_posteriors')
+        self.dix = {k: v for k, v in self.posts.items()
+                    if k in self.cat.query('10 < glon_peak < 65').index}
+        self.stages, _ = dpdf_calc.evo_stages(cat)
+        self.ns = len(self.stages)
+        self.stage_ix = [df.index for df in self.stages]
+        self.nsamples = nsamples
+        self.ms = MassSampler(self.cat, nsamples, use_fwhm=True)
+
+    def get_volumes(self):
+        dix = self.dix
+        vols = np.empty((self.cat.shape[0], self.nsamples), dtype=float)
+        vols[:,:] = np.nan
+        for ii, cix in enumerate(dix):
+            cdist = DistSampler((self.distx, self.posts[cix]), self.nsamples).draw()
+            vols[cix - 1] = self.calc_volume(cdist, self.ms.cat.loc[cix, 'fwhm_eqangle'])
+        return vols
+
+    def draw(self):
+        print ':: Sampling masses'
+        self.masses = self.ms.draw()
+        print ':: Sampling volumes'
+        self.volumes = self.get_volumes()
+        print ':: Calculating freefall times'
+        return self.calc_freefall(self.masses, self.volumes)
+
+    @staticmethod
+    def calc_volume(dist, angle):
+        # `dist` in parsec
+        # `angle` in arcsec
+        arcsec2rad = 4.8481368e-6
+        return 4 * np.pi / 3. * (arcsec2rad * angle * dist / 2.)**3
+
+    @staticmethod
+    def calc_freefall(mass, volume):
+        msun_per_pc3 = 6.7702543e-20  # in kg / m^3
+        return 0.002680274 / np.sqrt(msun_per_pc3 * mass / volume)  # in yr
 
 
 class BoolResampler(object):

@@ -7,16 +7,23 @@ General routines and utility functions
 
 """
 
-import pandas as _pd
+import pandas as pd
+from matplotlib import pyplot as plt
 from tempfile import NamedTemporaryFile
 from .catalog import read_bgps
+
+
+def savefig(outname):
+    plt.savefig(outname + '.pdf')
+    plt.savefig(outname + '.eps')
+    plt.savefig(outname + '.png', dpi=300)
 
 
 def bgps_import_check(bgps, exten='all'):
     if len(bgps) == 0:
         # If empty return new BGPS catalog
         return read_bgps(exten=exten)
-    elif isinstance(bgps, _pd.core.frame.DataFrame):
+    elif isinstance(bgps, pd.core.frame.DataFrame):
         # Return non-empty pandas DataFrame
         return bgps
     else:
@@ -40,7 +47,7 @@ def convert_endian(df, keep_index=False):
     """
     with NamedTemporaryFile() as temp:
         df.to_csv(temp.name, index=keep_index)
-        df = _pd.read_csv(temp.name)
+        df = pd.read_csv(temp.name)
     return df
 
 
