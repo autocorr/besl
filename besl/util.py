@@ -13,10 +13,12 @@ from tempfile import NamedTemporaryFile
 from .catalog import read_bgps
 
 
-def savefig(outname):
+def savefig(outname, close=False):
     plt.savefig(outname + '.pdf')
     plt.savefig(outname + '.eps')
     plt.savefig(outname + '.png', dpi=300)
+    if close:
+        plt.close()
 
 
 def bgps_import_check(bgps, exten='all'):
