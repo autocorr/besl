@@ -649,3 +649,24 @@ def write_emaf_table():
     return emaf
 
 
+def write_velo_table(outfilen='bgps_v210_velo'):
+    """
+    Write a simple CSV file of the velocity table from the distance
+    omnibus FITS list of HDU's.
+    """
+    omni = catalog.read_dpdf()
+    vomni = omni[-1].data
+    vdf = _pd.DataFrame(vomni)
+    vdf = convert_endian(vdf)
+    vdf['all_vlsr'] = vdf.VLSR.replace(-1000, _np.nan)
+    unique_grs = (vdf.VLSR == -1000) & (vdf.GRS_FLAG == 2)
+    vdf.loc[unique_grs, 'all_vlsr'] = vdf.loc[unique_grs, 'GRS_VLSR']
+    vdf = vdf.rename(columns={'CNUM': 'v210cnum',
+                              'L': 'glon_peak',
+                              'B': 'glat_peak',
+                              })
+    vdf = vdf[['v210cnum', 'glon_peak', 'glat_peak', 'all_vlsr']]
+    vdf = vdf[vdf.all_vlsr.notnull()]
+    vdf.to_csv(outfilen + '.csv', index=False)
+
+
