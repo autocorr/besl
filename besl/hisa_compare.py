@@ -18,12 +18,11 @@ from besl import catalog
 from besl import util
 
 
-evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
 omni = catalog.read_dpdf()
-velo = pd.DataFrame(omni[-1].data)
-velo = util.convert_endian(velo).set_index('CNUM')
-uchii = evo.loc[velo.query('VLSR != -1000').index].query('uchii_f == 1')
-print '-- uchii matched with velo: {0}'.format(uchii.shape[0])
+evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
+velo = catalog.read_cat('bgps_v210_vel').set_index('v210cnum')
+kdar = catalog.read_cat('bgps_v210_kdars').set_index('v210cnum')
+cat = evo.loc[kdar.query('kdar == "F"').index].query('10 < glon_peak < 65')
 
 
 class VgpsLib(object):
@@ -157,12 +156,12 @@ class HisaPlotter(object):
             vaxis = self.lib.get_vaxis(hdu)
             latmin, latmax, lonmin, lonmax = self.lib.get_border(hdu)
             # FIXME this will break if goes through Galactic Center.
-            field_uchii = uchii.query('@latmin < glat_peak < @latmax & '
+            field_cat = cat.query('@latmin < glat_peak < @latmax & '
                                       '@lonmin < glon_peak < @lonmax')
-            for cnum in field_uchii.index:
-                lon = uchii.loc[cnum, 'glon_peak']
-                lat = uchii.loc[cnum, 'glat_peak']
-                vlsr = velo.loc[cnum, 'VLSR']
+            for cnum in field_cat.index:
+                lon = cat.loc[cnum, 'glon_peak']
+                lat = cat.loc[cnum, 'glat_peak']
+                vlsr = velo.loc[cnum, 'all_vlsr']
                 spec = self.lib.get_spectrum(hdu, lon, lat)
                 self.draw(cnum, spec, vaxis, vlsr)
 
