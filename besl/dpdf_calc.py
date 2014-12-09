@@ -659,7 +659,7 @@ def write_velo_table(outfilen='bgps_v210_velo'):
     vdf = _pd.DataFrame(vomni)
     vdf = convert_endian(vdf)
     vdf['all_vlsr'] = vdf.VLSR.replace(-1000, _np.nan)
-    unique_grs = (vdf.VLSR == -1000) & (vdf.GRS_FLAG == 2)
+    unique_grs = vdf.query('VLSR == -1000 & GRS_FLAG in [1,2]').index
     vdf.loc[unique_grs, 'all_vlsr'] = vdf.loc[unique_grs, 'GRS_VLSR']
     vdf = vdf.rename(columns={'CNUM': 'v210cnum',
                               'L': 'glon_peak',

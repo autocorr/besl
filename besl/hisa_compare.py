@@ -22,7 +22,8 @@ omni = catalog.read_dpdf()
 evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
 velo = catalog.read_cat('bgps_v210_vel').set_index('v210cnum')
 kdar = catalog.read_cat('bgps_v210_kdars').set_index('v210cnum')
-cat = evo.loc[kdar.query('kdar == "F"').index].query('10 < glon_peak < 65')
+cat = evo.loc[kdar.query('kdar in ["F", "N"]').index].query('10 < glon_peak < 65')
+print ':: Clumps with N/F in overlap: ', cat.shape[0]
 
 
 class VgpsLib(object):
@@ -39,7 +40,7 @@ class VgpsLib(object):
     abs_path : string
         Absolute path of data directory
     """
-    abs_path = '/home/bsvoboda/data0/local_data/VGPS/'
+    abs_path = '/home/svobodb/research/Data/VGPS/'
     file_re = r'MOS_???'
 
     def __init__(self, ext='.Tb.fits'):
@@ -151,21 +152,21 @@ class HisaPlotter(object):
     def draw_hisa_plots(self):
         for field in self.lib.fields:
             if self.verbose:
-                print '-- field: {0}'.format(field)
+                print '\n\n:: field: {0}'.format(field)
             hdu = self.lib.get_hdu(field)
             vaxis = self.lib.get_vaxis(hdu)
             latmin, latmax, lonmin, lonmax = self.lib.get_border(hdu)
             # FIXME this will break if goes through Galactic Center.
             field_cat = cat.query('@latmin < glat_peak < @latmax & '
-                                      '@lonmin < glon_peak < @lonmax')
+                                  '@lonmin < glon_peak < @lonmax')
             for cnum in field_cat.index:
                 lon = cat.loc[cnum, 'glon_peak']
                 lat = cat.loc[cnum, 'glat_peak']
                 vlsr = velo.loc[cnum, 'all_vlsr']
                 spec = self.lib.get_spectrum(hdu, lon, lat)
-                self.draw(cnum, spec, vaxis, vlsr)
+                self.draw(cnum, spec, vaxis, vlsr, field)
 
-    def draw(self, cnum, spec, vaxis, vlsr, to_kms=True):
+    def draw(self, cnum, spec, vaxis, vlsr, field, to_kms=True):
         if to_kms:
             kms_factor = 1e-3
         else:
@@ -183,13 +184,13 @@ class HisaPlotter(object):
         self.ax.set_ylabel(r'$T_{\rm b} \ \ [{\rm K}]$')
         self.ax.set_title(str(cnum))
         self.ax.grid()
-        self.savefig(cnum)
+        self.savefig(cnum, field)
 
-    def savefig(self, cnum):
+    def savefig(self, cnum, field):
         if self.verbose:
-            print '.',
-        fbase = 'hisa_{0}'.format(cnum)
+            print '-- cnum : {0:4n}, field : {1:2n}'.format(cnum, field)
+        fbase = 'hisa_{0}_{1}'.format(cnum, field)
         for ext in ['.png', '.pdf', '.eps']:
-            plt.savefig(self.plot_dir + fbase + ext, dpi=200)
+            plt.savefig(self.plot_dir + fbase + ext, dpi=300)
 
 
