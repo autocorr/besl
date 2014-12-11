@@ -125,7 +125,7 @@ class HiGalInspector(Inspector):
     Visually inspect HiGal cutouts in DS9.
     """
     # Directories and file names
-    root_dir = '/mnt/eld_data/HiGal/'
+    root_dir = '/home/svobodb/research/Data/HiGal/'
     data_dir = os.path.join(root_dir, 'dat_files')
     data_file = os.path.join(data_dir,
         'source_{cnum}_blue_svoboda_photall_err.dat')
@@ -203,7 +203,7 @@ class MipsgalInspector(Inspector):
     Visually inspect HiGal cutouts in DS9.
     """
     # Directories and file names
-    root_dir = '/mnt/eld_data/MIPSGAL/'
+    root_dir = '/home/svobodb/research/Data/MIPSGAL/'
     img_dir = os.path.join(root_dir, 'mosaics24')
     img_file = os.path.join(img_dir,
                             'MG{coord_str}_{img_type}.fits')
