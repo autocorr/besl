@@ -16,6 +16,7 @@ from astropy.io import fits
 from besl import catalog
 from ..catalog import read_cat
 from ..image import get_bgps_img
+from ..paths import all_paths as d
 
 
 def overplot_markers(gc, add_legend=False):
@@ -45,10 +46,9 @@ def overplot_markers(gc, add_legend=False):
     gc.show_markers(ego['_Glon'].values, ego['_Glat'].values, marker='s',
         edgecolor='orange', facecolor='none', zorder=3, label=r'${\rm EGO}$')
     # h2o cats
-    h2o_gbt = catalog.read_gbt_h2o()
-    h2o_arc = catalog.read_arcetri_valdettaro()
-    h2o_rms = catalog.read_rms_h2o()
-    h2o_hops = catalog.read_hops()
+    h2o_gbt = catalog.read_cat('gbt_h2o')
+    h2o_arc = catalog.read_cat('valdettaro01_arcetri')
+    h2o_hops = catalog.read_cat('walsh11_hops_h2o')
     gc.show_markers(h2o_gbt['h2o_glon'].values, h2o_gbt['h2o_glat'].values,
         marker='o', edgecolor='green', facecolor='none', zorder=3,
         label=r'${\rm GBT \ H_2O:N}$')
@@ -60,9 +60,11 @@ def overplot_markers(gc, add_legend=False):
         h2o_arc[h2o_arc.h2o_f == 1]['_Glat'].values, marker='^',
         edgecolor='green', facecolor='green', zorder=3,
         label=r'${\rm Lit. \ H_2O}$')
-    gc.show_markers(h2o_rms[h2o_rms.h2o_f == 1]['_Glon_x'].values,
-        h2o_rms[h2o_rms.h2o_f == 1]['_Glat_x'].values, marker='^',
-        edgecolor='green', facecolor='green', zorder=3)
+    # TODO fix h2o_rms catalogs
+    #h2o_rms = catalog.read_rms_h2o()
+    #gc.show_markers(h2o_rms[h2o_rms.h2o_f == 1]['_Glon_x'].values,
+    #    h2o_rms[h2o_rms.h2o_f == 1]['_Glat_x'].values, marker='^',
+    #    edgecolor='green', facecolor='green', zorder=3)
     gc.show_markers(h2o_hops['lWeight_deg'].values,
         h2o_hops['bWeight_deg'].values, marker='^', edgecolor='green',
         facecolor='green', zorder=3)
@@ -119,7 +121,7 @@ def overplot_rind(gc, field):
     """
     epsilon = 9e-1 # fudge factor for contouring
     bgps = catalog.read_bgps(exten='all')
-    rind = fits.open('/mnt/eld_data/BGPS/Images/v2.0.0/'
+    rind = fits.open(d.root_dir + '/BGPS/Images/v2.0.0/' +
                      'v2.0_ds2_{}_13pca_labelmask.fits'.format(field))
     yp, xp = rind[0].data.shape
     X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
@@ -152,7 +154,7 @@ def overplot_single_rind(gc, cnum):
     epsilon = 9e-1  # fudge factor for contouring
     bgps = catalog.read_cat('bgps_v210').set_index('v210cnum')
     field = bgps.loc[cnum, 'field']
-    rind = fits.open('/mnt/eld_data/BGPS/Images/v2.1.0/v2.0_ds2_'
+    rind = fits.open(d.root_dir + '/BGPS/Images/v2.1.0/v2.0_ds2_' +
                      '{}_13pca_labelmask.fits'.format(field))
     yp, xp = rind[0].data.shape
     X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
@@ -184,7 +186,7 @@ def overplot_starless(gc, field):
     epsilon = 9e-1 # fudge factor for contouring
     bgps = read_cat('bgps_v210_evo')
     sl_color='#66FF33'
-    dets = bgps.query('sf_f != 1 & hg70_eye_f not in [1,2,4]]')
+    dets = bgps.query('sf_f != 1 & hg70_eye_f not in [1,2,4]')
     rind = get_bgps_img(field, exten='labelmask', v=210)
     yp, xp = rind[0].data.shape
     X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
