@@ -184,7 +184,7 @@ def overplot_starless(gc, field):
     epsilon = 9e-1 # fudge factor for contouring
     bgps = read_cat('bgps_v210_evo')
     sl_color='#66FF33'
-    dets = bgps.query('sf_f != 1 & hg70_eye_f in [0,3] & mol_hco_f in [1,3]')
+    dets = bgps.query('sf_f != 1 & hg70_eye_f not in [1,2,4]]')
     rind = get_bgps_img(field, exten='labelmask', v=210)
     yp, xp = rind[0].data.shape
     X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
@@ -295,6 +295,7 @@ def create_stages_plot(lon, lat, dlon, dlat, out_filen='sign_posts'):
         gc.add_beam(facecolor='yellow', linewidth=2, hatch='//', major=0.00917,
                     minor=0.00917, angle=0)
     ### Save
+    gc2.save(out_filen + '.pdf', dpi=300)
     gc2.save(out_filen + '.eps', dpi=300)
     gc2.save(out_filen + '.png', dpi=300)
     print '-- Printed to file {}'.format(out_filen)

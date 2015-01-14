@@ -11,6 +11,7 @@ import numpy as _np
 from astropy.io import fits
 from astropy import wcs
 from .catalog import (read_bgps, select_bgps_field)
+from .paths import all_paths as d
 
 
 class Dirs(object):
@@ -18,7 +19,7 @@ class Dirs(object):
     Object to hold directories for interactive editing of paths.
     """
     def __init__(self):
-        self.root_dir = '/mnt/eld_data/'
+        self.root_dir = d.root_dir
         self.bgps_dir = self.root_dir + 'BGPS/Images/{}/'
         self.bgps_img_filen = '{}_{}_13pca_{}.fits'
 d = Dirs()
