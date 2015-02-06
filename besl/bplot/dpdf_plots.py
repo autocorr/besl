@@ -59,6 +59,9 @@ def plot_dpdf_sum(outname='evo_dpdfs'):
     dstages, anno_labels = evo_stages(bgps=devo)
     # plot
     fig, axes = _plt.subplots(nrows=len(pstages), ncols=1, sharex=True)
+    for ii, ax in enumerate(axes.flat):
+        if ii < 2:
+            [spine.set_linewidth(2.0) for spine in ax.spines.itervalues()]
     for pdf, ddf, ax, alabel in zip(pstages, dstages, axes, anno_labels):
         # take posterior sum and normalize
         pydist = _np.sum([pposts[ii] for ii in pdf.index], axis=0)
@@ -228,6 +231,8 @@ def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
     # create plot
     fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
     for i, ax in enumerate(axes):
+        if i < 2:
+            [spine.set_linewidth(2.0) for spine in ax.spines.itervalues()]
         # draw plots
         kwargs_hist = dict(kwargs_gen.items() + anno_labels[i].items())
         hist_heights, hist_edges = _np.histogram(stages[i][label], bins=lbins)
@@ -255,7 +260,6 @@ def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
         ax.yaxis.set_major_locator(MaxNLocator(prune='lower'))
         ax.locator_params(axis='y', tight=True, nbins=4)
         ax.set_xscale('log')
-        #ax.legend(loc=1, frameon=False, numpoints=None, prop={'size':12})
         if not left_label:
             slabel_xoffset = 0.775
         else:

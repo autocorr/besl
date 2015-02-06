@@ -506,16 +506,18 @@ def evo_stages(bgps=None, stages_group=2, label=None):
     elif stages_group == 2:
         bgps = bgps.query('10 < glon_peak < 65')
         starless = bgps.query('sf_f != 1 & hg70_eye_f not in [1,2,4]')
+        proto = bgps.query('sf_f == 1 | hg70_eye_f in [1,2,4]')  # should be compliment
         hg_uniq = bgps.query('hg70_eye_f in [1,2,4] & h2o_f != 1 & ir_f != 1 & ch3oh_f != 1 & uchii_f != 1 & ~(robit_n > 0)')
-        ir_yes = bgps.query('hg70_eye_f in [1,2,4] | ir_f == 1')
+        ir_yes = bgps.query('ir_f == 1')
         h2o_yes = bgps.query('h2o_f == 1')
         ch3oh_yes = bgps.query('ch3oh_f == 1')
         hii_yes = bgps.query('uchii_f == 1')
-        stages = [starless, hg_uniq, ir_yes, h2o_yes, ch3oh_yes, hii_yes]
+        stages = [starless, proto, hg_uniq, ir_yes, h2o_yes, ch3oh_yes, hii_yes]
         anno_labels = [
             {'label': r'${\rm Starless \ Cand.}$'},
-            {'label': r'${\rm HiGAL \ 70 \ \ Uniq.}$'},
-            {'label': r'${\rm IR}$'},
+            {'label': r'${\rm Protostellar}$'},
+            {'label': r'${\rm HiGAL \ 70 \ Uniq.}$'},
+            {'label': r'${\rm Mid \ IR}$'},
             {'label': r'${\rm H_2O}$'},
             {'label': r'${\rm CH_3OH}$'},
             {'label': r'${\rm UCH{\sc II}}$'}]

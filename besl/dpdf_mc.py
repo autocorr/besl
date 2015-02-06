@@ -9,6 +9,7 @@ composite, posterior DPDFs for nodes in PPV-groups.
 """
 # TODO add in PPV grouping properties
 
+import math
 import numpy as np
 import pandas as pd
 from besl import (catalog, mathf, dpdf_calc)
@@ -117,6 +118,46 @@ class TempSampler(object):
 
     def draw(self, ii):
         return np.random.choice(self.samples[ii], size=self.nsamples)
+
+
+# TODO refactor this and mass sampler
+class RadiusSampler(object):
+    distx = np.arange(1000, dtype=float) * 20. + 20.
+
+    def __init__(self, cat, nsamples, use_fwhm=False):
+        assert cat.index.name == 'v210cnum'
+        self.cat = cat
+        self.nsamples = nsamples
+        self.use_fwhm = use_fwhm
+        print ':: Read in data'
+        cat = cat.copy()
+        self.posts = catalog.read_pickle('ppv_dpdf_posteriors')
+        self.dix = {k: v for k, v in self.posts.items()
+                    if k in cat.query('10 < glon_peak < 65').index}
+        self.stages, _ = dpdf_calc.evo_stages(cat)
+        self.ns = len(self.stages)
+        self.stage_ix = [df.index for df in self.stages]
+        if use_fwhm:
+            self.sangle = cat['fwhm_sangle'].values
+        else:
+            self.sangle = cat['sangle'].values
+
+    def draw(self):
+        dix = self.dix
+        radii = np.empty((self.cat.shape[0], self.nsamples), dtype=float)
+        radii[:,:] = np.nan
+        for ii, cix in enumerate(dix):
+            print '-- ', ii + 1, ' / ', len(dix)
+            cdist = DistSampler((self.distx, self.posts[cix]), self.nsamples).draw()
+            csangle = self.sangle[cix - 1]
+            radii[cix - 1] = self.calc_mass(csangle, cdist)
+        return masses
+
+    @staticmethod
+    def calc_mass(sangle, dist):
+        # dist must be in pc
+        sqarc2ster = 2.350443e-11
+        return dist * math.sqrt(sangle / math.pi * sqarc2ster)
 
 
 class MassSampler(object):

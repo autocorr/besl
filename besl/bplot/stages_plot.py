@@ -154,7 +154,7 @@ def overplot_single_rind(gc, cnum):
     epsilon = 9e-1  # fudge factor for contouring
     bgps = catalog.read_cat('bgps_v210').set_index('v210cnum')
     field = bgps.loc[cnum, 'field']
-    rind = fits.open(d.root_dir + '/BGPS/Images/v2.1.0/v2.0_ds2_' +
+    rind = fits.open(d.root_dir + 'BGPS/Images/v2.1.0/v2.1_ds2_' +
                      '{}_13pca_labelmask.fits'.format(field))
     yp, xp = rind[0].data.shape
     X, Y = _np.meshgrid(_np.arange(xp), _np.arange(yp))
