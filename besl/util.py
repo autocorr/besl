@@ -13,10 +13,22 @@ from tempfile import NamedTemporaryFile
 from .catalog import read_bgps
 
 
-def savefig(outname, close=False):
+def savefig(outname, close=False, dpi=300):
+    """
+    Save a figure to a PDF/EPS/PNG (300 dpi default).
+
+    Parameters
+    ----------
+    outname : string
+        The filename head to save to
+    close : bool
+        Close the matplotlib figure
+    dpi : number
+        DPI to save to
+    """
     plt.savefig(outname + '.pdf')
     plt.savefig(outname + '.eps')
-    plt.savefig(outname + '.png', dpi=300)
+    plt.savefig(outname + '.png', dpi=dpi)
     if close:
         plt.close()
 

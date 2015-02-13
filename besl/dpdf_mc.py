@@ -150,11 +150,11 @@ class RadiusSampler(object):
             print '-- ', ii + 1, ' / ', len(dix)
             cdist = DistSampler((self.distx, self.posts[cix]), self.nsamples).draw()
             csangle = self.sangle[cix - 1]
-            radii[cix - 1] = self.calc_mass(csangle, cdist)
-        return masses
+            radii[cix - 1] = self.calc_radius(csangle, cdist)
+        return radii
 
     @staticmethod
-    def calc_mass(sangle, dist):
+    def calc_radius(sangle, dist):
         # dist must be in pc
         sqarc2ster = 2.350443e-11
         return dist * math.sqrt(sangle / math.pi * sqarc2ster)

@@ -566,6 +566,7 @@ class Matcher(object):
         self.noise_col = data.noise_col
         self.data = data
         # BGPS data
+        self.cat['in_bgps'] = _np.nan
         self.bgps = read_bgps(v=self.v).set_index(self.cnum_col)
         # Process and match
         self._add_new_cols()
@@ -616,6 +617,7 @@ class Matcher(object):
         Insert the indices of the matched sources into the matched source
         dictionary with the BGPS cnum as the key.
         """
+        self.cat.loc[ix, 'in_bgps'] = cnum
         if (not _np.isnan(cnum)) & (cnum != 0):
             self.matched_ix.setdefault(cnum, [])
             self.matched_ix[cnum].append(ix)
@@ -666,27 +668,32 @@ class Matcher(object):
         """
         Write BGPS catalog to `.csv` file.
         """
-        self.bgps.to_csv('bgps_' + self.name + '.csv', index=False)
+        self.cat.to_csv('cat_' + self.name + '.csv')
+        self.bgps.to_csv('bgps_' + self.name + '.csv')
 
 
 class DataSet(object):
     def __init__(self):
         self.all_data = []
-        all_objs = [WaterGbt,
-                    WaterArcetri,
-                    WaterHops,
-                    WaterRms,
-                    Cornish,
-                    Egos,
-                    AmmoniaGbt,
-                    MethoPandian,
-                    MethoPestalozzi,
-                    MethoMmb,
-                    Higal70,
-                    RedSpitzer,
-                    RedMsx,
-                    Molcat,
-                    WienenNh3]
+        all_objs = [
+            WaterGbt,
+            WaterArcetri,
+            WaterHops,
+            WaterRms,
+            Cornish,
+            Egos,
+            AmmoniaGbt,
+            MethoPandian,
+            MethoPestalozzi,
+            MethoMmb,
+            Higal70,
+            RedSpitzer,
+            RedMsx,
+            Molcat,
+            WienenNh3,
+            MipsgalCatalog,
+            MipsgalArchive,
+        ]
         for obj in all_objs:
             data = obj()
             data.match()
@@ -980,6 +987,32 @@ class WienenNh3(Data):
         self.det_flags = [1, 2, 3]
         self.choose_col = 'tkin'
         self.noise_col = 'tkin_err'
+
+
+class MipsgalCatalog(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'mipsc'
+        self.cat = read_cat('mipsgal_catalog_lclip')
+        self.lon_col = 'l'
+        self.lat_col = 'b'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = None
+        self.noise_col = None
+
+
+class MipsgalArchive(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'mipsa'
+        self.cat = read_cat('mipsgal_archive_lclip')
+        self.lon_col = 'l'
+        self.lat_col = 'b'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = None
+        self.noise_col = None
 
 
 ###############################################################################

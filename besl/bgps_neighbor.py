@@ -6,11 +6,12 @@ BGPS Nearest Neighbor
 Match and analyze BGPS nearest neighbors in label masks.
 
 """
-
 import numpy as _np
-import catalog, image
+import catalog
+import image
 
-def find_clump_neighbors(cnum, v=201):
+
+def find_clump_neighbors(cnum, v=210):
     """
     Determine the neighbors of a clump by if there is adjacent overlap in the
     label masks.
@@ -56,6 +57,7 @@ def find_clump_neighbors(cnum, v=201):
         raise ValueError('Negative cnum found')
     return neighbors
 
+
 def select_good_neighbors(bgps, cnum, vlsr, visited, v_disp=3.5):
     """
     Select neighbors of clump that satisfy the criteria:
@@ -89,6 +91,7 @@ def select_good_neighbors(bgps, cnum, vlsr, visited, v_disp=3.5):
         ((bgps.vlsr_f > 0) | ((bgps.vlsr_f == 0) & (bgps.grs_vlsr_f == 1))),
         'v201cnum'].values
     return list(good_neighbors)
+
 
 def broadcast_kdar(bgps=[], v_disp=3.5, verbose=False):
     """
@@ -150,7 +153,8 @@ def broadcast_kdar(bgps=[], v_disp=3.5, verbose=False):
     bgps['neighbor_KDAR'][bgps.neighbor_KDAR == 'null'] = _np.nan
     return bgps
 
-def num_of_neighbors(v=201, verbose=False):
+
+def num_of_neighbors(v=210, verbose=False):
     """
     Calculate the number of neighbors a clump has based on the label masks.
 
