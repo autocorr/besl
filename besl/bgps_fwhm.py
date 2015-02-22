@@ -157,7 +157,8 @@ class FwhmSolver(object):
         pix0 = np.array([0, -1, 1, 0, 0]) + self.pmax0
         pix1 = np.array([0, 0, 0, -1, 1]) + self.pmax1
         self.peak = mfpad[pix1, pix0].mean()
-        self.err_peak = np.mean(np.sqrt(np.sum(mrpad[pix1, pix0]**2)))
+        self.err_peak = np.sqrt(np.sum(mrpad[pix1, pix0]**2) / self.ppbeam +
+                                (0.06 * mfpad[pix1, pix0].sum() / self.ppbeam)**2) / 5.
         self.fwhm = self.peak / 2.
         # Remove offset from padded array
         self.max0 = self.pmax0 - 1
@@ -186,6 +187,8 @@ class FwhmSolver(object):
         self.npix = self.rind[self.rind == self.cnum].size  # pixels
         self.sangle = self.npix * self.pixel_size**2  # arcsec^2
         self.eqangle = np.sqrt(self.sangle / np.pi)  # arcsec
+        # Peak
+        self.peak /= self.ppbeam
         # FWHM
         fwhmv = self.mflux[self.fwhm_mask == 1]
         efwhmv = self.mrms[self.fwhm_mask == 1]
