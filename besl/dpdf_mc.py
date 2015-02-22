@@ -188,12 +188,6 @@ class MassSampler(object):
 
     def get_fluxes(self):
         if self.use_fwhm:
-            fwhm = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
-            bad_fluxes = fwhm.fwhm_flux <= 0
-            fwhm.loc[bad_fluxes, 'fwhm_flux'] = fwhm.loc[bad_fluxes, 'flux']
-            fwhm = fwhm.loc[:, ['fwhm_flux', 'fwhm_eqangle']]
-            fwhm['err_fwhm_flux'] = 0.2 * fwhm['fwhm_flux']
-            self.cat = self.cat.merge(fwhm, how='outer', left_index=True, right_index=True)
             return NormalSampler((self.cat['fwhm_flux'].values,
                                   self.cat['err_fwhm_flux'].values),
                                  self.nsamples).draw()
