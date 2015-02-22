@@ -138,9 +138,9 @@ class RadiusSampler(object):
         self.ns = len(self.stages)
         self.stage_ix = [df.index for df in self.stages]
         if use_fwhm:
-            self.sangle = cat['fwhm_sangle'].values
+            self.angle = cat['fwhm_eqangled'].values
         else:
-            self.sangle = cat['sangle'].values
+            self.angle = cat['eqangled'].values
 
     def draw(self):
         dix = self.dix
@@ -149,15 +149,16 @@ class RadiusSampler(object):
         for ii, cix in enumerate(dix):
             print '-- ', ii + 1, ' / ', len(dix)
             cdist = DistSampler((self.distx, self.posts[cix]), self.nsamples).draw()
-            csangle = self.sangle[cix - 1]
-            radii[cix - 1] = self.calc_radius(csangle, cdist)
+            cangle = self.angle[cix - 1]
+            radii[cix - 1] = self.calc_radius(cangle, cdist)
         return radii
 
     @staticmethod
-    def calc_radius(sangle, dist):
-        # dist must be in pc
-        sqarc2ster = 2.350443e-11
-        return dist * math.sqrt(sangle / math.pi * sqarc2ster)
+    def calc_radius(angle, dist):
+        # `angle` must be in arcsec
+        # `dist` must be in pc
+        arc2rad = 4.848137e-6
+        return dist * arc2rad * angle
 
 
 class MassSampler(object):
@@ -245,7 +246,7 @@ class FreeFallSampler(object):
         vols[:,:] = np.nan
         for ii, cix in enumerate(dix):
             cdist = DistSampler((self.distx, self.posts[cix]), self.nsamples).draw()
-            vols[cix - 1] = self.calc_volume(cdist, self.ms.cat.loc[cix, 'fwhm_eqangle'])
+            vols[cix - 1] = self.calc_volume(cdist, self.ms.cat.loc[cix, 'fwhm_eqangled'])
         return vols
 
     def draw(self):
