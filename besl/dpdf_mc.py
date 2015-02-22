@@ -231,10 +231,11 @@ class MassSampler(object):
 class FreeFallSampler(object):
     distx = np.arange(1000, dtype=float) * 20. + 20.
 
-    def __init__(self, cat, nsamples):
+    def __init__(self, cat, nsamples, use_fwhm=True):
         assert cat.index.name == 'v210cnum'
         print ':: Read in data'
         self.cat = cat.copy()
+        self.use_fwhm = use_fwhm
         self.posts = catalog.read_pickle('ppv_dpdf_posteriors')
         self.dix = {k: v for k, v in self.posts.items()
                     if k in self.cat.query('10 < glon_peak < 65').index}
