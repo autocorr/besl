@@ -359,73 +359,72 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
     return [fig, axes]
 
 
-def write_all_stages_plots(bgps):
-    columns = [
-        'flux',
-        'flux_40',
-        'mol_hco_int',
-        'mol_hco_fwhm',
-        'mol_nnh_int',
-        'mol_nnh_fwhm',
-        'h2o_gbt_tpk',
-        'h2o_gbt_int',
-        'h2o_gbt_vsp',
-        'h2o_gbt_num_lines',
-        'nh3_tkin',
-        'ell_sangle',
-        'ell_angle',
-        'dust_mass_surf',
-        'dML',
-        'dust_mass',
-        'ell_radius',
-        'ell_area',
-        'vir_param']
-    dfs = [
-        bgps,
-        bgps,
-        bgps[bgps.mol_hco_f.isin([1,3])],
-        bgps[bgps.mol_hco_f.isin([1,3])],
-        bgps[bgps.mol_nnh_f.isin([1,3])],
-        bgps[bgps.mol_nnh_f.isin([1,3])],
-        bgps[bgps.h2o_gbt_f > 0],
-        bgps[bgps.h2o_gbt_f > 0],
-        bgps[bgps.h2o_gbt_f > 0],
-        bgps[bgps.h2o_gbt_f > 0],
-        bgps[bgps.nh3_tkin.notnull()],
-        bgps,
-        bgps,
-        bgps,
-        bgps[bgps.dML.notnull()],
-        bgps[bgps.dML.notnull()],
-        bgps[bgps.dML.notnull()],
-        bgps[bgps.dML.notnull()],
-        bgps[bgps.dML.notnull()]]
-    labels = [
-        r'$S_{1.1} \ \ [{\rm Jy}]$',
-        r'$S_{1.1}(40^{\prime\prime}) \ \ [{\rm Jy}]$',
-        r'${\rm I(HCO^+) \ \ [K \ km \ s^{-1}}]$',
-        r'${\rm HCO^+ \ FWHM \ \ [km \ s^{-1}}]$',
-        r'${\rm I(N_2H^+) \ \ [K \ km \ s^{-1}}]$',
-        r'${\rm N_2H^+ \ FWHM \ \ [km \ s^{-1}}]$',
-        r'$T_{\rm pk}({\rm H_2O}) \ \ [{\rm K \ km \ s^{-1}}]$',
-        r'${\rm I(H_2O) \ \ [K \ km \ s^{-1}}]$',
-        r'${\rm H_2O} \ v_{\rm spread} \ \ [{\rm K \ km \ s^{-1}}]$',
-        r'$N{\rm H_2O}$',
-        r'$T_{\rm K} \ \ [{\rm K}]$',
-        r'$\Omega \ \ [{\rm arcsec^2}]$',
-        r'$\theta_{\rm eq} \ \ [{\rm arcsec}]$',
-        r'$\Sigma_{\rm H_2} \ \ [{\rm g \ cm^{-2}}]$',
-        r'${\rm dML} \ \ [{\rm kpc}]$',
-        r'$M_{\rm dust} \ \ [M_{\odot}]$',
-        r'${\rm Radius} \ \ [{\rm pc}]$',
-        r'${\rm Area} \ \ [{\rm pc}]$',
-        r'$\alpha_{\rm vir}$']
-    for col, label, df in zip(columns, labels, dfs):
-        try:
-            stages_hist(label=col, xlabel=label, bgps=df)
-        except KeyError:
-            pass
-    return
+class PlotData(object):
+    def __init__(self, label, xlabel, bgps=None, color=False, left_label=False):
+        self.label = label
+        self.xlabel = xlabel
+        if bgps is None:
+            self.bgps = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
+        else:
+            assert bgps.index.name == 'v210cnum'
+            self.bgps = bgps
+        self.color = color
+        self.left_label = left_label
+        self.fig = None
+        self.axes = None
+
+    def plot(self):
+        fig, axes = stages_hist(self.label, self.xlabel,
+            bgps=self.bgps, color=self.color, left_label=self.left_label)
+        self.fig = fig
+        self.axes = axes
+
+    def close(self):
+        plt.cla()
+        plt.clf()
+        plt.close()
+
+
+def write_all_hists():
+    evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
+    flux = evo.query('1e-2 < flux_40')
+    fwhm = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
+    fwhm = evo.merge(fwhm.loc[:, 'npix':], left_index=True, right_index=True)
+    amm = evo.query('6 < nh3_tkin < 100')
+    hco = evo.query('mol_hco_f in [1,2,3]')
+    nnh = evo.query('mol_nnh_f in [1,2,3]')
+    data = (
+        # Flux data
+        PlotData('flux', r'$S^{\rm Total}_{1.1} \ \ [{\rm Jy}]$', evo),
+        PlotData('flux_40', r'$S_{1.1}(40^{\prime\prime}) \ \ [{\rm Jy}]$', flux),
+        PlotData('flux_80', r'$S_{1.1}(80^{\prime\prime}) \ \ [{\rm Jy}]$', flux),
+        PlotData('flux_120', r'$S_{1.1}(120^{\prime\prime}) \ \ [{\rm Jy}]$', flux),
+        # FWHM properties
+        PlotData('fwhm_flux', r'$S^{\rm FWHM}_{1.1} \ \ [{\rm Jy}]$', fwhm),
+        PlotData('eqangled', r'$\theta^{\rm Total}_{\rm eq} \ \ [{\rm arcsec}]$', fwhm),
+        PlotData('fwhm_eqangled', r'$\theta^{\rm FWHM}_{\rm eq} \ \ [{\rm arcsec}]$', fwhm),
+        PlotData('sangled', r'$\Omega^{\rm Total} \ \ [{\rm sq. \ arcsec}]$', fwhm),
+        PlotData('fwhm_sangled', r'$\Omega^{\rm FWHM} \ \ [{\rm sq. \ arcsec}]$', fwhm),
+        PlotData('fwhm_sangled_ratio', r'$\Omega^{\rm FWHM} / \Omega^{\rm Total}$', fwhm, left_label=True),
+        # NH3
+        PlotData('nh3_tkin', r'$T_{\rm K} \ \ [{\rm K}]$', amm),
+        PlotData('nh3_gbt_pk11', r'$T_{\rm pk}({\rm NH_3 \ (1,1)}) \ \ [{\rm K}]$', amm),
+        PlotData('nh3_gbt_tau11', r'$\tau({\rm NH_3 \ (1,1)})$', amm),
+        PlotData('nh3_gbt_fwhm', r'$\Delta v({\rm NH_3 \ (1,1)}) \ \ [{\rm km \ s^{-1}}]$', amm),
+        # HCO+
+        PlotData('mol_hco_tpk', r'$T_{\rm pk}({\rm HCO^+}) \ \ [{\rm K}]$', hco),
+        PlotData('mol_hco_int', r'$I({\rm HCO^+}) \ \ [{\rm K \ km \ s^{-1}}]$', hco),
+        PlotData('mol_hco_fwhm', r'$\Delta v({\rm HCO^+}) \ \ [{\rm km \ s^{-1}}]$', hco),
+        PlotData('mol_hco_fwzi', r'${\rm HCO^+ \ FWZI} \ \ [{\rm km \ s^{-1}}]$', hco),
+        # N2H+
+        PlotData('mol_nnh_tpk', r'$T_{\rm pk}({\rm N_2H^+}) \ \ [{\rm K}]$', nnh),
+        PlotData('mol_nnh_int', r'$I({\rm N_2H^+}) \ \ [{\rm K \ km \ s^{-1}}]$', nnh),
+        PlotData('mol_nnh_fwhm', r'$\Delta v({\rm N_2H^+}) \ \ [{\rm km \ s^{-1}}]$', nnh),
+        PlotData('mol_nnh_fwzi', r'${\rm N_2H^+ \ FWZI} \ \ [{\rm km \ s^{-1}}]$', nnh),
+    )
+    for d in data:
+        d.plot()
+        d.close()
 
 
 def print_properties(bgps, out_filen='bgps_props.txt'):

@@ -77,7 +77,7 @@ class FwhmSet(object):
             self.df.loc[cnum, 'eqangle'] = solver.eqangle
             self.df.loc[cnum, 'fwhm_npix'] = solver.fwhm_npix
             self.df.loc[cnum, 'fwhm_sangle'] = solver.fwhm_sangle
-            self.df.loc[cnum, 'fwhm_angle'] = solver.fwhm_eqangle
+            self.df.loc[cnum, 'fwhm_eqangle'] = solver.fwhm_eqangle
             self.df.loc[cnum, 'fwhm_flux'] = solver.fwhm_flux
             self.df.loc[cnum, 'err_fwhm_flux'] = solver.err_fwhm_flux
             self.solvers[cnum] = solver
