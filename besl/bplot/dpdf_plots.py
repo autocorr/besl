@@ -7,9 +7,8 @@ Plotting routines for DPDFs and sampling.
 
 """
 
-import numpy as _np
-import pandas as _pd
-import matplotlib.pyplot as _plt
+import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib import colors, cm
 from matplotlib.ticker import MaxNLocator
 from besl import catalog, units
@@ -22,19 +21,19 @@ def plot_dpdf_sampling(n=200):
     Plot a Monte Carlo sampling of a DPDF
     """
     dpdf = catalog.read_dpdf()
-    x = _np.arange(1000) * 20. + 20.
+    x = np.arange(1000) * 20. + 20.
     y = dpdf[5].data[0]
     lims = [x.min(), x.max(), 0, 1]
     samples = mc_sampler_1d(x, y, lims=lims, nsample=1e4)
-    fig = _plt.figure()
+    fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.hist(samples, bins=_np.linspace(lims[0], lims[1], 200), linewidth=2,
+    ax.hist(samples, bins=np.linspace(lims[0], lims[1], 200), linewidth=2,
         histtype='stepfilled', normed=True, alpha=0.5, color='black')
     ax.plot(x, y / 20, 'k-', linewidth=2)
     ax.set_xlabel(r'$D \ \ [{\rm pc}]$')
     ax.set_ylabel(r'${\rm Probability}$')
     ax.set_ylim([0, y.max() * 1.1 / 20.])
-    _plt.savefig('dpdf_test_sampling.pdf', format='pdf')
+    plt.savefig('dpdf_test_sampling.pdf', format='pdf')
     return ax
 
 
@@ -47,8 +46,8 @@ def plot_dpdf_sum(outname='evo_dpdfs'):
     fig : matplotlib.Figure
     ax : matplotlib.Axes
     """
-    _plt.rc('font', **{'size':14})
-    xdist = _np.arange(1000) * 20. + 20.
+    plt.rc('font', **{'size':14})
+    xdist = np.arange(1000) * 20. + 20.
     # read data
     pposts = catalog.read_pickle('ppv_dpdf_posteriors')
     dposts = catalog.read_pickle('dpdf_posteriors')
@@ -58,15 +57,15 @@ def plot_dpdf_sum(outname='evo_dpdfs'):
     pstages, anno_labels = evo_stages(bgps=pevo)
     dstages, anno_labels = evo_stages(bgps=devo)
     # plot
-    fig, axes = _plt.subplots(nrows=len(pstages), ncols=1, sharex=True)
+    fig, axes = plt.subplots(nrows=len(pstages), ncols=1, sharex=True)
     for ii, ax in enumerate(axes.flat):
         if ii < 2:
             [spine.set_linewidth(2.0) for spine in ax.spines.itervalues()]
     for pdf, ddf, ax, alabel in zip(pstages, dstages, axes, anno_labels):
         # take posterior sum and normalize
-        pydist = _np.sum([pposts[ii] for ii in pdf.index], axis=0)
+        pydist = np.sum([pposts[ii] for ii in pdf.index], axis=0)
         pydist /= pydist.sum() * 20
-        dydist = _np.sum([dposts[ii] for ii in ddf.index], axis=0)
+        dydist = np.sum([dposts[ii] for ii in ddf.index], axis=0)
         dydist /= dydist.sum() * 20
         print pydist.sum() * 20, pydist.max()
         ax.plot(xdist * 1e-3, pydist * 1e3, 'k-', linewidth=2)
@@ -76,10 +75,10 @@ def plot_dpdf_sum(outname='evo_dpdfs'):
         ax.set_ylim([0, 0.35])
         ax.set_yticks([0, 0.1, 0.2, 0.3])
         # vertical line for median
-        pmed = _np.cumsum(pydist) * 20
+        pmed = np.cumsum(pydist) * 20
         pmed = xdist[len(pmed[pmed < 0.5])] / 1e3
-        ax.plot(pmed * _np.ones(2), [0, 0.35], 'w-')
-        ax.plot(pmed * _np.ones(2), [0, 0.35], 'k--')
+        ax.plot(pmed * np.ones(2), [0, 0.35], 'w-')
+        ax.plot(pmed * np.ones(2), [0, 0.35], 'k--')
         # labels
         ax.annotate(alabel['label'], xy=(0.775, 0.65), xycoords='axes fraction',
             fontsize=13)
@@ -91,9 +90,9 @@ def plot_dpdf_sum(outname='evo_dpdfs'):
             fontsize=13, color='0.5')
     ax.set_ylabel(r'${\rm Relative \ Probability}$')
     ax.set_xlabel(r'${\rm Heliocentric \ Distance \ \ [kpc]}$')
-    _plt.subplots_adjust(hspace=0.1)
-    _plt.savefig(outname + '.pdf')
-    _plt.savefig(outname + '.png', dpi=300)
+    plt.subplots_adjust(hspace=0.1)
+    plt.savefig(outname + '.pdf')
+    plt.savefig(outname + '.png', dpi=300)
     print '-- {0}.pdf written'.format(outname)
     return fig, axes
 
@@ -129,9 +128,9 @@ class StagesHist(object):
         self.nstages = len(self.stages)
 
     def create_figure(self):
-        _plt.rc('font', **{'size':14})
-        self.fig, self.axes = _plt.subplots(nrows=len(self.stages), ncols=1,
-                                            sharex=True)
+        plt.rc('font', **{'size':14})
+        self.fig, self.axes = plt.subplots(nrows=len(self.stages), ncols=1,
+                                           sharex=True)
 
     def add_stage_labels(self):
         for ii, ax in enumerate(self.axes):
@@ -158,9 +157,9 @@ class StagesHist(object):
         """
         if outname is None:
             outname = 'stages_hist_{0}'.format(self.col)
-        _plt.savefig(outname + '.pdf')
-        _plt.savefig(outname + '.eps')
-        _plt.savefig(outname + '.png', dpi=300)
+        plt.savefig(outname + '.pdf')
+        plt.savefig(outname + '.eps')
+        plt.savefig(outname + '.png', dpi=300)
         print '-- {0} written'.format(outname)
 
 
@@ -177,9 +176,9 @@ class MargStagesHist(StagesHist):
                 xycoords='axes fraction', fontsize=13)
 
     def create_figure(self):
-        _plt.rc('font', **{'size':14})
-        self.fig, self.axes = _plt.subplots(nrows=len(self.stages), ncols=1,
-                                            sharex=True, sharey=True)
+        plt.rc('font', **{'size':14})
+        self.fig, self.axes = plt.subplots(nrows=len(self.stages), ncols=1,
+                                           sharex=True, sharey=True)
 
     def make_figure(self):
         self.create_figure()
@@ -208,7 +207,7 @@ def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
         bgps = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
     else:
         assert bgps.index.name == 'v210cnum'
-    _plt.rc('font', **{'size':14})
+    plt.rc('font', **{'size':14})
     # evo stages
     post = catalog.read_pickle('ppv_dpdf_posteriors')
     dix = post.keys()
@@ -217,45 +216,45 @@ def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
     if color:
         cNorm = colors.Normalize(vmin=0, vmax=1)
         scalarmap = cm.ScalarMappable(norm=cNorm, cmap=cm.cubehelix)
-        rgb = [scalarmap.to_rgba(i) for i in _np.linspace(0, 1, len(stages))]
+        rgb = [scalarmap.to_rgba(i) for i in np.linspace(0, 1, len(stages))]
     else:
         rgb = ['0.5' for _ in range(len(stages))]
     # calculate lims and bins
-    xmin = _np.nanmin([df[label].min() for df in stages])
-    xmax = _np.nanmax([df[label].max() for df in stages])
-    lbins = _np.logspace(_np.log10(xmin), _np.log10(xmax), 40)
+    xmin = np.nanmin([df[label].min() for df in stages])
+    xmax = np.nanmax([df[label].max() for df in stages])
+    lbins = np.logspace(np.log10(xmin), np.log10(xmax), 40)
     # plot settings
     kwargs_gen = {'bins': lbins, 'color': 'LightGray', 'histtype':
         'stepfilled', 'linestyle': 'solid', 'linewidth': 1}
     stages_labels = [i.values()[0] for i in anno_labels]
     # create plot
-    fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
+    fig, axes = plt.subplots(nrows=len(stages), ncols=1, sharex=True)
     for i, ax in enumerate(axes):
         if i < 2:
             [spine.set_linewidth(2.0) for spine in ax.spines.itervalues()]
         # draw plots
         kwargs_hist = dict(kwargs_gen.items() + anno_labels[i].items())
-        hist_heights, hist_edges = _np.histogram(stages[i][label], bins=lbins)
-        ymax = _np.nanmax([_np.max(hist_heights), 1])
+        hist_heights, hist_edges = np.histogram(stages[i][label], bins=lbins)
+        ymax = np.nanmax([np.max(hist_heights), 1])
         df = stages[i][label]
         if len(df) > 0:
             # histogram
-            ax.hist(df[_np.isfinite(df)].values, facecolor=rgb[i],
+            ax.hist(df[np.isfinite(df)].values, facecolor=rgb[i],
                 **kwargs_hist)
-            ax.hist(df[_np.isfinite(df) & df.index.isin(dix)].values,
+            ax.hist(df[np.isfinite(df) & df.index.isin(dix)].values,
                 bins=lbins, histtype='stepfilled', facecolor='0.25')
             # vertical line for median
-            ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'w-')
-            ax.plot(df.median() * _np.ones(2), [0, 1.2 * ymax], 'k--')
-            ax.plot(df[df.index.isin(dix)].median() * _np.ones(2),
+            ax.plot(df.median() * np.ones(2), [0, 1.2 * ymax], 'w-')
+            ax.plot(df.median() * np.ones(2), [0, 1.2 * ymax], 'k--')
+            ax.plot(df[df.index.isin(dix)].median() * np.ones(2),
                 [0, 1.2 * ymax], 'w-')
-            ax.plot(df[df.index.isin(dix)].median() * _np.ones(2),
+            ax.plot(df[df.index.isin(dix)].median() * np.ones(2),
                 [0, 1.2 * ymax], 'k:')
             # horizontal line for confidence interval
-            #ax.plot([_np.percentile(df.values, 10),
-            #         _np.percentile(df.values, 90)], _np.ones(2) * ymax, 'k:')
+            #ax.plot([np.percentile(df.values, 10),
+            #         np.percentile(df.values, 90)], np.ones(2) * ymax, 'k:')
         # plot attributes
-        ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
+        ax.set_xlim([10**(np.log10(xmin) - 0.2), 10**(np.log10(xmax) + 0.2)])
         ax.set_ylim([0, 1.1 * ymax])
         ax.yaxis.set_major_locator(MaxNLocator(prune='lower'))
         ax.locator_params(axis='y', tight=True, nbins=4)
@@ -270,10 +269,10 @@ def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
             fontsize=13)
     axes[-1].set_xlabel(xlabel)
     # save
-    _plt.subplots_adjust(hspace=0.1)
-    _plt.savefig('stages_hist_{}.pdf'.format(label))
-    _plt.savefig('stages_hist_{}.eps'.format(label))
-    _plt.savefig('stages_hist_{}.png'.format(label), dpi=300)
+    plt.subplots_adjust(hspace=0.1)
+    plt.savefig('stages_hist_{}.pdf'.format(label))
+    plt.savefig('stages_hist_{}.eps'.format(label))
+    plt.savefig('stages_hist_{}.png'.format(label), dpi=300)
     print '-- stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
 
@@ -308,15 +307,15 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
     else:
         raise ValueError('Invalid label {0}.'.format(label))
     # calculate lims and bins
-    xmin = _np.nanmin([df[label].min() for df in stages]) / 1.5
-    xmax = _np.nanmax([df[label].max() for df in stages]) * 1.5
-    lbins = _np.logspace(_np.log10(xmin), _np.log10(xmax), 100)
+    xmin = np.nanmin([df[label].min() for df in stages]) / 1.5
+    xmax = np.nanmax([df[label].max() for df in stages]) * 1.5
+    lbins = np.logspace(np.log10(xmin), np.log10(xmax), 100)
     # plot settings
     kwargs_gen = {'bins': lbins, 'color': 'Black', 'histtype':
         'step', 'linestyle': 'solid', 'linewidth': 1, 'alpha': 0.2}
     stages_labels = [i.values()[0] for i in anno_labels]
     # create plot
-    fig, axes = _plt.subplots(nrows=len(stages), ncols=1, sharex=True)
+    fig, axes = plt.subplots(nrows=len(stages), ncols=1, sharex=True)
     for i, ax in enumerate(axes):
         print '--', i
         # draw plots
@@ -332,15 +331,15 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
                 stage_samples = gen_stage_area_samples(stages[i],
                     nsample=nsample) / 1e6
             ax.hist(stage_samples, **kwargs_hist)
-            hist_heights, hist_edges = _np.histogram(stage_samples, bins=lbins)
-            top_bin = _np.nanmax([_np.max(hist_heights), 1])
+            hist_heights, hist_edges = np.histogram(stage_samples, bins=lbins)
+            top_bin = np.nanmax([np.max(hist_heights), 1])
             if top_bin > ymax:
                 ymax = top_bin
-            medians.append(_np.median(stage_samples))
-        ax.plot(_np.median(medians) * _np.ones(2), [0, 1.2 * ymax], 'w-')
-        ax.plot(_np.median(medians) * _np.ones(2), [0, 1.2 * ymax], 'k--')
+            medians.append(np.median(stage_samples))
+        ax.plot(np.median(medians) * np.ones(2), [0, 1.2 * ymax], 'w-')
+        ax.plot(np.median(medians) * np.ones(2), [0, 1.2 * ymax], 'k--')
         # plot attributes
-        ax.set_xlim([10**(_np.log10(xmin) - 0.2), 10**(_np.log10(xmax) + 0.2)])
+        ax.set_xlim([10**(np.log10(xmin) - 0.2), 10**(np.log10(xmax) + 0.2)])
         ax.set_ylim([0, 1.1 * ymax])
         ax.locator_params(axis='y', tight=True, nbins=5)
         ax.set_yticklabels(labels=[])
@@ -353,8 +352,8 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
             0.75), xycoords='axes fraction', fontsize=10)
     axes[-1].set_xlabel(xlabel)
     # save
-    _plt.subplots_adjust(hspace=0.05)
-    _plt.savefig('marg_stages_hist_{}.pdf'.format(label))
+    plt.subplots_adjust(hspace=0.05)
+    plt.savefig('marg_stages_hist_{}.pdf'.format(label))
     print '-- marg_stages_hist_{}.pdf written'.format(label)
     return [fig, axes]
 
