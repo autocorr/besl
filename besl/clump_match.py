@@ -11,7 +11,6 @@ import os
 import numpy as _np
 import pandas as _pd
 import catalog
-from .catalog import (read_bgps, read_cat)
 from .image import sample_bgps_img
 
 
@@ -567,7 +566,7 @@ class Matcher(object):
         self.data = data
         # BGPS data
         self.cat['in_bgps'] = _np.nan
-        self.bgps = read_bgps(v=self.v).set_index(self.cnum_col)
+        self.bgps = catalog.read_bgps(v=self.v).set_index(self.cnum_col)
         # Process and match
         self._add_new_cols()
         self._make_haystack()
@@ -703,7 +702,7 @@ class DataSet(object):
 
     def _merge(self):
         print '-- Merging data'
-        merged_data = read_cat('bgps_v210').set_index('v210cnum')
+        merged_data = catalog.read_cat('bgps_v210').set_index('v210cnum')
         for data in self.all_data:
             merge_cat = data.matcher.bgps_culled
             merged_data = merged_data.merge(merge_cat,
@@ -796,7 +795,7 @@ class WaterGbt(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'h2o_gbt'
-        self.cat = read_cat('gbt_h2o')
+        self.cat = catalog.read_cat('gbt_h2o')
         self.lon_col = 'h2o_glon'
         self.lat_col = 'h2o_glat'
         self.det_col = 'h2o_f'
@@ -809,7 +808,7 @@ class WaterArcetri(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'h2o_arc'
-        self.cat = read_cat('valdettaro01_arcetri')
+        self.cat = catalog.read_cat('valdettaro01_arcetri')
         self.lon_col = '_Glon'
         self.lat_col = '_Glat'
         self.det_col = 'h2o_f'
@@ -822,7 +821,7 @@ class WaterHops(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'h2o_hops'
-        self.cat = read_cat('walsh11_hops_h2o')
+        self.cat = catalog.read_cat('walsh11_hops_h2o')
         self.lon_col = 'lPeak_deg'
         self.lat_col = 'bPeak_deg'
         self.det_col = None
@@ -835,7 +834,7 @@ class WaterRms(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'h2o_rms'
-        self.cat = read_cat('urquhart11_red_msx_h2o')
+        self.cat = catalog.read_cat('urquhart11_red_msx_h2o')
         self.lon_col = '_Glon_1_'
         self.lat_col = '_Glat_1_'
         self.det_col = 'H2O_1_'
@@ -848,7 +847,7 @@ class Cornish(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'corn'
-        self.cat = read_cat('cornish_uchii')
+        self.cat = catalog.read_cat('cornish_uchii')
         self.lon_col = 'l_deg'
         self.lat_col = 'b_deg'
         self.det_col = None
@@ -861,7 +860,7 @@ class Egos(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'ego'
-        self.cat = read_cat('ego_all')
+        self.cat = catalog.read_cat('ego_all')
         self.lon_col = '_Glon'
         self.lat_col = '_Glat'
         self.det_col = None
@@ -874,7 +873,7 @@ class AmmoniaGbt(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'nh3_gbt'
-        self.cat = read_cat('gbt_nh3')
+        self.cat = catalog.read_cat('gbt_nh3')
         self.lon_col = 'glon'
         self.lat_col = 'glat'
         self.det_col = None
@@ -887,7 +886,7 @@ class MethoPandian(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'ch3oh_pandi'
-        self.cat = read_cat('pandian11')
+        self.cat = catalog.read_cat('pandian11')
         self.lon_col = 'glon'
         self.lat_col = 'glat'
         self.det_col = None
@@ -900,7 +899,7 @@ class MethoPestalozzi(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'ch3oh_pesta'
-        self.cat = read_cat('pestalozzi05')
+        self.cat = catalog.read_cat('pestalozzi05')
         self.lon_col = '_Glon'
         self.lat_col = '_Glat'
         self.det_col = None
@@ -913,7 +912,7 @@ class MethoMmb(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'ch3oh_mmb'
-        self.cat = read_cat('mmb_all')
+        self.cat = catalog.read_cat('mmb_all')
         self.lon_col = 'glon'
         self.lat_col = 'glat'
         self.det_col = None
@@ -926,7 +925,7 @@ class Higal70(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'higal70'
-        self.cat = read_cat('higal_70_clean')
+        self.cat = catalog.read_cat('higal_70_clean')
         self.lon_col = 'GLON'
         self.lat_col = 'GLAT'
         self.det_col = None
@@ -939,7 +938,7 @@ class RedSpitzer(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'robit'
-        self.cat = read_cat('robitaille08_red_spitzer')
+        self.cat = catalog.read_cat('robitaille08_red_spitzer')
         self.lon_col = '_Glon'
         self.lat_col = '_Glat'
         self.det_col = 'Class'
@@ -952,7 +951,7 @@ class RedMsx(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'red_msx'
-        self.cat = read_cat('lumsden13_red_msx')
+        self.cat = catalog.read_cat('lumsden13_red_msx')
         self.lon_col = 'glon'
         self.lat_col = 'glat'
         self.det_col = 'Type'
@@ -965,7 +964,7 @@ class Molcat(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'mol'
-        self.cat = read_cat('shirley13_molcat')
+        self.cat = catalog.read_cat('shirley13_molcat')
         self.lon_col = 'hht_glon'
         self.lat_col = 'hht_glat'
         self.det_col = 'mol_vlsr_f'
@@ -978,7 +977,7 @@ class WienenNh3(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'wien'
-        cat = read_cat('wienen12_nh3')
+        cat = catalog.read_cat('wienen12_nh3')
         cat = cat[cat['tkin'].notnull()]
         self.cat = cat
         self.lon_col = '_Glon'
@@ -993,7 +992,7 @@ class MipsgalCatalog(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'mipsc'
-        self.cat = read_cat('mipsgal_catalog_lclip')
+        self.cat = catalog.read_cat('mipsgal_catalog_lclip')
         self.lon_col = 'l'
         self.lat_col = 'b'
         self.det_col = None
@@ -1006,13 +1005,54 @@ class MipsgalArchive(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'mipsa'
-        self.cat = read_cat('mipsgal_archive_lclip')
+        self.cat = catalog.read_cat('mipsgal_archive_lclip')
         self.lon_col = 'l'
         self.lat_col = 'b'
         self.det_col = None
         self.det_flags = None
         self.choose_col = None
         self.noise_col = None
+
+
+###############################################################################
+#                          Protostellar Probability
+###############################################################################
+
+
+class ProtoProb(object):
+    pyso = 0.5
+    pagb = 0.4
+    pcol = 'proto_prob'
+
+    def __init__(self, df=None):
+        if df is None:
+            self.df = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
+        else:
+            self.df = df
+        self.df[self.pcol] = 0.0
+        self.calc()
+
+    def calc(self):
+        # Compute probabilities for R08
+        rix = self.df.query('robit_n > 0').index
+        for ii in rix:
+            nagb = self.df.loc[ii, 'robit_n'] - self.df.loc[ii, 'robit_f']
+            nyso = self.df.loc[ii, 'robit_f']
+            self.df.loc[ii, self.pcol] = self.proto_prob(nagb, nyso)
+        # Correct for certain sources
+        oix = self.df.query('hg70_eye_f in [1,2,4,5] |'
+                            'ego_n > 0 | '
+                            'red_msx_f > 0 | '
+                            'corn_n > 0 | '
+                            'h2o_f > 0 | '
+                            'ch3oh_f > 0').index
+        self.df.loc[oix, self.pcol] = 1.0
+
+    def proto_prob(self, nagb, nyso):
+        # Binomial for compliment of zero successes
+        bagb = 1 - (1 - self.pagb)**nagb
+        byso = 1 - (1 - self.pyso)**nyso
+        return byso + bagb - byso * bagb
 
 
 ###############################################################################

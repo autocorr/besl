@@ -30,15 +30,21 @@ def get_data():
 class ObsData(object):
     winr = 25
 
-    def __init__(self, col, xlabel):
+    def __init__(self, col, xlabel, bool_proto=False):
         # labels
         self.col = col
         self.xlabel = xlabel
         self.sf_fcol = 'sf_frac_' + col
         self.sf_tcol = 'sf_tot_' + col
         self.sf_wcol = 'sf_win_' + col
+        # use proto_prob or boolean probability
+        if bool_proto:
+            self.proto_col = 'is_proto'
+        else:
+            self.proto_col = 'proto_prob'
         # data
         self.df = self.get_df()
+        self.mean_frac = self.df.is_proto.mean()
         self.cumix = self.df.index
         self.bins = self.df[col].values
         self.nbins = self.bins.shape[0]
@@ -50,7 +56,7 @@ class ObsData(object):
     def get_df(self):
         df = get_data()
         df = df.query('10 < glon_peak < 65')
-        df = df[df[self.col].notnull()].sort(self.col)
+        df = df[df[self.col].notnull() & (df[self.col] > 0)].sort(self.col)
         stages, labels = dpdf_calc.evo_stages(bgps=df)
         df['is_proto'] = False
         df.loc[stages[1].index, 'is_proto'] = True
@@ -60,7 +66,7 @@ class ObsData(object):
 
     def cumfrac(self, cumix):
         for nn, ii in enumerate(cumix):
-            nproto = self.df.loc[:ii, 'is_proto'].sum()
+            nproto = self.df.loc[:ii, self.proto_col].sum()
             self.df.loc[ii, self.sf_fcol] = nproto / nn
             self.df.loc[ii, self.sf_tcol] = nproto / self.nbins
             self.df.loc[ii, self.sf_wcol] = self.window(nn, cumix)
@@ -73,10 +79,10 @@ class ObsData(object):
         if nn < self.winr:
             win = cumix.values[:self.winr+1]
         elif nn > self.nbins - self.winr:
-            win = cumix.values[nn-self.winr:]
+            win = cumix.values[-self.winr:]
         else:
             win = cumix.values[nn-self.winr:nn+self.winr+1]
-        return self.df.loc[win, 'is_proto'].mean()
+        return self.df.loc[win, self.proto_col].mean()
 
 
 class ObsPlot(object):
@@ -88,7 +94,7 @@ class ObsPlot(object):
         ax.set_xscale('log')
         ax.set_xlabel(self.od.xlabel)
         ax.set_xlim(self.od.xmin, self.od.xmax)
-        ax.set_ylim(0, 1.05)
+        ax.set_ylim(0, 1.1)
         plt.subplots_adjust(bottom=0.22)
         return fig, ax
 
@@ -110,20 +116,25 @@ class ObsPlot(object):
 
     def plot_win(self):
         fig, ax = self.make_fig()
-        ax.set_ylabel(r'$R_{\rm proto}$' + r' \ ${\rm Win}=' +
-                      str(2 * self.od.winr) + '$' )
+        ax.set_ylabel(r'$R_{\rm proto}$')
+        ax.annotate(r'${\rm Window} = ' + str(2 * self.od.winr) + '$',
+                    xy=(0.725, 0.1), xycoords='axes fraction', fontsize=13)
         ax.hlines(1, self.od.xmin, self.od.xmax, linestyles='dashed',
                   colors='0.5')
+        ax.hlines(self.od.mean_frac, self.od.xmin, self.od.xmax,
+                  linestyles='dotted', colors='0.5')
+        ax.vlines(self.od.bins, 1.02, 1.07, colors='black', linestyles='solid',
+                  linewidth=0.1)
         ax.plot(self.od.bins, self.od.wvals, 'k-', drawstyle='steps')
         ax.plot(self.od.bins[:self.od.winr], self.od.wvals[:self.od.winr],
-                'r-', drawstyle='steps')
+                color='0.5', linestyle='solid', drawstyle='steps')
         ax.plot(self.od.bins[-self.od.winr:], self.od.wvals[-self.od.winr:],
-                'r-', drawstyle='steps')
+                color='0.5', linestyle='solid', drawstyle='steps')
         util.savefig('{0}_{1}'.format(self.od.sf_wcol, self.od.winr),
                      close=True)
 
 
-def plot_window_sizes(wmin=5, wmax=60, step=1):
+def plot_window_sizes(wmin=10, wmax=25, step=5):
     for ii in range(wmin, wmax+1, step):
         print ii
         ObsData.winr = ii
@@ -168,6 +179,14 @@ def plot_all_obs():
         op.plot_frac()
         op.plot_tot()
         op.plot_win()
+
+
+class MargData(object):
+    pass
+
+
+class MargPlot(object):
+    pass
 
 
 #####
