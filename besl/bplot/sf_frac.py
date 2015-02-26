@@ -24,6 +24,7 @@ def get_data():
     fwhm = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
     fwhm = fwhm.loc[:, 'npix':]
     df = evo.merge(fwhm, left_index=True, right_index=True)
+    df = df.query('10 < glon_peak < 65')
     return df
 
 
@@ -37,14 +38,13 @@ class ObsData(object):
         self.sf_fcol = 'sf_frac_' + col
         self.sf_tcol = 'sf_tot_' + col
         self.sf_wcol = 'sf_win_' + col
-        # use proto_prob or boolean probability
         if bool_proto:
             self.proto_col = 'is_proto'
         else:
             self.proto_col = 'proto_prob'
         # data
         self.df = self.get_df()
-        self.mean_frac = self.df.is_proto.mean()
+        self.mean_frac = self.df[self.proto_col].mean()
         self.cumix = self.df.index
         self.bins = self.df[col].values
         self.nbins = self.bins.shape[0]
@@ -53,9 +53,8 @@ class ObsData(object):
         print ':: Computing {0}'.format(col)
         self.fvals, self.tvals, self.wvals = self.cumfrac(self.cumix)
 
-    def get_df(self):
+    def get_df(self, df):
         df = get_data()
-        df = df.query('10 < glon_peak < 65')
         df = df[df[self.col].notnull() & (df[self.col] > 0)].sort(self.col)
         stages, labels = dpdf_calc.evo_stages(bgps=df)
         df['is_proto'] = False
@@ -85,7 +84,53 @@ class ObsData(object):
         return self.df.loc[win, self.proto_col].mean()
 
 
-class ObsPlot(object):
+class DistData(object):
+    col = 'dist'
+    xlabel = r'${\rm Heliocentric \ Distance} \ \ [{\rm kpc}]$'
+    distx = np.arange(1e3) * 20. + 20.
+    xmin = distx[0]
+    xmax = distx[-1]
+    proto_col = 'proto_prob'
+    up_dist = 12000  # pc
+
+    def __init__(self):
+        print ':: Read in posteriors'
+        self.df = get_data()
+        self.posts = catalog.read_pickle('ppv_dpdf_posteriors')
+        self.dix = {k: v for k, v in self.posts.items()
+                    if k in self.df.query('10 < glon_peak < 65').index}
+        self.mean_frac = self.df.loc[self.dix.keys(), self.proto_col].mean()
+        self.sf_frac = self.calc()
+        self.loix, self.nup, self.up_frac = self.calc_dlim()
+        self.up_label = self.gen_label()
+
+    def calc(self):
+        print ':: Compute protostellar fraction'
+        sf_frac = np.zeros(self.distx.shape, dtype=float)
+        dpdf_sum = np.zeros(self.distx.shape, dtype=float)
+        for ii, dd in self.dix.items():
+            sf_frac += self.df.loc[ii, self.proto_col] * dd
+            dpdf_sum += dd
+        sf_frac /= dpdf_sum
+        return sf_frac
+
+    def calc_dlim(self):
+        loix = np.argwhere(self.distx == self.up_dist - 20)[0,0]
+        nup = sum([1 for k, v in self.dix.items()
+                   if self.distx[v.argmax()] > self.up_dist])
+        up_frac = nup / len(self.dix)
+        return loix, nup, up_frac
+
+    def gen_label(self):
+        return (r'$N(d_{\rm ML} >' +
+                '{0:2.0f}'.format(self.up_dist / 1e3) +
+                r'\ {\rm kpc})=' +
+                '{0:1.1f}\% \\ '.format(self.up_frac * 1e2) +
+                '({0})'.format(self.nup) +
+                '$')
+
+
+class Plot(object):
     def __init__(self, od):
         self.od = od
 
@@ -98,6 +143,8 @@ class ObsPlot(object):
         plt.subplots_adjust(bottom=0.22)
         return fig, ax
 
+
+class ObsPlot(Plot):
     def plot_frac(self):
         fig, ax = self.make_fig()
         ax.set_ylabel(r'$R_{\rm proto}(X \leq x)$')
@@ -132,6 +179,26 @@ class ObsPlot(object):
                 color='0.5', linestyle='solid', drawstyle='steps')
         util.savefig('{0}_{1}'.format(self.od.sf_wcol, self.od.winr),
                      close=True)
+
+
+class DistPlot(Plot):
+    def plot_frac(self):
+        fig, ax = self.make_fig()
+        ax.annotate(self.od.up_label, xy=(0.47, 0.1), xycoords='axes fraction',
+                    fontsize=13)
+        ax.hlines(0.165, 7.5, 9, colors='red')
+        ax.hlines(1, self.od.xmin / 1e3, self.od.xmax / 1e3,
+                  linestyles='dashed', colors='0.5')
+        ax.hlines(self.od.mean_frac, self.od.xmin / 1e3, self.od.xmax / 1e3,
+                  linestyles='dotted', colors='0.5')
+        ax.plot(self.od.distx / 1e3, self.od.sf_frac, 'k-')
+        ax.plot(self.od.distx[self.od.loix:] / 1e3,
+                self.od.sf_frac[self.od.loix:], 'r-')
+        ax.set_xscale('linear')
+        ax.set_ylabel(r'$R_{\rm proto}$')
+        ax.set_xlim(self.od.xmin / 1e3, self.od.xmax / 1e3)
+        ax.set_xticks(range(0, 21, 1), minor=True)
+        util.savefig('sf_frac_' + self.od.col, close=True)
 
 
 def plot_window_sizes(wmin=10, wmax=25, step=5):
@@ -179,6 +246,12 @@ def plot_all_obs():
         op.plot_frac()
         op.plot_tot()
         op.plot_win()
+
+
+def plot_dist():
+    od = DistData()
+    op = DistPlot(od)
+    op.plot_frac()
 
 
 class MargData(object):
