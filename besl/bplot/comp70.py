@@ -14,8 +14,8 @@ from matplotlib import pyplot as plt
 import matplotlib.patheffects as PathEffects
 from astropy.io import fits
 from astropy.wcs import WCS
-from besl import catalog
-from besl import image
+import catalog
+import image
 
 
 fdir = '/home/svobodb/research/temp/hg70_mips/'

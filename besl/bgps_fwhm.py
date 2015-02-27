@@ -196,6 +196,7 @@ class FwhmSolver(object):
         self.fwhm_sangle = self.fwhm_npix * self.pixel_size**2  # arcsec^2
         self.fwhm_eqangle = np.sqrt(self.fwhm_sangle / np.pi)  # arcsec
         self.fwhm_flux = fwhmv.sum() / self.ppbeam  # Jy
+        # Error in FWHM calculated from equation 8 in Rosolowsky et al. 2010
         self.err_fwhm_flux = np.sqrt(np.sum(efwhmv**2) / self.ppbeam +
                                      (0.06 * fwhmv.sum() / self.ppbeam)**2)  # Jy
 
@@ -211,6 +212,9 @@ class FwhmDeconvolve(object):
     theta_mb = 33 / 2.
 
     def __init__(self, df=None):
+        """
+        Calculate the deconvolved angular clump size by subtracting the beam.
+        """
         if df is None:
             df = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
         self.df = df

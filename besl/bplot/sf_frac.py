@@ -21,6 +21,18 @@ plt.rc('font', **{'size':14})
 
 
 def get_data(clip_lon=True):
+    """
+    Get combined dataframe of evolutionary and fwhm catalogs.
+
+    Parameters
+    ----------
+    clip_lon : bool, Default True
+        Clip the dataframe to 10 < l < 65 degrees
+
+    Returns
+    -------
+    df : pd.DataFrame
+    """
     evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
     fwhm = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
     fwhm = fwhm.loc[:, 'npix':]
@@ -34,6 +46,25 @@ class ObsData(object):
     winr = 25
 
     def __init__(self, col, xlabel, with_dist=False, bool_proto=False):
+        """
+        Star formation fraction for observable quantities without MC simulation.
+
+        Parameters
+        ----------
+        col : str
+            Dataframe column name of property
+        xlabel : str
+            LaTeX string for xlabel of plot
+        with_dist : bool, Default False
+            Calculate values for the Distance Sample sub-set
+        bool_proto : bool, Default False
+            Use the boolean flags for protostellar activity
+
+        Attributes
+        ----------
+        winr : number, Default 25
+            Window radius used in boxcar fraction calculation
+        """
         # params
         self.col = col
         self.xlabel = xlabel
