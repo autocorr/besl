@@ -13,28 +13,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 from besl import catalog
 from besl import dpdf_calc
+from besl import dpdf_mc
 from besl import util
 
 
 plt.rc('font', **{'size':14})
 
 
-def get_data():
+def get_data(clip_lon=True):
     evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
     fwhm = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
     fwhm = fwhm.loc[:, 'npix':]
     df = evo.merge(fwhm, left_index=True, right_index=True)
-    df = df.query('10 < glon_peak < 65')
+    if clip_lon:
+        df = df.query('10 < glon_peak < 65')
     return df
 
 
 class ObsData(object):
     winr = 25
 
-    def __init__(self, col, xlabel, bool_proto=False):
-        # labels
+    def __init__(self, col, xlabel, with_dist=False, bool_proto=False):
+        # params
         self.col = col
         self.xlabel = xlabel
+        self.with_dist = with_dist
+        self.bool_proto = bool_proto
+        # labels
         self.sf_fcol = 'sf_frac_' + col
         self.sf_tcol = 'sf_tot_' + col
         self.sf_wcol = 'sf_win_' + col
@@ -43,18 +48,23 @@ class ObsData(object):
         else:
             self.proto_col = 'proto_prob'
         # data
-        self.df = self.get_df()
+        self.df = self.get_df(with_dist=with_dist)
         self.mean_frac = self.df[self.proto_col].mean()
         self.cumix = self.df.index
         self.bins = self.df[col].values
-        self.nbins = self.bins.shape[0]
+        self.nbins = self.df.shape[0]
         self.xmin, self.xmax = self.bins[0], self.bins[-1]
         # compute
         print ':: Computing {0}'.format(col)
-        self.fvals, self.tvals, self.wvals = self.cumfrac(self.cumix)
+        self.fvals, self.tvals, self.wvals = self.cumfrac(self.df, self.cumix)
 
-    def get_df(self, df):
+    def get_df(self, with_dist=False):
         df = get_data()
+        if with_dist:
+            posts = catalog.read_pickle('ppv_dpdf_posteriors')
+            dix = {k: v for k, v in posts.items()
+                   if k in df.query('10 < glon_peak < 65').index}
+            df = df.loc[dix.keys()]
         df = df[df[self.col].notnull() & (df[self.col] > 0)].sort(self.col)
         stages, labels = dpdf_calc.evo_stages(bgps=df)
         df['is_proto'] = False
@@ -63,25 +73,27 @@ class ObsData(object):
             df[col] = np.nan
         return df
 
-    def cumfrac(self, cumix):
+    def cumfrac(self, df, cumix):
+        nsamp = df.shape[0]
         for nn, ii in enumerate(cumix):
-            nproto = self.df.loc[:ii, self.proto_col].sum()
-            self.df.loc[ii, self.sf_fcol] = nproto / nn
-            self.df.loc[ii, self.sf_tcol] = nproto / self.nbins
-            self.df.loc[ii, self.sf_wcol] = self.window(nn, cumix)
-        return (self.df[self.sf_fcol].values,
-                self.df[self.sf_tcol].values,
-                self.df[self.sf_wcol].values)
+            nproto = df.loc[:ii, self.proto_col].sum()
+            df.loc[ii, self.sf_fcol] = nproto / nn
+            df.loc[ii, self.sf_tcol] = nproto / nsamp
+            df.loc[ii, self.sf_wcol] = self.window(nn, df, cumix)
+        return (df[self.sf_fcol].values,
+                df[self.sf_tcol].values,
+                df[self.sf_wcol].values)
 
-    def window(self, nn, cumix):
+    def window(self, nn, df, cumix):
+        nsamp = df.shape[0]
         # repeats last value off edge
         if nn < self.winr:
             win = cumix.values[:self.winr+1]
-        elif nn > self.nbins - self.winr:
+        elif nn > nsamp - self.winr:
             win = cumix.values[-self.winr:]
         else:
             win = cumix.values[nn-self.winr:nn+self.winr+1]
-        return self.df.loc[win, self.proto_col].mean()
+        return df.loc[win, self.proto_col].mean()
 
 
 class DistData(object):
@@ -130,6 +142,43 @@ class DistData(object):
                 '$')
 
 
+class MassData(object):
+    col = 'mass'
+    xlabel = r'$M^{\rm Total}_{\rm H_2} \ \ [{\rm M_\odot}]$'
+    use_fwhm = False
+    nsamples = 1e4
+    bins = np.logspace(1, 5, 300)
+    xmin = bins[0]
+    xmax = bins[-1]
+    proto_col = 'proto_prob'
+
+    def __init__(self):
+        self.df = get_data(clip_lon=False)
+        if self.use_fwhm:
+            self.xlabel = r'$M^{\rm FWHM}_{\rm H_2} \ \ [{\rm M_\odot}]$'
+            self.col += '_fwhm'
+            bad_fwhm = self.df.query('fwhm_flux == 0 | err_fwhm_flux == 0').index
+            self.df.loc[bad_fwhm, 'fwhm_flux'] = np.nan
+            self.df.loc[bad_fwhm, 'err_fwhm_flux'] = np.nan
+        self.ms = dpdf_mc.MassSampler(self.df, self.nsamples, use_fwhm=self.use_fwhm)
+        self.mean_frac = self.df.loc[self.ms.dix.keys(), self.proto_col].mean()
+        self.sf_frac = self.calc()
+
+    def calc(self):
+        masses = self.ms.draw()
+        hist = np.zeros(len(self.bins)-1, dtype=float)
+        mass_sum = np.zeros(len(self.bins)-1, dtype=float)
+        print ':: Compute histogram'
+        for ii, dd in self.ms.dix.items():
+            mm = masses[ii-1]
+            pp = self.df.loc[ii, self.proto_col]
+            hh, _ = np.histogram(mm, bins=self.bins)
+            hist += hh * pp / self.nsamples
+            mass_sum += hh / self.nsamples
+        hist /= mass_sum
+        return hist
+
+
 class Plot(object):
     def __init__(self, od):
         self.od = od
@@ -161,16 +210,33 @@ class ObsPlot(Plot):
         ax.plot(self.od.bins, self.od.tvals, 'k-', drawstyle='steps')
         util.savefig(self.od.sf_tcol, close=True)
 
-    def plot_win(self):
+    def plot_win(self, dod=None, window_label=False):
         fig, ax = self.make_fig()
+        if window_label:
+            ax.annotate(r'${\rm Window} = ' + str(2 * self.od.winr) + '$',
+                        xy=(0.725, 0.1), xycoords='axes fraction', fontsize=13)
         ax.set_ylabel(r'$R_{\rm proto}$')
-        ax.annotate(r'${\rm Window} = ' + str(2 * self.od.winr) + '$',
-                    xy=(0.725, 0.1), xycoords='axes fraction', fontsize=13)
+        # if over-plot with the distance sample
+        if dod is not None:
+            ax.annotate('$({0})$'.format(dod.nbins), xy=(0.850, 0.1),
+                        xycoords='axes fraction', fontsize=13, color='0.5')
+            ax.hlines(dod.mean_frac, self.od.xmin, self.od.xmax,
+                      linestyles='dotted', colors='0.5')
+            ax.plot(dod.bins, dod.wvals, color='0.5', linestyle='solid',
+                    drawstyle='steps')
+            ax.plot(dod.bins[:dod.winr], dod.wvals[:dod.winr],
+                    color='0.75', linestyle='solid', drawstyle='steps')
+            ax.plot(dod.bins[-dod.winr:], dod.wvals[-dod.winr:],
+                    color='0.75', linestyle='solid', drawstyle='steps')
+            ax.vlines(dod.bins, 1.01, 1.040, colors='0.35',
+                      linestyles='solid', linewidth=0.1)
+        ax.annotate('$N={0}$'.format(self.od.nbins), xy=(0.675, 0.1),
+                    xycoords='axes fraction', fontsize=13)
         ax.hlines(1, self.od.xmin, self.od.xmax, linestyles='dashed',
                   colors='0.5')
         ax.hlines(self.od.mean_frac, self.od.xmin, self.od.xmax,
-                  linestyles='dotted', colors='0.5')
-        ax.vlines(self.od.bins, 1.02, 1.07, colors='black', linestyles='solid',
+                  linestyles='dotted', colors='black')
+        ax.vlines(self.od.bins, 1.040, 1.07, colors='black', linestyles='solid',
                   linewidth=0.1)
         ax.plot(self.od.bins, self.od.wvals, 'k-', drawstyle='steps')
         ax.plot(self.od.bins[:self.od.winr], self.od.wvals[:self.od.winr],
@@ -182,11 +248,14 @@ class ObsPlot(Plot):
 
 
 class DistPlot(Plot):
-    def plot_frac(self):
+    def plot_frac(self, up_label=False):
         fig, ax = self.make_fig()
-        ax.annotate(self.od.up_label, xy=(0.47, 0.1), xycoords='axes fraction',
-                    fontsize=13)
-        ax.hlines(0.165, 7.5, 9, colors='red')
+        if up_label:
+            ax.annotate(self.od.up_label, xy=(0.47, 0.1),
+                        xycoords='axes fraction', fontsize=13)
+            ax.hlines(0.165, 7.5, 9, colors='red')
+        ax.annotate(r'$N={0}$'.format(len(self.od.dix)),
+                     xy=(0.675, 0.1), xycoords='axes fraction', fontsize=13)
         ax.hlines(1, self.od.xmin / 1e3, self.od.xmax / 1e3,
                   linestyles='dashed', colors='0.5')
         ax.hlines(self.od.mean_frac, self.od.xmin / 1e3, self.od.xmax / 1e3,
@@ -199,6 +268,29 @@ class DistPlot(Plot):
         ax.set_xlim(self.od.xmin / 1e3, self.od.xmax / 1e3)
         ax.set_xticks(range(0, 21, 1), minor=True)
         util.savefig('sf_frac_' + self.od.col, close=True)
+
+
+class MassPlot(Plot):
+    def plot_frac(self):
+        fig, ax = self.make_fig()
+        ax.annotate(r'$N={0}$'.format(len(self.od.ms.dix)),
+                     xy=(0.675, 0.1), xycoords='axes fraction', fontsize=13)
+        ax.hlines(1, self.od.xmin, self.od.xmax,
+                  linestyles='dashed', colors='0.5')
+        ax.hlines(self.od.mean_frac, self.od.xmin, self.od.xmax,
+                  linestyles='dotted', colors='0.5')
+        ax.plot(self.od.bins[:-1], self.od.sf_frac, 'k-', drawstyle='steps')
+        ax.set_ylabel(r'$R_{\rm proto}$')
+        ax.set_xlim(self.od.xmin, self.od.xmax)
+        util.savefig('sf_frac_' + self.od.col, close=True)
+
+
+def plot_flux_window():
+    od = ObsData('flux', r'$S^{\rm Total}_{1.1} \ \ [{\rm Jy}]$')
+    dod = ObsData('flux', r'$S^{\rm Total}_{1.1} \ \ [{\rm Jy}]$',
+                  with_dist=True)
+    op = ObsPlot(od)
+    op.plot_win(dod=dod)
 
 
 def plot_window_sizes(wmin=10, wmax=25, step=5):
@@ -254,12 +346,12 @@ def plot_dist():
     op.plot_frac()
 
 
-class MargData(object):
-    pass
+def plot_mass(use_fwhm=False):
+    MassData.use_fwhm = use_fwhm
+    od = MassData()
+    op = MassPlot(od)
+    op.plot_frac()
 
-
-class MargPlot(object):
-    pass
 
 
 #####

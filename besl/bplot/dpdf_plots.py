@@ -360,6 +360,17 @@ def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
 
 class PlotData(object):
     def __init__(self, label, xlabel, bgps=None, color=False, left_label=False):
+        """
+        label : str
+            Dataframe column name
+        xlabel : str
+            LaTeX string to use as xlabel
+        bgps : pd.DataFrame, Default None
+        color : str, Default None
+            Matplotlib color string to use
+        left_label : bool, Default False
+            Plot the label on the left instead of the right
+        """
         self.label = label
         self.xlabel = xlabel
         if bgps is None:
@@ -379,12 +390,17 @@ class PlotData(object):
         self.axes = axes
 
     def close(self):
+        """ Close axes and figure instances. """
         plt.cla()
         plt.clf()
         plt.close()
 
 
 def write_all_hists():
+    """
+    Read in evolutionary and fwhm data, then create histograms for all
+    osberverable properties.
+    """
     evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
     flux = evo.query('1e-2 < flux_40')
     fwhm = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
