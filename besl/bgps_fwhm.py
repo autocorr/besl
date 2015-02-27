@@ -6,6 +6,7 @@ BGPS FWHM
 Compute BGPS FWHM sizes and fluxes.
 
 """
+from __future__ import division
 import numpy as np
 from scipy.ndimage import (binary_closing, watershed_ift)
 import catalog
@@ -226,6 +227,7 @@ class FwhmDeconvolve(object):
         self.df['sangled'] = np.pi * self.df['eqangled']**2
         self.df['fwhm_sangled'] = np.pi * self.df['fwhm_eqangled']**2
         self.df['fwhm_sangled_ratio'] = self.df['fwhm_sangled'] / self.df['sangled']
+        self.df['fwhm_sangled_ratio_inv'] = 1 / self.df['fwhm_sangled_ratio']
 
     def beam_subtract(self, theta_eq):
         if theta_eq > self.theta_mb:

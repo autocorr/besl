@@ -405,6 +405,7 @@ def write_all_hists():
     flux = evo.query('1e-2 < flux_40')
     fwhm = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
     fwhm = evo.merge(fwhm.loc[:, 'npix':], left_index=True, right_index=True)
+    fwhm_res = fwhm[fwhm.fwhm_eqangled.notnull()]
     amm = evo.query('6 < nh3_tkin < 100')
     hco = evo.query('mol_hco_f in [1,2,3]')
     nnh = evo.query('mol_nnh_f in [1,2,3]')
@@ -417,10 +418,11 @@ def write_all_hists():
         # FWHM properties
         PlotData('fwhm_flux', r'$S^{\rm FWHM}_{1.1} \ \ [{\rm Jy}]$', fwhm),
         PlotData('eqangled', r'$\theta^{\rm Total}_{\rm eq} \ \ [{\rm arcsec}]$', fwhm),
-        PlotData('fwhm_eqangled', r'$\theta^{\rm FWHM}_{\rm eq} \ \ [{\rm arcsec}]$', fwhm),
         PlotData('sangled', r'$\Omega^{\rm Total} \ \ [{\rm sq. \ arcsec}]$', fwhm),
-        PlotData('fwhm_sangled', r'$\Omega^{\rm FWHM} \ \ [{\rm sq. \ arcsec}]$', fwhm),
-        PlotData('fwhm_sangled_ratio', r'$\Omega^{\rm FWHM} / \Omega^{\rm Total}$', fwhm, left_label=True),
+        PlotData('fwhm_eqangled', r'$\theta^{\rm FWHM}_{\rm eq} \ \ [{\rm arcsec}]$', fwhm_res),
+        PlotData('fwhm_sangled', r'$\Omega^{\rm FWHM} \ \ [{\rm sq. \ arcsec}]$', fwhm_res),
+        PlotData('fwhm_sangled_ratio', r'$\Omega^{\rm FWHM} / \Omega^{\rm Total}$', fwhm_res, left_label=True),
+        PlotData('fwhm_sangled_ratio_inv', r'$\Omega^{\rm Total} / \Omega^{\rm FWHM}$', fwhm_res),
         # NH3
         PlotData('nh3_tkin', r'$T_{\rm K} \ \ [{\rm K}]$', amm),
         PlotData('nh3_gbt_pk11', r'$T_{\rm pk}({\rm NH_3 \ (1,1)}) \ \ [{\rm K}]$', amm),

@@ -215,7 +215,7 @@ class Plot(object):
         self.od = od
 
     def make_fig(self):
-        fig, ax = plt.subplots(figsize=(6, 2.5))
+        fig, ax = plt.subplots(figsize=(8, 2.5))
         ax.set_xscale('log')
         ax.set_xlabel(self.od.xlabel)
         ax.set_xlim(self.od.xmin, self.od.xmax)
