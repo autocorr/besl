@@ -7,14 +7,14 @@ Provides methods for Monte Carlo sampling DPDF collections.  Also calculate
 composite, posterior DPDFs for nodes in PPV-groups.
 
 """
-# TODO add in PPV grouping properties
-
+from __future__ import division
 import math
 import numpy as np
 import pandas as pd
 from besl import (catalog, mathf, dpdf_calc)
 from scipy.stats import gaussian_kde
 from scipy.interpolate import interp1d
+from scipy.special import erf
 
 
 class Prop(object):
@@ -60,6 +60,7 @@ class SamplerBase(object):
         assert len(data) == 2
         self.x = data[0]
         self.y = data[1]
+        self.y[self.y == 0] = np.nan  # can't have zero error
         self.nsamples = nsamples
 
 
@@ -120,15 +121,13 @@ class TempSampler(object):
         return np.random.choice(self.samples[ii], size=self.nsamples)
 
 
-# TODO refactor this and mass sampler
-class RadiusSampler(object):
+class DepSampler(object):
     distx = np.arange(1000, dtype=float) * 20. + 20.
 
-    def __init__(self, cat, nsamples, use_fwhm=False):
+    def __init__(self, cat, nsamples):
         assert cat.index.name == 'v210cnum'
         self.cat = cat
         self.nsamples = nsamples
-        self.use_fwhm = use_fwhm
         print ':: Read in data'
         cat = cat.copy()
         self.posts = catalog.read_pickle('ppv_dpdf_posteriors')
@@ -137,6 +136,89 @@ class RadiusSampler(object):
         self.stages, _ = dpdf_calc.evo_stages(cat)
         self.ns = len(self.stages)
         self.stage_ix = [df.index for df in self.stages]
+
+
+class SurfSampler(DepSampler):
+    to_solar = 4.788392e3  # (g cm^-2)^-1 Msun pc^-2
+
+    def __init__(self, cat, nsamples, size='full'):
+        """
+        size : str, Default 'full'
+            Size and flux density definition to use for mass surface density
+            calculator.
+                'full' -> Full Bolocat labelmask equivalent size
+                'fwhm' -> FWHM equivalent size
+                'peak' -> Peak solid angle (5-pix)
+        """
+        super(SurfSampler, self).__init__(cat, nsamples)
+        self.size = size
+        print ':: Sampling fluxes'
+        self.fluxes = self.get_fluxes(size)
+        self.sangles = self.get_sangles(size)
+        print ':: Sampling temperatures (normal)'
+        self.tkins = NormalSampler((cat.nh3_tkin.values,
+                                    cat.nh3_tkin_err.values), nsamples).draw()
+        self.good_tk = cat[cat.nh3_tkin.notnull()].index
+        print ':: Sampling temperatures (stages)'
+        self.tkin_sampler = TempSampler(cat, nsamples)
+
+    def get_fluxes(self, size):
+        if size == 'full':
+            return NormalSampler((self.cat['flux'].values,
+                                  self.cat['err_flux'].values),
+                                 self.nsamples).draw()
+        elif size == 'fwhm':
+            return NormalSampler((self.cat['fwhm_flux'].values,
+                                  self.cat['err_fwhm_flux'].values),
+                                 self.nsamples).draw()
+        elif size == 'peak':
+            return NormalSampler((self.cat['peak_flux'].values,
+                                  self.cat['err_peak_flux'].values),
+                                 self.nsamples).draw()
+        else:
+            raise ValueError('Invalid size definition: {0}'.format(size))
+
+    def get_sangles(self, size):
+        if size == 'full':
+            return self.cat['sangle'].values
+        elif size == 'fwhm':
+            return self.cat['fwhm_sangle'].values
+        elif size == 'peak':
+            self.cat['peak_sangle'] = 7.2**2
+            return self.cat['peak_sangle'].values
+        else:
+            raise ValueError('Invalid size definition: {0}'.format(size))
+
+    def draw(self):
+        surf = np.empty((self.cat.index.shape[0], self.nsamples), dtype=float)
+        surf[:,:] = np.nan
+        ovix = self.cat.query('10 < glon_peak < 65').index
+        nix = len(ovix)
+        for ii, cix in enumerate(ovix):
+            print '-- ', ii + 1, ' / ', nix
+            csangle = self.sangles[cix - 1]
+            cflux = self.fluxes[cix - 1]
+            if cix in self.good_tk:
+                ctkin = self.tkins[cix - 1]
+            else:
+                for jj, stix in enumerate(reversed(self.stage_ix)):
+                    if cix in stix:
+                        break
+                else:
+                    raise ValueError('Not in stage, cnum: {0}'.format(cix))
+                ctkin = self.tkin_sampler.draw(self.ns - 1 - jj)
+            surf[cix - 1] = self.calc_surf(cflux, csangle, ctkin)
+        return surf
+
+    @staticmethod
+    def calc_surf(flux, csangle, tkin):
+        return 39.25 * flux * np.pi / csangle * (np.exp(13.08 / tkin) - 1)
+
+
+class RadiusSampler(DepSampler):
+    def __init__(self, cat, nsamples, use_fwhm=False):
+        super(RadiusSampler, self).__init__(cat, nsamples)
+        self.use_fwhm = use_fwhm
         if use_fwhm:
             self.angle = cat['fwhm_eqangled'].values
         else:
@@ -161,22 +243,28 @@ class RadiusSampler(object):
         return dist * arc2rad * angle
 
 
-class MassSampler(object):
-    distx = np.arange(1000, dtype=float) * 20. + 20.
+class CenDensSampler(DepSampler):
+    def __init__(self, cat, nsamples):
+        super(CenDensSampler, self).__init__(cat, nsamples)
+        self.rs = RadiusSampler(cat, nsamples, use_fwhm=True)
+        self.ss = SurfSampler(cat, nsamples, size='peak')
 
+    def draw(self):
+        radii = self.rs.draw()
+        surfs = self.ss.draw()
+        teq = np.array([self.cat['eqangled'].values]).T
+        feq = np.array([self.cat['fwhm_eqangled'].values]).T
+        mu = 2.353  # mean molecular weight, Lodders 2003
+        a1 = np.sqrt(np.log(2) / np.pi) / (mu * 1.672622e-24)  # g -> [H2]
+        a2 = 2 * 3.0856776e18  # pc -> cm
+        a3 = np.sqrt(np.log(2))
+        return a1 * surfs / (a2 * radii) / erf(a3 * teq / feq)
+
+
+class MassSampler(DepSampler):
     def __init__(self, cat, nsamples, use_fwhm=False):
-        assert cat.index.name == 'v210cnum'
-        self.cat = cat
-        self.nsamples = nsamples
+        super(MassSampler, self).__init__(cat, nsamples)
         self.use_fwhm = use_fwhm
-        print ':: Read in data'
-        cat = cat.copy()
-        self.posts = catalog.read_pickle('ppv_dpdf_posteriors')
-        self.dix = {k: v for k, v in self.posts.items()
-                    if k in cat.query('10 < glon_peak < 65').index}
-        self.stages, _ = dpdf_calc.evo_stages(cat)
-        self.ns = len(self.stages)
-        self.stage_ix = [df.index for df in self.stages]
         # flux samples, index offset of -1
         print ':: Sampling fluxes'
         self.fluxes = self.get_fluxes()
@@ -223,21 +311,10 @@ class MassSampler(object):
         return 14.067 * (np.exp(13.08 / tkin) - 1) * flux * (dist * 1e-3)**2
 
 
-class FreeFallSampler(object):
-    distx = np.arange(1000, dtype=float) * 20. + 20.
-
+class FreeFallSampler(DepSampler):
     def __init__(self, cat, nsamples, use_fwhm=True):
-        assert cat.index.name == 'v210cnum'
-        print ':: Read in data'
-        self.cat = cat.copy()
+        super(FreeFallSampler, self).__init__(cat, nsamples)
         self.use_fwhm = use_fwhm
-        self.posts = catalog.read_pickle('ppv_dpdf_posteriors')
-        self.dix = {k: v for k, v in self.posts.items()
-                    if k in self.cat.query('10 < glon_peak < 65').index}
-        self.stages, _ = dpdf_calc.evo_stages(cat)
-        self.ns = len(self.stages)
-        self.stage_ix = [df.index for df in self.stages]
-        self.nsamples = nsamples
         self.ms = MassSampler(self.cat, nsamples, use_fwhm=True)
 
     def get_volumes(self):
