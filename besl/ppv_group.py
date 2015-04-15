@@ -798,6 +798,7 @@ def grid_calc(lims=[0.05, 0.2, 1, 4], points=[10, 10], out_filen='obj_grid'):
         pickle.dump([obj_grid, X, Y], f)
     return obj_grid, X, Y
 
+
 def wrapper(c):
     """
     Wrapper function on the top-level domain so that the object is pickleable
@@ -806,6 +807,7 @@ def wrapper(c):
     c.dbscan()
     c.analysis(verbose=True)
     return c
+
 
 def reduce_obj_grid(filen='obj_grid', out_filen='obj_props'):
     """
@@ -841,6 +843,7 @@ def reduce_obj_grid(filen='obj_grid', out_filen='obj_props'):
         obj_dict[key] = np.reshape(map(method, obj_grid.flat), X.shape)
     with open(out_filen + '.pickle', 'wb') as f:
         pickle.dump(obj_dict, f)
+
 
 def kdar_flag_region(out_filen='kdar_flags'):
     """

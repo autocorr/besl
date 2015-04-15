@@ -60,7 +60,7 @@ class SamplerBase(object):
         assert len(data) == 2
         self.x = data[0]
         self.y = data[1]
-        self.y[self.y == 0] = np.nan  # can't have zero error
+        self.y[self.y == 0] = 1e-16  # can't have zero error
         self.nsamples = nsamples
 
 
@@ -254,11 +254,79 @@ class CenDensSampler(DepSampler):
         surfs = self.ss.draw()
         teq = np.array([self.cat['eqangled'].values]).T
         feq = np.array([self.cat['fwhm_eqangled'].values]).T
-        mu = 2.353  # mean molecular weight, Lodders 2003
+        mu = 2.8  # ref Dunham et al. 2011
         a1 = np.sqrt(np.log(2) / np.pi) / (mu * 1.672622e-24)  # g -> [H2]
         a2 = 2 * 3.0856776e18  # pc -> cm
         a3 = np.sqrt(np.log(2))
         return a1 * surfs / (a2 * radii) / erf(a3 * teq / feq)
+
+
+class AvgDensSampler(DepSampler):
+    def __init__(self, cat, nsamples, use_fwhm=False):
+        super(AvgDensSampler, self).__init__(cat, nsamples)
+        self.rs = RadiusSampler(cat, nsamples, use_fwhm)
+        self.ms = MassSampler(cat, nsamples, use_fwhm)
+
+    def draw(self):
+        radii = self.rs.draw()
+        masses = self.ms.draw()
+        mu = 2.8  # ref Dunham et al. 2011
+        mp = 1.672622e-24
+        a1 = 6.7702543e-23 / (mu * mp)  # Msun / pc^3 -> [H2] / cm^3
+        a2 = 4 * np.pi / 3.
+        return a1 * masses / (a2 * radii**3)
+
+
+class CylDensSampler(DepSampler):
+    def __init__(self, cat, nsamples):
+        super(CylDensSampler, self).__init__(cat, nsamples)
+        self.rst = RadiusSampler(cat, nsamples, use_fwhm=False)
+        self.rsf = RadiusSampler(cat, nsamples, use_fwhm=True)
+        self.ms = MassSampler(cat, nsamples, use_fwhm=True)
+
+    def draw(self):
+        tot_radii = self.rst.draw()
+        fwhm_radii = self.rsf.draw()
+        masses = self.ms.draw()
+        mu = 2.8  # ref Dunham et al. 2011
+        mp = 1.672622e-24
+        a1 = 6.7702543e-23 / (mu * mp)  # Msun / pc^3 -> [H2] / cm^3
+        return a1 * masses / (2 * np.pi * fwhm_radii**2 * tot_radii)
+
+
+class VirSampler(DepSampler):
+    pix = 1.8
+    pix_err = 0.4
+
+    def __init__(self, cat, nsamples):
+        cat = self.clean_cat(cat)
+        super(VirSampler, self).__init__(cat, nsamples)
+        self.vs = NormalSampler((cat['nh3_gbt_sigmav'].values,
+                                 cat['nh3_gbt_sigmav_err'].values), nsamples)
+        self.rs = RadiusSampler(cat, nsamples, use_fwhm=False)
+        self.ms = MassSampler(cat, nsamples, use_fwhm=False)
+        nn = self.cat.shape[0]
+        self.ps = NormalSampler((self.pix * np.ones(nn),
+                                 self.pix_err * np.ones(nn)), nsamples)
+
+    def clean_cat(self, cat):
+        bad_velos = cat.query('nh3_gbt_sigmav_err == 0').index
+        cat.loc[bad_velos, 'nh3_gbt_sigmav'] = np.nan
+        cat.loc[bad_velos, 'nh3_gbt_sigmav_err'] = np.nan
+        return cat
+
+    def draw(self):
+        velos = self.vs.draw()
+        radii = self.rs.draw()
+        masses = self.ms.draw()
+        p = self.ps.draw()
+        a1 = (1 - p / 3.) / (1 - 2 * p / 5.)
+        a1[(a1 <= 0) | (a1 > 5)] = np.nan
+        bigG = 0.0043021135  # km^2 s^-2 pc Msun^-1
+        virs = (5 / (8 * np.log(2))) * (2.35482 * velos)**2 * radii / (a1 * bigG * masses)
+        # clean virs
+        virs[(virs < 1e-3) | (1e3 < virs)] = np.nan
+        return virs
 
 
 class MassSampler(DepSampler):

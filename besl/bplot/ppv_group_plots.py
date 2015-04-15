@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
+from scipy import ndimage
 from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
 from ..catalog import read_bgps_vel
@@ -61,7 +62,8 @@ def velocity_color_scatter(coords):
     plt.draw()
     return fig, ax
 
-def tree_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
+
+def plot_all_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
     """
     Read in the pickled tree parameter dictionary and plot the containing
     parameters.
@@ -76,41 +78,50 @@ def tree_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
     log_Z : bool
         Create plots with logarithmic Z axis
     """
+    cmap = cm.Paired
     obj_dict = pickle.load(open(filen + '.pickle', 'rb'))
     X = obj_dict['velo']
     Y = obj_dict['angle']
+    X = ndimage.zoom(X, 3)
+    Y = ndimage.zoom(Y, 3)
+    W = ndimage.zoom(obj_dict['conflict_frac'], 3)
     obj_dict['reward'] = np.log10(obj_dict['new_kdar_assoc']) / obj_dict['conflict_frac']
     params = [(k, v) for k, v in obj_dict.iteritems()
               if k not in ['velo', 'angle']]
-    clevels = [0.05, 0.10, 0.15]
+    clevels = [0.06, 0.12, 0.20, 0.30, 0.5]
     for key, Z in params:
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
+        print ':: ', key
+        fig, ax = plt.subplots(figsize=(6, 6))
+        cax = fig.add_axes([0.12, 0.92, 0.8, 0.03])
+        plt.subplots_adjust(top=0.85)
         if log_Z:
             Z = np.log10(Z)
             key += '_(log)'
-        pc = ax.pcolor(X, Y, Z, cmap=cm.cubehelix, vmin=Z.min(), vmax=Z.max())
-        cb = plt.colorbar(pc, ax=ax)
+        Z = ndimage.zoom(Z, 3)
+        pc = ax.pcolor(X, Y, Z, cmap=cmap, vmin=Z.min(), vmax=Z.max())
+        cb = plt.colorbar(pc, ax=ax, cax=cax, orientation='horizontal')
+        ax.plot([4], [0.065], 'ko', ms=10, markerfacecolor='none', markeredgewidth=2)
         # Contours for conflict frac
-        cn = ax.contour(X, Y, obj_dict['conflict_frac'], levels=clevels,
+        cn = ax.contour(X, Y, W, levels=clevels,
                         colors='k', linewidth=2)
         plt.setp(cn.collections,
                  path_effects=[PathEffects.withStroke(linewidth=2,
                  foreground='w')])
-        cl = ax.clabel(cn, fmt='%1.2f', inline=1, fontsize=12,
+        cl = ax.clabel(cn, fmt='%1.2f', inline=1, fontsize=11,
                        use_clabeltext=True)
         plt.setp(cl, path_effects=[PathEffects.withStroke(linewidth=2,
                  foreground='w')])
         # Labels
         ax.set_xlabel(r'$v \ \ [{\rm km \ s^{-1}}]$')
         ax.set_ylabel(r'$\theta \ \ [^{\circ}]$')
-        ax.set_title(' '.join(key.split('_')))  # latex doesn't like _
         # Limits
         ax.set_xlim([X.min(), X.max()])
         ax.set_ylim([Y.min(), Y.max()])
         # Save
         plt.savefig(out_filen + '_' + key + '.pdf')
-        plt.savefig(out_filen + '_' + key + '.png')
+        plt.savefig(out_filen + '_' + key + '.png', dpi=300)
+        plt.close()
+
 
 def conflict_hist(filen='good_cluster', out_filen='conflict_hist'):
     """
