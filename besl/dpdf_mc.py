@@ -138,6 +138,20 @@ class DepSampler(object):
         self.stage_ix = [df.index for df in self.stages]
 
 
+class FullDistSampler(DepSampler):
+    def __init__(self, cat, nsamples):
+        super(FullDistSampler, self).__init__(cat, nsamples)
+
+    def draw(self):
+        dix = self.dix
+        dists = np.empty((self.cat.shape[0], self.nsamples), dtype=float)
+        dists[:,:] = np.nan
+        for ii, (cix, post) in enumerate(self.posts.iteritems()):
+            print '-- ', ii + 1, ' / ', len(self.posts)
+            dists[cix - 1] = DistSampler((self.distx, post), self.nsamples).draw()
+        return dists
+
+
 class SurfSampler(DepSampler):
     to_solar = 4.788392e3  # (g cm^-2)^-1 Msun pc^-2
 
@@ -330,8 +344,9 @@ class VirSampler(DepSampler):
 
 
 class MassSampler(DepSampler):
-    def __init__(self, cat, nsamples, use_fwhm=False):
+    def __init__(self, cat, nsamples, use_fwhm=False, tkiso=False):
         super(MassSampler, self).__init__(cat, nsamples)
+        self.tkiso = tkiso
         self.use_fwhm = use_fwhm
         # flux samples, index offset of -1
         print ':: Sampling fluxes'
@@ -361,15 +376,18 @@ class MassSampler(DepSampler):
             print '-- ', ii + 1, ' / ', len(dix)
             cdist = DistSampler((self.distx, self.posts[cix]), self.nsamples).draw()
             cflux = self.fluxes[cix - 1]
-            if cix in self.good_tk:
-                ctkin = self.tkins[cix - 1]
-            else:
-                for jj, stix in enumerate(reversed(self.stage_ix)):
-                    if cix in stix:
-                        break
+            if not self.tkiso:
+                if cix in self.good_tk:
+                    ctkin = self.tkins[cix - 1]
                 else:
-                    raise ValueError('Not in stage, cnum: {0}'.format(cix))
-                ctkin = self.tkin_sampler.draw(self.ns - 1 - jj)
+                    for jj, stix in enumerate(reversed(self.stage_ix)):
+                        if cix in stix:
+                            break
+                    else:
+                        raise ValueError('Not in stage, cnum: {0}'.format(cix))
+                    ctkin = self.tkin_sampler.draw(self.ns - 1 - jj)
+            else:
+                ctkin = 15.
             masses[cix - 1] = self.calc_mass(ctkin, cflux, cdist)
         return masses
 
