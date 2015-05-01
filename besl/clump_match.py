@@ -821,13 +821,13 @@ class WaterHops(Data):
     def __init__(self):
         # Catalog parameters
         self.name = 'h2o_hops'
-        self.cat = catalog.read_cat('walsh11_hops_h2o')
-        self.lon_col = 'lPeak_deg'
-        self.lat_col = 'bPeak_deg'
+        self.cat = catalog.read_cat('walsh14_hops_h2o')
+        self.lon_col = '_Glon'
+        self.lat_col = '_Glat'
         self.det_col = None
         self.det_flags = None
-        self.choose_col = 'T_peak_K'
-        self.noise_col = 'RMS_K'
+        self.choose_col = 'Sp'
+        self.noise_col = None
 
 
 class WaterRms(Data):
