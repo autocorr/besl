@@ -15,7 +15,10 @@ import matplotlib.patheffects as PathEffects
 from scipy import ndimage
 from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
-from ..catalog import read_bgps_vel
+from besl import catalog
+
+
+plt.rc('font', **{'size': 10})
 
 
 def velocity_color_scatter(coords):
@@ -35,7 +38,7 @@ def velocity_color_scatter(coords):
     """
     assert len(coords) == 4
     # data
-    bgpv = read_bgps_vel()
+    bgpv = catalog.read_bgps_vel()
     # limits
     glon_min, glon_max, glat_min, glat_max = coords
     mask = (bgpv.glon_peak > glon_min) & (bgpv.glon_peak < glon_max) & \
@@ -78,7 +81,8 @@ def plot_all_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
     log_Z : bool
         Create plots with logarithmic Z axis
     """
-    cmap = cm.Paired
+    #cmap = cm.RdBu_r
+    cmap = cm.RdYlBu
     obj_dict = pickle.load(open(filen + '.pickle', 'rb'))
     X = obj_dict['velo']
     Y = obj_dict['angle']
@@ -91,15 +95,16 @@ def plot_all_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
     clevels = [0.06, 0.12, 0.20, 0.30, 0.5]
     for key, Z in params:
         print ':: ', key
-        fig, ax = plt.subplots(figsize=(6, 6))
-        cax = fig.add_axes([0.12, 0.92, 0.8, 0.03])
-        plt.subplots_adjust(top=0.85)
+        fig, ax = plt.subplots(figsize=(4, 4.5))
+        cax = fig.add_axes([0.15, 0.88, 0.8, 0.03])
+        plt.subplots_adjust(top=0.85, left=0.15, right=0.95, bottom=0.125)
         if log_Z:
             Z = np.log10(Z)
             key += '_(log)'
         Z = ndimage.zoom(Z, 3)
         pc = ax.pcolor(X, Y, Z, cmap=cmap, vmin=Z.min(), vmax=Z.max())
-        cb = plt.colorbar(pc, ax=ax, cax=cax, orientation='horizontal')
+        cb = plt.colorbar(pc, ax=ax, cax=cax, orientation='horizontal',
+                          ticklocation='top')
         ax.plot([4], [0.065], 'ko', ms=10, markerfacecolor='none', markeredgewidth=2)
         # Contours for conflict frac
         cn = ax.contour(X, Y, W, levels=clevels,
@@ -107,7 +112,7 @@ def plot_all_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
         plt.setp(cn.collections,
                  path_effects=[PathEffects.withStroke(linewidth=2,
                  foreground='w')])
-        cl = ax.clabel(cn, fmt='%1.2f', inline=1, fontsize=11,
+        cl = ax.clabel(cn, fmt='%1.2f', inline=1, fontsize=10,
                        use_clabeltext=True)
         plt.setp(cl, path_effects=[PathEffects.withStroke(linewidth=2,
                  foreground='w')])

@@ -25,7 +25,7 @@ class Tile(object):
     lenf = 2  # data points width of square
     eps = 0.1  # spacing factor
     wid = lenf - 2 * eps
-    cmap = plt.cm.jet
+    cmap = plt.cm.RdBu_r
     norm = plt.Normalize(vmin=0, vmax=1)
 
     def __init__(self, f1, f2, ii, jj):
