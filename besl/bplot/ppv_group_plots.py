@@ -81,8 +81,7 @@ def plot_all_params(filen='obj_props', out_filen='ppv_grid', log_Z=False):
     log_Z : bool
         Create plots with logarithmic Z axis
     """
-    #cmap = cm.RdBu_r
-    cmap = cm.RdYlBu
+    cmap = cm.RdYlBu_r
     obj_dict = pickle.load(open(filen + '.pickle', 'rb'))
     X = obj_dict['velo']
     Y = obj_dict['angle']

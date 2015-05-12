@@ -17,7 +17,7 @@ from besl import dpdf_mc
 from besl import util
 
 
-plt.rc('font', **{'size':14})
+plt.rc('font', **{'size':10})
 
 
 def get_data(clip_lon=True):
@@ -210,17 +210,40 @@ class MassData(object):
         return hist
 
 
+class LifeTimeData(MassData):
+    maser_col = 'ch3oh_f'
+
+    def calc(self):
+        masses = self.ms.draw()
+        scc_hist = np.zeros(len(self.bins)-1, dtype=float)
+        mas_hist = np.zeros(len(self.bins)-1, dtype=float)
+        print ':: Compute histogram'
+        for ii, dd in self.ms.dix.items():
+            mm = masses[ii-1]
+            if self.df.loc[ii, self.maser_col] == 1:
+                hh, _ = np.histogram(mm, bins=self.bins)
+                mas_hist += hh / self.nsamples
+            elif self.df.loc[ii, self.proto_col] <= 0.4:
+                hh, _ = np.histogram(mm, bins=self.bins)
+                scc_hist += hh / self.nsamples
+            else:
+                pass
+        return scc_hist / mas_hist
+
+
 class Plot(object):
+    fontsize = 9
+
     def __init__(self, od):
         self.od = od
 
     def make_fig(self):
-        fig, ax = plt.subplots(figsize=(8, 2.5))
+        fig, ax = plt.subplots(figsize=(4, 2))
         ax.set_xscale('log')
         ax.set_xlabel(self.od.xlabel)
         ax.set_xlim(self.od.xmin, self.od.xmax)
         ax.set_ylim(0, 1.1)
-        plt.subplots_adjust(bottom=0.22)
+        plt.subplots_adjust(left=0.15, right=0.95, bottom=0.25)
         return fig, ax
 
 
@@ -245,12 +268,14 @@ class ObsPlot(Plot):
         fig, ax = self.make_fig()
         if window_label:
             ax.annotate(r'${\rm Window} = ' + str(2 * self.od.winr) + '$',
-                        xy=(0.725, 0.1), xycoords='axes fraction', fontsize=13)
+                        xy=(0.725, 0.1), xycoords='axes fraction',
+                        fontsize=self.fontsize)
         ax.set_ylabel(r'$R_{\rm proto}$')
         # if over-plot with the distance sample
         if dod is not None:
-            ax.annotate('$({0})$'.format(dod.nbins), xy=(0.850, 0.1),
-                        xycoords='axes fraction', fontsize=13, color='0.5')
+            ax.annotate('$({0})$'.format(dod.nbins), xy=(0.860, 0.1),
+                        xycoords='axes fraction', fontsize=self.fontsize,
+                        color='0.5')
             ax.hlines(dod.mean_frac, self.od.xmin, self.od.xmax,
                       linestyles='dotted', colors='0.5')
             ax.plot(dod.bins, dod.wvals, color='0.5', linestyle='solid',
@@ -262,7 +287,7 @@ class ObsPlot(Plot):
             ax.vlines(dod.bins, 1.01, 1.040, colors='0.35',
                       linestyles='solid', linewidth=0.1)
         ax.annotate('$N={0}$'.format(self.od.nbins), xy=(0.675, 0.1),
-                    xycoords='axes fraction', fontsize=13)
+                    xycoords='axes fraction', fontsize=self.fontsize)
         ax.hlines(1, self.od.xmin, self.od.xmax, linestyles='dashed',
                   colors='0.5')
         ax.hlines(self.od.mean_frac, self.od.xmin, self.od.xmax,
@@ -283,10 +308,11 @@ class DistPlot(Plot):
         fig, ax = self.make_fig()
         if up_label:
             ax.annotate(self.od.up_label, xy=(0.47, 0.1),
-                        xycoords='axes fraction', fontsize=13)
+                        xycoords='axes fraction', fontsize=self.fontsize)
             ax.hlines(0.165, 7.5, 9, colors='red')
         ax.annotate(r'$N={0}$'.format(len(self.od.dix)),
-                     xy=(0.675, 0.1), xycoords='axes fraction', fontsize=13)
+                     xy=(0.675, 0.1), xycoords='axes fraction',
+                    fontsize=self.fontsize)
         ax.hlines(1, self.od.xmin / 1e3, self.od.xmax / 1e3,
                   linestyles='dashed', colors='0.5')
         ax.hlines(self.od.mean_frac, self.od.xmin / 1e3, self.od.xmax / 1e3,
@@ -305,7 +331,8 @@ class MassPlot(Plot):
     def plot_frac(self):
         fig, ax = self.make_fig()
         ax.annotate(r'$N={0}$'.format(len(self.od.ms.dix)),
-                     xy=(0.675, 0.1), xycoords='axes fraction', fontsize=13)
+                     xy=(0.675, 0.1), xycoords='axes fraction',
+                    fontsize=self.fontsize)
         ax.hlines(1, self.od.xmin, self.od.xmax,
                   linestyles='dashed', colors='0.5')
         ax.hlines(self.od.mean_frac, self.od.xmin, self.od.xmax,
@@ -314,6 +341,35 @@ class MassPlot(Plot):
         ax.set_ylabel(r'$R_{\rm proto}$')
         ax.set_xlim(self.od.xmin, self.od.xmax)
         util.savefig('sf_frac_' + self.od.col, close=True)
+
+
+class LifeTimePlot(Plot):
+    hi_life = 4.0e4
+    lo_life = 2.5e4
+    max_ix = 225
+
+    def plot_frac(self):
+        fig, ax = self.make_fig()
+        ax.annotate(r'$N={0}$'.format(len(self.od.ms.dix)),
+                     xy=(0.675, 0.85), xycoords='axes fraction',
+                    fontsize=self.fontsize)
+        bins = self.od.bins[:self.max_ix]
+        samples = self.od.sf_frac[:self.max_ix]
+        ax.fill_between([1e2, 4e2], 1e3, 1e7, facecolor='0.9',
+                        edgecolor='none',)
+        ax.fill_between(bins, self.lo_life * samples, self.hi_life * samples,
+                        facecolor='0.5', edgecolor='none')
+        ax.plot(bins, self.lo_life * samples, 'k-', drawstyle='steps')
+        ax.plot(bins, self.hi_life * samples, 'k-', drawstyle='steps')
+        ax.plot([bins[-1], bins[-1]],
+                [self.lo_life * samples[-1], self.hi_life * samples[-1]], 'k-')
+        ax.plot([1.2e4, 8e4], [9e3, 9e3], 'k-')
+        ax.plot([3.2e4], [7.3e3], 'kv', ms=5)
+        ax.set_yscale('log')
+        ax.set_ylim([1e3, 1e7])
+        ax.set_ylabel(r'$\tau_{\rm SCC} \ \ [{\rm yr}]$')
+        ax.set_xlim(1e2, self.od.xmax)
+        util.savefig('lifetime_' + self.od.col, close=True)
 
 
 def plot_flux_window():
@@ -383,6 +439,12 @@ def plot_mass(use_fwhm=False):
     op = MassPlot(od)
     op.plot_frac()
 
+
+def plot_lifetime(use_fwhm=False):
+    LifeTimeData.use_fwhm = use_fwhm
+    od = LifeTimeData()
+    op = LifeTimePlot(od)
+    op.plot_frac()
 
 
 #####

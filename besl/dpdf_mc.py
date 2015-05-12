@@ -291,6 +291,23 @@ class AvgDensSampler(DepSampler):
         return a1 * masses / (a2 * radii**3)
 
 
+class AvgCenDensSampler(DepSampler):
+    def __init__(self, cat, nsamples):
+        super(AvgCenDensSampler, self).__init__(cat, nsamples)
+        self.ads = AvgDensSampler(cat, nsamples)
+        self.cds = CenDensSampler(cat, nsamples)
+
+    def draw(self):
+        #return np.fmax(self.ads.draw(), self.cds.draw())
+        adens = self.ads.draw()
+        cdens = self.cds.draw()
+        dens = cdens.copy()
+        for ii in range(dens.shape[0]):
+            if np.nanmedian(adens[ii]) > np.nanmedian(cdens[ii]):
+                dens[ii] = adens[ii]
+        return dens
+
+
 class CylDensSampler(DepSampler):
     def __init__(self, cat, nsamples):
         super(CylDensSampler, self).__init__(cat, nsamples)
@@ -397,9 +414,18 @@ class MassSampler(DepSampler):
         return 14.067 * (np.exp(13.08 / tkin) - 1) * flux * (dist * 1e-3)**2
 
 
-class FreeFallSampler(DepSampler):
+class CenFreeFallSampler(DepSampler):
+    def __init__(self, cat, nsamples):
+        super(CenFreeFallSampler, self).__init__(cat, nsamples)
+        self.ms = AvgCenDensSampler(self.cat, nsamples)
+
+    def draw(self):
+        return 3.07603e7 / np.sqrt(self.ms.draw())
+
+
+class FwhmFreeFallSampler(DepSampler):
     def __init__(self, cat, nsamples, use_fwhm=True):
-        super(FreeFallSampler, self).__init__(cat, nsamples)
+        super(FwhmFreeFallSampler, self).__init__(cat, nsamples)
         self.use_fwhm = use_fwhm
         self.ms = MassSampler(self.cat, nsamples, use_fwhm=True)
 

@@ -11,9 +11,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors, cm
 from matplotlib.ticker import MaxNLocator
-from besl import catalog, units
+from besl import catalog
+from besl import util
 from besl.dpdf_calc import (mc_sampler_1d, evo_stages,
                             gen_stage_mass_samples, gen_stage_area_samples)
+
+
+plt.rc('font', **{'size':10})
 
 
 def plot_dpdf_sampling(n=200):
@@ -46,7 +50,6 @@ def plot_dpdf_sum(outname='evo_dpdfs'):
     fig : matplotlib.Figure
     ax : matplotlib.Axes
     """
-    plt.rc('font', **{'size':14})
     xdist = np.arange(1000) * 20. + 20.
     # read data
     pposts = catalog.read_pickle('ppv_dpdf_posteriors')
@@ -57,12 +60,14 @@ def plot_dpdf_sum(outname='evo_dpdfs'):
     pstages, anno_labels = evo_stages(bgps=pevo)
     dstages, anno_labels = evo_stages(bgps=devo)
     # plot
-    fig, axes = plt.subplots(nrows=len(pstages), ncols=1, sharex=True)
+    fig, axes = plt.subplots(nrows=len(pstages), ncols=1, sharex=True,
+                             figsize=(4, 3.5))
     for ii, ax in enumerate(axes.flat):
         if ii < 2:
             [spine.set_linewidth(2.0) for spine in ax.spines.itervalues()]
     for pdf, ddf, ax, alabel in zip(pstages, dstages, axes, anno_labels):
         # take posterior sum and normalize
+        ax.tick_params(axis='y', which='major', labelsize=8)
         pydist = np.sum([pposts[ii] for ii in pdf.index], axis=0)
         pydist /= pydist.sum() * 20
         dydist = np.sum([dposts[ii] for ii in ddf.index], axis=0)
@@ -80,19 +85,17 @@ def plot_dpdf_sum(outname='evo_dpdfs'):
         ax.plot(pmed * np.ones(2), [0, 0.35], 'w-')
         ax.plot(pmed * np.ones(2), [0, 0.35], 'k--')
         # labels
-        ax.annotate(alabel['label'], xy=(0.775, 0.65), xycoords='axes fraction',
-            fontsize=13)
-        ax.annotate('$N = ' + str(pdf.shape[0]) + '$',
-            xy=(0.53, 0.65), xycoords='axes fraction',
-            fontsize=13)
-        ax.annotate('$(' + str(ddf.shape[0]) + ')$',
-            xy=(0.65, 0.65), xycoords='axes fraction',
-            fontsize=13, color='0.5')
-    ax.set_ylabel(r'${\rm Relative \ Probability}$')
+        ax.annotate(alabel['label'], xy=(0.73, 0.55), xycoords='axes fraction',
+                    fontsize=9)
+        ax.annotate('$N = ' + str(pdf.shape[0]) + '$', xy=(0.45, 0.55),
+                    xycoords='axes fraction', fontsize=9)
+        ax.annotate('$(' + str(ddf.shape[0]) + ')$', xy=(0.625, 0.55),
+                    xycoords='axes fraction', fontsize=9, color='0.5')
+    axes[3].set_ylabel(r'${\rm Relative \ Probability}$')
     ax.set_xlabel(r'${\rm Heliocentric \ Distance \ \ [kpc]}$')
-    plt.subplots_adjust(hspace=0.1)
-    plt.savefig(outname + '.pdf')
-    plt.savefig(outname + '.png', dpi=300)
+    plt.subplots_adjust(hspace=0.1, right=0.95, left=0.15, top=0.95,
+                        bottom=0.125)
+    util.savefig(outname)
     print '-- {0}.pdf written'.format(outname)
     return fig, axes
 
@@ -207,7 +210,6 @@ def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
         bgps = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
     else:
         assert bgps.index.name == 'v210cnum'
-    plt.rc('font', **{'size':14})
     # evo stages
     post = catalog.read_pickle('ppv_dpdf_posteriors')
     dix = post.keys()
@@ -228,11 +230,13 @@ def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
         'stepfilled', 'linestyle': 'solid', 'linewidth': 1}
     stages_labels = [i.values()[0] for i in anno_labels]
     # create plot
-    fig, axes = plt.subplots(nrows=len(stages), ncols=1, sharex=True)
+    fig, axes = plt.subplots(nrows=len(stages), ncols=1, sharex=True,
+                             figsize=(4, 3.5))
     for i, ax in enumerate(axes):
         if i < 2:
             [spine.set_linewidth(2.0) for spine in ax.spines.itervalues()]
         # draw plots
+        ax.tick_params(axis='y', which='major', labelsize=8)
         kwargs_hist = dict(kwargs_gen.items() + anno_labels[i].items())
         hist_heights, hist_edges = np.histogram(stages[i][label], bins=lbins)
         ymax = np.nanmax([np.max(hist_heights), 1])
@@ -260,21 +264,21 @@ def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
         ax.locator_params(axis='y', tight=True, nbins=4)
         ax.set_xscale('log')
         if not left_label:
-            slabel_xoffset = 0.775
+            slabel_xoffset = 0.73
         else:
             slabel_xoffset = 0.15
-        ax.annotate(stages_labels[i], xy=(slabel_xoffset, 0.65), xycoords='axes fraction',
-            fontsize=13)
-        ax.annotate(df.shape[0], xy=(0.05, 0.65), xycoords='axes fraction',
-            fontsize=13)
+        ax.annotate(stages_labels[i], xy=(slabel_xoffset, 0.55),
+                    xycoords='axes fraction', fontsize=9)
+        ax.annotate(df.shape[0], xy=(0.05, 0.55), xycoords='axes fraction',
+                    fontsize=9)
     axes[-1].set_xlabel(xlabel)
+    axes[3].set_ylabel(r'$N$')
     # save
-    plt.subplots_adjust(hspace=0.1)
-    plt.savefig('stages_hist_{}.pdf'.format(label))
-    plt.savefig('stages_hist_{}.eps'.format(label))
-    plt.savefig('stages_hist_{}.png'.format(label), dpi=300)
+    plt.subplots_adjust(hspace=0.1, right=0.95, left=0.15, top=0.95,
+                        bottom=0.125)
+    util.savefig('stages_hist_{0}'.format(label))
     print '-- stages_hist_{}.pdf written'.format(label)
-    return [fig, axes]
+    return fig, axes
 
 
 def marginal_stages_hist(bgps=[], label='dust_mass', realiz=50, nsample=1e2):
@@ -427,7 +431,7 @@ def write_all_hists():
         PlotData('nh3_tkin', r'$T_{\rm K} \ \ [{\rm K}]$', amm),
         PlotData('nh3_gbt_pk11', r'$T_{\rm pk}({\rm NH_3 \ (1,1)}) \ \ [{\rm K}]$', amm),
         PlotData('nh3_gbt_tau11', r'$\tau({\rm NH_3 \ (1,1)})$', amm),
-        PlotData('nh3_gbt_fwhm', r'$\Delta v({\rm NH_3 \ (1,1)}) \ \ [{\rm km \ s^{-1}}]$', amm),
+        PlotData('nh3_gbt_fwhm', r'$\Delta v({\rm NH_3}) \ \ [{\rm km \ s^{-1}}]$', amm),
         # HCO+
         PlotData('mol_hco_tpk', r'$T_{\rm pk}({\rm HCO^+}) \ \ [{\rm K}]$', hco),
         PlotData('mol_hco_int', r'$I({\rm HCO^+}) \ \ [{\rm K \ km \ s^{-1}}]$', hco),

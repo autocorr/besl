@@ -516,7 +516,7 @@ def evo_stages(bgps=None, stages_group=2, label=None):
         anno_labels = [
             {'label': r'${\rm Starless \ Cand.}$'},
             {'label': r'${\rm Protostellar}$'},
-            {'label': r'${\rm HiGAL \ 70 \ Uniq.}$'},
+            {'label': r'${\rm 70 \ \mu m \ Unique}$'},
             {'label': r'${\rm Mid \ IR}$'},
             {'label': r'${\rm H_2O}$'},
             {'label': r'${\rm CH_3OH}$'},
