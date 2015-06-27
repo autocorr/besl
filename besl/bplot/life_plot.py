@@ -89,8 +89,9 @@ class GrowPops(Pops):
 
 class Panel(object):
     # lifetimes from van der Walt (2005) scaled by MW SFR
-    lo_lf = 3.5e4 * (4 / 2.3)
-    hi_lf = 3.5e4 * (4 / 1.5)
+    corr_fact = 1015 / 625. * 2238 / 2445.
+    lo_lf = 3.5e4 * (4 / 2.3) * corr_fact
+    hi_lf = 3.5e4 * (4 / 1.5) * corr_fact
     md_lf = (lo_lf + hi_lf) / 2.
     xlim = (1e2, 1e5)
     ylim = (3e3, 1e7)
@@ -107,7 +108,7 @@ class Panel(object):
         self.add_label(label)
         self.add_hi_lim(up_frac)
         self.plot_life(vals)
-        self.plot_ff()
+        #self.plot_ff()
 
     def show_incomplete(self):
         self.ax.fill_between([1e2, 4e2], 1e3, 1e8, facecolor='0.9',
@@ -126,6 +127,7 @@ class Panel(object):
         self.ax.plot([10**4.1, 10**4.6], [tau_lim, tau_lim], 'k-', zorder=8)
         self.ax.plot([10**4.35], [tau_lim], marker='o',
                      markerfacecolor=facecolor, markersize=4, zorder=9)
+        print ':: Limit: ', up_frac * self.lo_lf, up_frac * self.hi_lf
 
     def plot_ff(self):
         ff = lambda x: 1.6558e7 * x**(-0.5)  # in yr, x in Msun
@@ -134,6 +136,7 @@ class Panel(object):
 
     def plot_life(self, vals, facecolor='0.3'):
         vals = vals[MASS_IMIN:MASS_IMAX]
+        print ':: Start range: ', vals[0] * self.lo_lf, vals[0] * self.hi_lf
         print ':: Mean slope: ', (np.mean(np.log10(vals[1:]) -
                                           np.log10(vals[:-1])) / MASS_BSIZ)
         self.ax.fill_between(self.bins, self.lo_lf * vals, self.hi_lf * vals,
@@ -234,10 +237,17 @@ def life_plot():
     plot.save()
 
 
-def life_plot_two():
+def life_plot_two_growth():
     pops = Pops()
     gpops = GrowPops()
     plot = TwoLifePlot(pops, gpops)
+    plot.plot()
+    plot.save()
+
+
+def life_plot_two_nogrowth():
+    pops = Pops()
+    plot = TwoLifePlot(pops)
     plot.plot()
     plot.save()
 

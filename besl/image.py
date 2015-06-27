@@ -52,7 +52,8 @@ def get_bgps_img(identifier, exten, v=210):
     if v not in [101, 200, 201, '2d', 210]:
         raise ValueError('Invalid version: {0}'.format(v))
     if exten not in ['labelmask', 'labelmap50', 'map20', 'map50', 'medmap20',
-                     'noisemap20']:
+                     'noisemap20', 'map20_crop', 'map20_crop_reproject',
+                     'map20_reproject', 'medmap20_crop', 'medmap20_reproject']:
         raise ValueError('Incorrect exten: {}.'.format(exten))
     if v == '2d':
         exten = 'labelmask_deeper'

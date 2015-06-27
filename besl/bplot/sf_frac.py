@@ -210,6 +210,24 @@ class MassData(object):
         return hist
 
 
+class MassFracData(MassData):
+    corr_fact = 1015. / 625.  # DPDF sample correction factor
+    mean_frac = 1 / corr_fact
+
+    def calc(self):
+        masses = self.ms.draw()
+        scc_hist = np.zeros(len(self.bins)-1, dtype=float)
+        pro_hist = scc_hist.copy()
+        print ':: Compute histogram'
+        for ii, dd in self.ms.dix.items():
+            mm = masses[ii-1]
+            pp = self.df.loc[ii, self.proto_col]
+            hh, _ = np.histogram(mm, bins=self.bins)
+            scc_hist += hh * (1 - pp) / self.nsamples
+            pro_hist += hh * pp / self.nsamples
+        return self.corr_fact * scc_hist / pro_hist
+
+
 class LifeTimeData(MassData):
     maser_col = 'ch3oh_f'
 
@@ -343,6 +361,23 @@ class MassPlot(Plot):
         util.savefig('sf_frac_' + self.od.col, close=True)
 
 
+class MassFracPlot(Plot):
+    def plot_frac(self):
+        fig, ax = self.make_fig()
+        ax.set_ylim([0, 2.5])
+        ax.annotate(r'$N={0}$'.format(len(self.od.ms.dix)),
+                     xy=(0.675, 0.8), xycoords='axes fraction',
+                    fontsize=self.fontsize)
+        ax.hlines(1, self.od.xmin, self.od.xmax,
+                  linestyles='dashed', colors='0.5')
+        ax.hlines(self.od.mean_frac, self.od.xmin, self.od.xmax,
+                  linestyles='dotted', colors='0.5')
+        ax.plot(self.od.bins[:-1], self.od.sf_frac, 'k-', drawstyle='steps')
+        ax.set_ylabel(r'$N_{\rm SCC} / N_{\rm proto}$')
+        ax.set_xlim(self.od.xmin, self.od.xmax)
+        util.savefig('sf_frac_' + self.od.col, close=True)
+
+
 class LifeTimePlot(Plot):
     hi_life = 4.0e4
     lo_life = 2.5e4
@@ -437,6 +472,11 @@ def plot_mass(use_fwhm=False):
     MassData.use_fwhm = use_fwhm
     od = MassData()
     op = MassPlot(od)
+    op.plot_frac()
+
+
+def plot_nfrac_mass():
+    op = MassFracPlot(MassFracData())
     op.plot_frac()
 
 
