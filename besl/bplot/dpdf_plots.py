@@ -269,8 +269,8 @@ def stages_hist(label, xlabel, bgps=None, color=True, left_label=False):
             slabel_xoffset = 0.15
         ax.annotate(stages_labels[i], xy=(slabel_xoffset, 0.55),
                     xycoords='axes fraction', fontsize=9)
-        ax.annotate(df.shape[0], xy=(0.05, 0.55), xycoords='axes fraction',
-                    fontsize=9)
+        ax.annotate(int(np.isfinite(df).sum()), xy=(0.05, 0.55),
+                    xycoords='axes fraction', fontsize=9)
     axes[-1].set_xlabel(xlabel)
     axes[3].set_ylabel(r'$N$')
     # save
@@ -405,7 +405,9 @@ def write_all_hists():
     Read in evolutionary and fwhm data, then create histograms for all
     osberverable properties.
     """
+    omni = catalog.read_cat('ellsworthbowers15a_table5').set_index('v210cnum')
     evo = catalog.read_cat('bgps_v210_evo').set_index('v210cnum')
+    evo = evo.merge(omni[['Rgal']], how='outer', left_index=True, right_index=True)
     flux = evo.query('1e-2 < flux_40')
     fwhm = catalog.read_cat('bgps_v210_fwhm').set_index('v210cnum')
     fwhm = evo.merge(fwhm.loc[:, 'npix':], left_index=True, right_index=True)
@@ -414,34 +416,38 @@ def write_all_hists():
     hco = evo.query('mol_hco_f in [1,2,3]')
     nnh = evo.query('mol_nnh_f in [1,2,3]')
     data = (
-        # Flux data
-        PlotData('flux', r'$S^{\rm Total}_{1.1} \ \ [{\rm Jy}]$', evo),
-        PlotData('flux_40', r'$S_{1.1}(40^{\prime\prime}) \ \ [{\rm Jy}]$', flux),
-        PlotData('flux_80', r'$S_{1.1}(80^{\prime\prime}) \ \ [{\rm Jy}]$', flux),
-        PlotData('flux_120', r'$S_{1.1}(120^{\prime\prime}) \ \ [{\rm Jy}]$', flux),
-        # FWHM properties
-        PlotData('fwhm_flux', r'$S^{\rm FWHM}_{1.1} \ \ [{\rm Jy}]$', fwhm),
-        PlotData('eqangled', r'$\theta^{\rm Total}_{\rm eq} \ \ [{\rm arcsec}]$', fwhm),
-        PlotData('sangled', r'$\Omega^{\rm Total} \ \ [{\rm sq. \ arcsec}]$', fwhm),
-        PlotData('fwhm_eqangled', r'$\theta^{\rm FWHM}_{\rm eq} \ \ [{\rm arcsec}]$', fwhm_res),
-        PlotData('fwhm_sangled', r'$\Omega^{\rm FWHM} \ \ [{\rm sq. \ arcsec}]$', fwhm_res),
-        PlotData('fwhm_sangled_ratio', r'$\Omega^{\rm FWHM} / \Omega^{\rm Total}$', fwhm_res, left_label=True),
-        PlotData('fwhm_sangled_ratio_inv', r'$\Omega^{\rm Total} / \Omega^{\rm FWHM}$', fwhm_res),
+        ## Position
+        #PlotData('glon_peak', r'${\rm Galactic \ Longitude} \ \ [{\rm deg}]$', evo),
+        #PlotData('glat_peak', r'${\rm Galactic \ Latitude} \ \ [{\rm deg}]$', evo),
+        #PlotData('Rgal', r'${\rm Galactocentric \ Radius} \ \ [{\rm kpc}]$', evo),
+        ## Flux data
+        #PlotData('flux', r'$S^{\rm Total}_{1.1} \ \ [{\rm Jy}]$', evo),
+        #PlotData('flux_40', r'$S_{1.1}(40^{\prime\prime}) \ \ [{\rm Jy}]$', flux),
+        #PlotData('flux_80', r'$S_{1.1}(80^{\prime\prime}) \ \ [{\rm Jy}]$', flux),
+        #PlotData('flux_120', r'$S_{1.1}(120^{\prime\prime}) \ \ [{\rm Jy}]$', flux),
+        ## FWHM properties
+        #PlotData('fwhm_flux', r'$S^{\rm FWHM}_{1.1} \ \ [{\rm Jy}]$', fwhm),
+        #PlotData('eqangled', r'$\theta^{\rm Total}_{\rm eq} \ \ [{\rm arcsec}]$', fwhm),
+        #PlotData('sangled', r'$\Omega^{\rm Total} \ \ [{\rm sq. \ arcsec}]$', fwhm),
+        #PlotData('fwhm_eqangled', r'$\theta^{\rm FWHM}_{\rm eq} \ \ [{\rm arcsec}]$', fwhm_res),
+        #PlotData('fwhm_sangled', r'$\Omega^{\rm FWHM} \ \ [{\rm sq. \ arcsec}]$', fwhm_res),
+        #PlotData('fwhm_sangled_ratio', r'$\Omega^{\rm FWHM} / \Omega^{\rm Total}$', fwhm_res, left_label=True),
+        #PlotData('fwhm_sangled_ratio_inv', r'$\Omega^{\rm Total} / \Omega^{\rm FWHM}$', fwhm_res),
         # NH3
         PlotData('nh3_tkin', r'$T_{\rm K} \ \ [{\rm K}]$', amm),
         PlotData('nh3_gbt_pk11', r'$T_{\rm pk}({\rm NH_3 \ (1,1)}) \ \ [{\rm K}]$', amm),
         PlotData('nh3_gbt_tau11', r'$\tau({\rm NH_3 \ (1,1)})$', amm),
         PlotData('nh3_gbt_fwhm', r'$\Delta v({\rm NH_3}) \ \ [{\rm km \ s^{-1}}]$', amm),
         # HCO+
-        PlotData('mol_hco_tpk', r'$T_{\rm pk}({\rm HCO^+}) \ \ [{\rm K}]$', hco),
-        PlotData('mol_hco_int', r'$I({\rm HCO^+}) \ \ [{\rm K \ km \ s^{-1}}]$', hco),
-        PlotData('mol_hco_fwhm', r'$\Delta v({\rm HCO^+}) \ \ [{\rm km \ s^{-1}}]$', hco),
-        PlotData('mol_hco_fwzi', r'${\rm HCO^+ \ FWZI} \ \ [{\rm km \ s^{-1}}]$', hco),
-        # N2H+
-        PlotData('mol_nnh_tpk', r'$T_{\rm pk}({\rm N_2H^+}) \ \ [{\rm K}]$', nnh),
-        PlotData('mol_nnh_int', r'$I({\rm N_2H^+}) \ \ [{\rm K \ km \ s^{-1}}]$', nnh),
-        PlotData('mol_nnh_fwhm', r'$\Delta v({\rm N_2H^+}) \ \ [{\rm km \ s^{-1}}]$', nnh),
-        PlotData('mol_nnh_fwzi', r'${\rm N_2H^+ \ FWZI} \ \ [{\rm km \ s^{-1}}]$', nnh),
+        #PlotData('mol_hco_tpk', r'$T_{\rm pk}({\rm HCO^+}) \ \ [{\rm K}]$', hco),
+        #PlotData('mol_hco_int', r'$I({\rm HCO^+}) \ \ [{\rm K \ km \ s^{-1}}]$', hco),
+        #PlotData('mol_hco_fwhm', r'$\Delta v({\rm HCO^+}) \ \ [{\rm km \ s^{-1}}]$', hco),
+        #PlotData('mol_hco_fwzi', r'${\rm HCO^+ \ FWZI} \ \ [{\rm km \ s^{-1}}]$', hco),
+        ## N2H+
+        #PlotData('mol_nnh_tpk', r'$T_{\rm pk}({\rm N_2H^+}) \ \ [{\rm K}]$', nnh),
+        #PlotData('mol_nnh_int', r'$I({\rm N_2H^+}) \ \ [{\rm K \ km \ s^{-1}}]$', nnh),
+        #PlotData('mol_nnh_fwhm', r'$\Delta v({\rm N_2H^+}) \ \ [{\rm km \ s^{-1}}]$', nnh),
+        #PlotData('mol_nnh_fwzi', r'${\rm N_2H^+ \ FWZI} \ \ [{\rm km \ s^{-1}}]$', nnh),
     )
     for d in data:
         d.plot()

@@ -25,7 +25,7 @@ class Tile(object):
     lenf = 2  # data points width of square
     eps = 0.1  # spacing factor
     wid = lenf - 2 * eps
-    cmap = plt.cm.RdBu_r
+    cmap = plt.cm.YlGnBu
     norm = plt.Normalize(vmin=0, vmax=1)
 
     def __init__(self, f1, f2, ii, jj):
@@ -56,7 +56,8 @@ class Tile(object):
         self.add_anno(ax, '{0:1.3f}'.format(self.f1_frac), 0.13, 0.21)
 
     def draw_sum(self, ax):
-        self.add_patch(ax, '1.0')
+        #self.add_patch(ax, '1.0')
+        self.add_patch(ax, self.cmap(1.0))
         self.add_anno(ax, '{0}'.format(self.f1_tot), 0.13, 0.51)
 
     def draw_null(self, ax):

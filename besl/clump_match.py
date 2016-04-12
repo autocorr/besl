@@ -1014,6 +1014,19 @@ class MipsgalArchive(Data):
         self.noise_col = None
 
 
+class Sharc(Data):
+    def __init__(self):
+        # Catalog parameters
+        self.name = 'sharc'
+        self.cat = catalog.read_cat('merello15_table3')
+        self.lon_col = 'GLON'
+        self.lat_col = 'GLAT'
+        self.det_col = None
+        self.det_flags = None
+        self.choose_col = None
+        self.noise_col = None
+
+
 ###############################################################################
 #                          Protostellar Probability
 ###############################################################################

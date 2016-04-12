@@ -3,7 +3,7 @@
 
 import os
 import pandas as pd
-import pysao as ds9
+import pyds9
 from astropy.io import fits
 from .catalog import read_cat
 from .image import get_bgps_img
@@ -26,7 +26,7 @@ class Inspector(object):
     def __init__(self, cnum):
         self.cnum = cnum
         self.set_coord()
-        self.d = ds9.ds9()
+        self.d = pyds9.DS9()
         self._set_init_prefs()
 
     def _set_init_prefs(self):
@@ -52,24 +52,26 @@ class Inspector(object):
 
     def _get_rind(self):
         rind = get_bgps_img(self.cnum, exten='labelmask', v=self.v)
+        #rind.verify(option='silentfix')
         rind[0].data[rind[0].data != self.cnum] = 0
         return rind
 
     def _get_flux(self):
         flux = get_bgps_img(self.cnum, exten='map20', v=210)
+        #flux.verify(option='silentfix')
         return flux
 
     def set_coord(self):
-        self.glonp = self.bgps.ix[self.cnum, 'glon_peak']
-        self.glatp = self.bgps.ix[self.cnum, 'glat_peak']
-        self.glonc = self.bgps.ix[self.cnum, 'glon_cen']
-        self.glatc = self.bgps.ix[self.cnum, 'glat_cen']
+        self.glonp = self.bgps.loc[self.cnum, 'glon_peak']
+        self.glatp = self.bgps.loc[self.cnum, 'glat_peak']
+        self.glonc = self.bgps.loc[self.cnum, 'glon_cen']
+        self.glatc = self.bgps.loc[self.cnum, 'glat_cen']
 
     def show_source_contour(self):
         rind = self._get_rind()
         fid = self._get_next_frame_id()
         self.d.set('frame {0}'.format(fid))
-        self.d.view_fits(rind[0])
+        self.d.set_pyfits(rind)
         self.d.set('contour width 2')
         self.d.set('contour limits 0 1')
         self.d.set('contour nlevels 1')
@@ -85,7 +87,7 @@ class Inspector(object):
         fid = self._get_next_frame_id()
         self.d.set('frame {0}'.format(fid))
         flux_img = self._get_flux()
-        self.d.view_fits(flux_img[0])
+        self.d.set_pyfits(flux_img)
         if crop_coords is not None:
             self.d.set('crop {0} wcs galactic degrees'.format(crop_coords))
         self.d.set('contour smooth 2')
@@ -149,23 +151,26 @@ class HiGalInspector(Inspector):
 
     def __init__(self, cnum, img_type='source'):
         super(HiGalInspector, self).__init__(cnum)
+        self.nmap = read_cat('hg70_index_map').set_index('v210cnum')
         self.cnum = cnum
+        self.hcnum = self.nmap.loc[cnum, 'hg70_name']
         if img_type not in self.img_types.keys():
             raise ValueError('Invalid img_type: {0}.'.format(img_type))
         self.img_type = img_type
         self.filen = self._format_img_infile()
 
     def _format_img_infile(self):
-        return self.img_file.format(cnum=self.cnum, img_type=self.img_type,
+        return self.img_file.format(cnum=self.hcnum, img_type=self.img_type,
                                     img_str=self.img_types[self.img_type])
 
     def _get_hg_img(self):
         self.img = fits.open(self.filen)
+        self.img.verify(option='silentfix')
         self.img_min = self.img[0].data.min()
         self.img_max = self.img[0].data.max()
         self.xpix_max = self.img[0].data.shape[0]
         self.ypix_max = self.img[0].data.shape[1]
-        self.d.view_fits(self.img[0])
+        self.d.set_pyfits(self.img)
         self.d.set('lock frame wcs')
         self.d.set('wcs sky galactic skyformat degrees')
 
@@ -178,6 +183,7 @@ class HiGalInspector(Inspector):
 
     def update_view(self, cnum, img_type='source'):
         self.cnum = cnum
+        self.hcnum = self.nmap.loc[cnum, 'hg70_name']
         self.set_coord()
         self.img_type = img_type
         self.filen = self._format_img_infile()
@@ -242,7 +248,7 @@ class MipsgalInspector(Inspector):
 
 def higal_group_inspect(filen='higal_inspect'):
     bgps = read_cat('bgps_v210').set_index('v210cnum')
-    bgps = bgps[(bgps.glon_peak > 7.5) & (bgps.glon_peak < 65)]
+    bgps = bgps.query('7.5 < glon_peak < 65')
     try:
         insp = pd.read_csv(filen + '.cat')
         cstart = insp.iloc[-1][0]
